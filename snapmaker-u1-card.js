@@ -1,19 +1,5 @@
 /* Snapmaker U1 Card — early preview, read-only. MIT License. */
-const DEFAULTS = {
-  printer_state: "sensor.printer_state_snapmaker_u1_despacho",
-  print_state: "sensor.current_print_state_snapmaker_u1_despacho",
-  active_tool: "sensor.active_tool_lava",
-  progress: "sensor.progress_snapmaker_u1_despacho",
-  current_layer: "sensor.current_layer_snapmaker_u1_despacho",
-  total_layers: "sensor.total_layer_snapmaker_u1_despacho",
-  time_left: "sensor.slicer_print_time_left_estimate_snapmaker_u1_despacho",
-  bed_temperature: "sensor.bed_temperature_snapmaker_u1_despacho",
-  chamber_temperature: "sensor.cavity_temp_snapmaker_u1_despacho",
-  extruder1_temperature: "sensor.head_0_nozzle_temperature_lava",
-  extruder2_temperature: "sensor.head_1_nozzle_temperature_lava",
-  extruder3_temperature: "sensor.head_2_nozzle_temperature_lava",
-  extruder4_temperature: "sensor.head_3_nozzle_temperature_lava"
-};
+const DEFAULTS = {};
 class SnapmakerU1Card extends HTMLElement {
   setConfig(config) {
     this.config = { ...DEFAULTS, ...config };
@@ -28,12 +14,6 @@ class SnapmakerU1Card extends HTMLElement {
     if(!this.config)return;
     const c=this.config;
     const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|number|input_boolean)\./.test(v)));
-    for(const [k,v] of Object.entries(DEFAULTS))ids.add(c[k]||v);
-    for(let i=0;i<4;i++){
-      for(const [key,fallback] of [["present","binary_sensor.slot_"+i+"_filament_present_lava"],["color","sensor.u1_t"+i+"_color_spoolman"],["weight","sensor.u1_t"+i+"_peso_spoolman"],["material","sensor.t"+i+"_filamento_display"],["job_estimated","sensor.slot_"+i+"_job_filament_estimated_lava"]])ids.add(c["tool"+i+"_"+key]||fallback);
-      const spoolId=Number(c.spoolman_spool_ids?.[i]);if(spoolId>0)for(const suffix of ["","_color_hex","_filament_name"])ids.add("sensor.spoolman_spool_"+spoolId+suffix);
-    }
-    for(const id of [c.filename||"sensor.filename_snapmaker_u1_despacho",c.print_eta||"sensor.print_eta_snapmaker_u1_despacho",c.thumbnail_camera||"camera.thumbnail_snapmaker_u1_despacho",c.live_camera||"camera.case_snapmaker_u1_despacho",c.exception_sensor||"binary_sensor.exception_lava",c.power_sensor||"sensor.impresora3d_energy_power",c.energy_sensor||"sensor.impresora_3d_energy_total",c.electricity_price_sensor||"sensor.precio_kwh"])ids.add(id);
     if(c.show_spoolman_inventory===true)for(const id of Object.keys(hass.states))if(/^sensor\.spoolman_spool_\d+(?:_color_hex|_filament_name|_vendor)?$/.test(id))ids.add(id);
     const changed=!this._lastHass||[...ids].some(id=>this._lastHass.states?.[id]!==hass.states?.[id]);
     this._lastHass=hass;
@@ -67,7 +47,7 @@ class SnapmakerU1Card extends HTMLElement {
     const remaining=(!printing && !paused)?"—":(()=>{const n=Number(rawRemaining);if(!Number.isFinite(n)||n<0||["unknown","unavailable",""].includes(rawRemaining))return "—";const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const minutes=unit==="s"?Math.ceil(n/60):unit==="h"?Math.ceil(n*60):Math.ceil(n);return `${Math.floor(minutes/60)} h ${String(minutes%60).padStart(2,"0")} min`;})();
     const bed=metric(c.bed_temperature," °C"), chamber=metric(c.chamber_temperature," °C");
     const plannedTools=[0,1,2,3].map(i=>{
-      const raw=this.read(c["tool"+i+"_job_estimated"]||"sensor.slot_"+i+"_job_filament_estimated_lava");
+      const raw=this.read(c["tool"+i+"_job_estimated"]);
       return (printing||paused) && Number.isFinite(Number(raw)) && Number(raw)>0;
     });
 
@@ -75,11 +55,11 @@ class SnapmakerU1Card extends HTMLElement {
     let saved={};
     try { saved=JSON.parse(localStorage.getItem(spoolCacheKey)||"{}")||{}; } catch(e) {}
     const valid=(v)=>!["unknown","unavailable","none","null",""].includes(String(v).trim().toLowerCase());
-    const slotPresent=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_present"]||"binary_sensor.slot_"+i+"_filament_present_lava");return v==="on"?true:v==="off"?false:null;});
+    const slotPresent=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_present"]);return v==="on"?true:v==="off"?false:null;});
     const spoolData=[0,1,2,3].map(i=>{
-      const color=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
-      const weight=this.read(c["tool"+i+"_weight"]||"sensor.u1_t"+i+"_peso_spoolman");
-      const material=this.read(c["tool"+i+"_material"]||"sensor.t"+i+"_filamento_display");
+      const color=this.read(c["tool"+i+"_color"]);
+      const weight=this.read(c["tool"+i+"_weight"]);
+      const material=this.read(c["tool"+i+"_material"]);
       if(!offline && slotPresent[i]===false){delete saved[i];return {color:"#FFFFFF",weight:"",material:"",empty:true};}
       const fresh=!offline && valid(material) && String(material).toLowerCase()!=="libre" && /^#?[0-9a-fA-F]{6}$/.test(String(color).trim()) && valid(weight) && Number(weight)>0;
       if(fresh) saved[i]={color,weight,material};
@@ -153,10 +133,10 @@ class SnapmakerU1Card extends HTMLElement {
       return `<path class="filament-track" d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>`;
     }).join("");
     const controls=[
-      {key:"pause",label:"Pausar",icon:"⏸",entity:c.pause_button||"button.pause_print_snapmaker_u1_despacho",enabled:printing},
-      {key:"resume",label:"Reanudar",icon:"▶",entity:c.resume_button||"button.resume_print_snapmaker_u1_despacho",enabled:paused},
-      {key:"cancel",label:"Parar",icon:"■",entity:c.cancel_button||"button.cancel_print_snapmaker_u1_despacho",enabled:printing||paused},
-      {key:"emergency",label:"Emergencia",icon:"!",entity:c.emergency_button||"button.emergency_stop_snapmaker_u1_despacho",enabled:!offline}
+      {key:"pause",label:"Pausar",icon:"⏸",entity:c.pause_button,enabled:printing},
+      {key:"resume",label:"Reanudar",icon:"▶",entity:c.resume_button,enabled:paused},
+      {key:"cancel",label:"Parar",icon:"■",entity:c.cancel_button,enabled:printing||paused},
+      {key:"emergency",label:"Emergencia",icon:"!",entity:c.emergency_button,enabled:!offline}
     ];
     const controlsHtml=`<div class="printer-controls">${controls.map(item=>`<button type="button" class="printer-action ${item.key}" data-action="${item.key}" ${!item.enabled||this.read(item.entity)==="unavailable"?"disabled":""} title="${item.label}"><span>${item.icon}</span>${item.label}</button>`).join("")}</div>`;
     const showInventory=c.show_spoolman_inventory===true;
@@ -172,30 +152,30 @@ class SnapmakerU1Card extends HTMLElement {
         const vendor=this.read(prefix+"_vendor");
         return {id,color,name:valid(name)?String(name):"Filamento",grams:Number(grams),vendor:valid(vendor)?String(vendor):""};
       }).filter(item=>Number.isFinite(item.grams)&&item.grams>=0).sort((a,b)=>a.name.localeCompare(b.name,"es")):[];
-    const fileName=this.read(c.filename||"sensor.filename_snapmaker_u1_despacho");
+    const fileName=this.read(c.filename);
     const jobName=valid(fileName)?String(fileName).split("/").pop():"";
     const picture=(id)=>{const state=this._hass?.states?.[id];const path=state?.attributes?.entity_picture;return state&&!["unknown","unavailable"].includes(state.state)&&typeof path==="string"&&path.startsWith("/api/camera_proxy/")?path:"";};
-    const thumbUrl=picture(c.thumbnail_camera||"camera.thumbnail_snapmaker_u1_despacho");
-    const cameraUrl=picture(c.live_camera||"camera.case_snapmaker_u1_despacho");
-    const rawEta=this.read(c.print_eta||"sensor.print_eta_snapmaker_u1_despacho");
+    const thumbUrl=picture(c.thumbnail_camera);
+    const cameraUrl=picture(c.live_camera);
+    const rawEta=this.read(c.print_eta);
     let eta="—";
     if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
-    const exception=this._hass?.states?.[c.exception_sensor||"binary_sensor.exception_lava"];
+    const exception=this._hass?.states?.[c.exception_sensor];
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
     if(exception?.state==="on")warnings.push(Array.isArray(exceptionText)&&exceptionText.length?exceptionText.map(x=>typeof x==="string"?x:JSON.stringify(x)).join("; "):"La impresora comunica una incidencia");
     if(printing||paused){for(let i=0;i<4;i++)if(slotPresent[i]===false&&(plannedTools[i]||active===i))warnings.push("T"+i+": falta filamento");}
-    const required=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_job_estimated"]||"sensor.slot_"+i+"_job_filament_estimated_lava");const n=Number(v);return valid(v)&&Number.isFinite(n)&&n>0?n:null;});
+    const required=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_job_estimated"]);const n=Number(v);return valid(v)&&Number.isFinite(n)&&n>0?n:null;});
     const marginRaw=Number(c.filament_safety_margin??0);
     const filamentMargin=Number.isFinite(marginRaw)?Math.max(0,Math.min(100,marginRaw)):0;
     const filamentCheck=(printing||paused)?required.map((need,i)=>{if(need===null)return null;const raw=spoolData[i].weight;const available=raw!==null&&raw!==undefined&&String(raw).trim()!==""&&valid(raw)&&Number.isFinite(Number(raw))?Number(raw):null;const needed=need*(1+filamentMargin/100);if(available===null||spoolData[i].empty)return {i,need,needed,available:null,low:false,unknown:true};return {i,need,needed,available,low:available<needed,unknown:false};}).filter(Boolean):[];
     for(const f of filamentCheck)if(f.low)warnings.push("T"+f.i+": filamento insuficiente ("+Math.round(f.available)+" g / "+Math.round(f.needed)+" g con margen)");
-    const powerRaw=this.read(c.power_sensor||"sensor.impresora3d_energy_power");
+    const powerRaw=this.read(c.power_sensor);
     const power=valid(powerRaw)&&Number.isFinite(Number(powerRaw))?Number(powerRaw):null;
-    const energyRaw=this.read(c.energy_sensor||"sensor.impresora_3d_energy_total");
+    const energyRaw=this.read(c.energy_sensor);
     const energy=valid(energyRaw)&&Number.isFinite(Number(energyRaw))?Number(energyRaw):null;
     const priceMode=c.electricity_price_mode||"sensor";
-    const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor||"sensor.precio_kwh");
+    const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor);
     const price=priceRaw!==null&&priceRaw!==undefined&&String(priceRaw).trim()!==""&&valid(priceRaw)&&Number.isFinite(Number(priceRaw))&&Number(priceRaw)>=0?Number(priceRaw):null;
     if(printing&&!this._jobTracking)this._jobTracking={energyStart:energy,lastEnergy:energy,lastPrice:price,cost:0};
     if(this._jobTracking&&energy!==null){
@@ -307,6 +287,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
         ["time_left","Tiempo restante"],["bed_temperature","Temperatura de cama"],
         ["chamber_temperature","Temperatura interior"],["filename","Archivo de impresión"],["print_eta","Hora de finalización"],["thumbnail_camera","Cámara de miniatura"],["live_camera","Cámara interior"],["exception_sensor","Sensor de errores"],["power_sensor","Potencia eléctrica (W)"],["energy_sensor","Energía acumulada (kWh)"]
       ]],
+      ["Controles de impresión", [["pause_button","Botón de pausa"],["resume_button","Botón de reanudación"],["cancel_button","Botón de cancelar"],["emergency_button","Botón de emergencia"]]],
       ["Presencia de filamento", [0,1,2,3].map(i=>["tool"+i+"_present","Filamento presente en T"+i])],
       ["Temperaturas de los cabezales",[0,1,2,3].map(i=>["extruder"+(i+1)+"_temperature","Temperatura T"+i])],
       ...[0,1,2,3].map(i=>["Bobina T"+i,[
@@ -333,7 +314,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
     extra.dataset.editorGroup="electricity";extra.open=this._openGroups?.has("electricity")??false;this.shadowRoot.appendChild(extra);
     const display=extra.querySelector("[data-display]");display.value=this._config.display_mode||"full";display.addEventListener("change",()=>this.change("display_mode",display.value));
     const mode=extra.querySelector("[data-price-mode]");mode.value=this._config.electricity_price_mode||"sensor";
-    const sensorPicker=extra.querySelector("[data-price-sensor]");sensorPicker.hass=this._hass;sensorPicker.value=this._config.electricity_price_sensor||"sensor.precio_kwh";
+    const sensorPicker=extra.querySelector("[data-price-sensor]");sensorPicker.hass=this._hass;sensorPicker.value=this._config.electricity_price_sensor||"";
     sensorPicker.addEventListener("value-changed",ev=>{if(ev.detail?.value!==undefined)this.change("electricity_price_sensor",ev.detail.value);});
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
@@ -349,15 +330,8 @@ class SnapmakerU1CardEditor extends HTMLElement {
       if(!this._openGroups)this._openGroups=new Set();
       if(section.open)this._openGroups.add(section.dataset.editorGroup);else this._openGroups.delete(section.dataset.editorGroup);
     });
-    const entityFallback=(key)=>{
-      const fixed={filename:"sensor.filename_snapmaker_u1_despacho",print_eta:"sensor.print_eta_snapmaker_u1_despacho",thumbnail_camera:"camera.thumbnail_snapmaker_u1_despacho",live_camera:"camera.case_snapmaker_u1_despacho",exception_sensor:"binary_sensor.exception_lava",power_sensor:"sensor.impresora3d_energy_power",energy_sensor:"sensor.impresora_3d_energy_total"};
-      if(fixed[key])return fixed[key];
-      const match=key.match(/^tool([0-3])_(.+)$/);if(!match)return "";
-      const i=match[1],type=match[2];
-      return ({present:"binary_sensor.slot_"+i+"_filament_present_lava",color:"sensor.u1_t"+i+"_color_spoolman",weight:"sensor.u1_t"+i+"_peso_spoolman",material:"sensor.t"+i+"_filamento_display",job_estimated:"sensor.slot_"+i+"_job_filament_estimated_lava"})[type]||"";
-    };
     for(const el of this.shadowRoot.querySelectorAll("ha-entity-picker[data-key]")){
-      const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??DEFAULTS[key]??entityFallback(key);
+      const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??"";
       el.addEventListener("value-changed",ev=>{if(ev.detail?.value!==undefined)this.change(key,ev.detail.value);});
     }
     for(const el of this.shadowRoot.querySelectorAll("input[data-spool]")){
