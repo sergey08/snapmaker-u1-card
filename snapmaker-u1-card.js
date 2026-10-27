@@ -9,10 +9,10 @@ const DEFAULTS = {
   time_left: "sensor.slicer_print_time_left_estimate_snapmaker_u1_despacho",
   bed_temperature: "sensor.bed_temperature_snapmaker_u1_despacho",
   chamber_temperature: "sensor.cavity_temp_snapmaker_u1_despacho",
-  extruder1_temperature: "sensor.extruder1_temperature_snapmaker_u1_despacho",
-  extruder2_temperature: "sensor.extruder2_temperature_snapmaker_u1_despacho",
-  extruder3_temperature: "sensor.extruder3_temperature_snapmaker_u1_despacho",
-  extruder4_temperature: "sensor.extruder4_temperature_snapmaker_u1_despacho"
+  extruder1_temperature: "sensor.head_0_nozzle_temperature_lava",
+  extruder2_temperature: "sensor.head_1_nozzle_temperature_lava",
+  extruder3_temperature: "sensor.head_2_nozzle_temperature_lava",
+  extruder4_temperature: "sensor.head_3_nozzle_temperature_lava"
 };
 class SnapmakerU1Card extends HTMLElement {
   setConfig(config) {
