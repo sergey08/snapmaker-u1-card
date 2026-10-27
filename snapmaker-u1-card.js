@@ -76,7 +76,7 @@ class SnapmakerU1Card extends HTMLElement {
     ];
     const filamentRoute=(i)=>{
       const [sx,sy,ex]=routePoints[i];
-      const entryY=106;
+      const entryY=113;
       const sideX=i<2?135:465;
       const laneY=[53,8,8,53][i];
       const approachX=ex+(i<2?-24:24);
