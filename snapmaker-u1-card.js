@@ -64,7 +64,7 @@ class SnapmakerU1Card extends HTMLElement {
       if(/^#?[0-9a-fA-F]{6}$/.test(String(fallbackColor).trim()) && Number(fallbackWeight)>0 && valid(fallbackName)){
         return {color:fallbackColor,weight:fallbackWeight,material:String(fallbackName).split(" ")[0]};
       }
-      return {color,weight,material};
+      return {color:"#FFFFFF",weight:"",material:""};
     });
     if(!offline) { try {localStorage.setItem(spoolCacheKey,JSON.stringify(saved));}catch(e){} }
     const spool=(i)=>{
@@ -75,7 +75,7 @@ class SnapmakerU1Card extends HTMLElement {
       const weight=Number(rawWeight);
       const grams=rawWeight!=="" && !["unknown","unavailable","none"].includes(String(rawWeight).toLowerCase()) && Number.isFinite(weight)?Math.round(weight)+" g":"—";
       const rawMaterial=spoolData[i].material;
-      const material=["unknown","unavailable","none"].includes(String(rawMaterial).toLowerCase())?"Sin asignar":this.esc(rawMaterial);
+      const material=!valid(rawMaterial)?"":this.esc(rawMaterial);
       
       const selected=!offline && active===i && (printing||paused);
       const feeding=printing && selected;
