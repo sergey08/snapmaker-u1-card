@@ -325,7 +325,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
-    for(const el of this.shadowRoot.querySelectorAll("ha-entity-picker")){
+    for(const el of this.shadowRoot.querySelectorAll("ha-entity-picker[data-key]")){
       const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??DEFAULTS[key]??(
         key.startsWith("tool") ? (()=>{const m=key.match(/^tool([0-3])_(.+)$/);if(!m)return "";const i=m[1];return m[2]==="color"?"sensor.u1_t"+i+"_color_spoolman":m[2]==="weight"?"sensor.u1_t"+i+"_peso_spoolman":m[2]==="material"?"sensor.t"+i+"_filamento_display":m[2]==="job_estimated"?"sensor.slot_"+i+"_job_filament_estimated_lava":"";})():"");
       el.addEventListener("value-changed",ev=>{if(ev.detail?.value!==undefined)this.change(key,ev.detail.value);});
