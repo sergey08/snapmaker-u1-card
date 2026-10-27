@@ -76,10 +76,12 @@ class SnapmakerU1Card extends HTMLElement {
     ];
     const filamentRoute=(i)=>{
       const [sx,sy,ex]=routePoints[i];
-      const sideX=i<2?125:475;
-      const laneY= i===0||i===3 ? 27 : 13;
       const entryY=88;
-      return `M${sx} ${sy} C${sideX} ${sy},${sideX} ${laneY},${sideX} ${laneY} L${ex+(i<2?-16:16)} ${laneY} Q${ex} ${laneY},${ex} ${laneY+16} L${ex} ${entryY}`;
+      const sideX=i<2?135:465;
+      const laneY=[53,8,8,53][i];
+      const approachX=ex+(i<2?-24:24);
+      const startDirection=i<2?1:-1;
+      return `M${sx} ${sy} C${sx+startDirection*55} ${sy},${sideX} ${laneY},${sideX+startDirection*18} ${laneY} S${approachX} ${laneY},${ex} ${laneY+15} Q${ex} ${laneY+24},${ex} ${entryY}`;
     };
     const filamentGuides=headColors.map((color,i)=>
       `<path d="${filamentRoute(i)}" fill="none" stroke="#0a1520" stroke-width="5" stroke-linecap="round"/><path d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-opacity=".85" stroke-linecap="round"/>`
