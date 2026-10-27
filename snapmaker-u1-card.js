@@ -62,23 +62,30 @@ class SnapmakerU1Card extends HTMLElement {
     const heads=headColors.map((color,i)=>{
       const highlighted=printing && active===i;
       return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},40)" style="--head-color:${color}">
-        <rect x="-17" y="-8" width="34" height="20" rx="4" fill="${highlighted?color:"#263845"}" stroke="${highlighted?color:"#6b7e8c"}" stroke-width="2"/>
+        <rect x="-17" y="-8" width="34" height="20" rx="4" fill="#17232e" stroke="${highlighted?color:"#71808b"}" stroke-width="2"/>
         <path d="M-7 12 H7 L4 20 H-4Z" fill="${highlighted?color:"#7c8e9a"}"/>
-        <text x="0" y="5" text-anchor="middle" font-size="9" font-weight="700" fill="${highlighted?"#101820":"#c2d1dd"}">T${i}</text>
+        <circle cx="0" cy="2" r="5" fill="${color}" stroke="#ffffff44" stroke-width="1"/>
       </g>`;
+    }).join("");
+    const filamentPaths=headColors.map((color,i)=>{
+      if(!printing || active!==i) return "";
+      const startX=i<2?32:328, startY=i%2===0?72:166;
+      const endX=105+i*52, endY=25;
+      const controlX=i<2?42:318;
+      return `<path class="filament-track" d="M${startX} ${startY} C${controlX} ${startY-60},${endX-32} -14,${endX} ${endY}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
     }).join("");
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
       ha-card{background:linear-gradient(145deg,#152536,#09111b);color:inherit;border:1px solid #31485c;border-radius:20px;padding:20px;overflow:hidden}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
       .scene{margin:12px auto 8px;width:min(360px,100%);height:auto;position:relative;transition:filter .5s,opacity .5s}.machine{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 16px #0007)}
-      .head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
+      .filament-track{stroke-dasharray:7 8;animation:filament-move 1.1s linear infinite;filter:drop-shadow(0 0 3px currentColor)}@keyframes filament-move{to{stroke-dashoffset:-30}}.head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
       .printer:before{content:"";position:absolute;left:12%;right:12%;bottom:19%;height:8px;background:#738e9d;box-shadow:0 4px 9px #000}
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:7px 9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
       .hot-active{border-color:#73b9e5;background:#1b3245}.scene-layout{display:grid;grid-template-columns:minmax(0,0.65fr) minmax(0,4.5fr) minmax(0,0.65fr);gap:0;align-items:center;margin-top:14px;isolation:isolate}.scene-layout .tools-side:first-child{margin-right:-25px;z-index:0}.scene-layout .tools-side:last-child{margin-left:-25px;z-index:0}.scene-layout .scene{z-index:1;transform:scale(1.12)}.tools-side{display:flex;flex-direction:column;gap:12px;min-width:0}.scene-layout .scene{width:100%;margin:0}.tool{border:0;border-radius:9px;padding:5px 1px;background:transparent;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
       .tool.selected{background:color-mix(in srgb,var(--filament) 12%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--filament) 30%,transparent)}.spool-side{position:relative;width:36px;height:69px;transform:perspective(160px) rotateY(-17deg);filter:drop-shadow(0 3px 5px #0008)}.tools-side:last-child .spool-side{transform:perspective(160px) rotateY(17deg)}.spool-winding{position:absolute;left:5px;right:5px;top:7px;bottom:7px;border-radius:8px;background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--filament) 72%,#111) 0px,var(--filament) 3px,color-mix(in srgb,var(--filament) 60%,#000) 5px);box-shadow:inset 3px 0 5px #0007,inset -3px 0 4px #fff3}.spool-rim{position:absolute;z-index:2;left:0;top:1px;bottom:1px;width:6px;border-radius:45%;background:linear-gradient(90deg,#aeb7bc,#414b54);border:1px solid #8b979f}.spool-rim.rear{left:auto;right:0;background:linear-gradient(90deg,#48515a,#a4b0b8)}.feeding .spool-winding{animation:filament-flow 1.8s linear infinite}.feeding .spool-side{filter:drop-shadow(0 0 8px var(--filament))}@keyframes filament-flow{50%{filter:brightness(1.35);background-position:0 8px}}.tool small{font-size:10px;color:#a7b8c8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool span{font-size:11px}.bar{height:7px;border-radius:8px;background:#304456;margin-top:18px;overflow:hidden}.bar>div{height:100%;background:#49b8fa;transition:width .4s}.foot{margin-top:8px;color:#b8c9d7;font-size:12px;display:flex;justify-content:space-between}
-      @media(prefers-reduced-motion:reduce){.feeding,.feeding .spool-winding{animation:none}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
+      @media(prefers-reduced-motion:reduce){.feeding,.feeding .spool-winding,.filament-track{animation:none}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
       @media(max-width:480px){ha-card{padding:12px}.scene-layout{grid-template-columns:minmax(0,.7fr) minmax(0,3.6fr) minmax(0,.7fr);gap:0}.spool-side{width:23px;height:50px}.spool-winding{top:5px;bottom:5px}.tool{padding:6px 2px}.tool small{font-size:9px}.tool span{font-size:9px}}
     </style><ha-card><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Sin conexión":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout"><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 0 360 250" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
@@ -99,7 +106,7 @@ class SnapmakerU1Card extends HTMLElement {
 <text x="184" y="220" text-anchor="middle" fill="#d8e8f3" font-size="13" font-family="system-ui" font-weight="700">U1</text>
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
-${heads}
+${filamentPaths}${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
   }
 }
