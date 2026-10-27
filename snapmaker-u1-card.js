@@ -30,8 +30,8 @@ class SnapmakerU1Card extends HTMLElement {
     if (!this.shadowRoot || !this.config) return;
     const c=this.config, printer=this.read(c.printer_state), state=this.read(c.print_state);
     const offline=["unknown","unavailable"].includes(printer);
-    const printing=!offline && state==="printing", paused=!offline && state==="paused";
-    const active=Number(this.read(c.active_tool));
+    const normalizedState=String(state).toLowerCase();\n    const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
+    const rawActive=this.read(c.active_tool);\n    const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
     const progress=Math.max(0,Math.min(100,Number(this.read(c.progress))||0));
     const metric=(id,suffix="")=>{const v=this.read(id);return ["unknown","unavailable","none",""].includes(String(v).toLowerCase())?"—":this.esc(v)+suffix;};
     const layer=(printing||paused)?metric(c.current_layer):"—", total=(printing||paused)?metric(c.total_layers):"—";
@@ -48,7 +48,7 @@ class SnapmakerU1Card extends HTMLElement {
       const rawMaterial=this.read(c["tool"+i+"_material"]||"sensor.t"+i+"_filamento_display");
       const material=["unknown","unavailable","none"].includes(String(rawMaterial).toLowerCase())?"Sin asignar":this.esc(rawMaterial);
       const inUse=this.read(c["tool"+i+"_in_use"]||"binary_sensor.slot_"+i+"_in_use_lava")==="on";
-      const selected=!offline && active===i;
+      const selected=!offline && active===i && (printing||paused);
       const feeding=printing && selected && inUse;
       return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""}" style="--filament:${safeColor}"><div class="spool"><div class="hub"></div></div><small>${material}</small><span>${grams}</span></div>`;
     };
@@ -63,10 +63,10 @@ class SnapmakerU1Card extends HTMLElement {
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
       .hot-active{border-color:#73b9e5;background:#1b3245}.scene-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,3fr) minmax(0,1fr);gap:6px;align-items:center;margin-top:14px}.tools-side{display:flex;flex-direction:column;gap:12px;min-width:0}.scene-layout .scene{width:100%;margin:0}.tool{border:1px solid #304658;border-radius:12px;padding:9px 3px;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
-      .tool.selected{border-color:#73b9e5;box-shadow:inset 0 0 16px #52baff15}.spool{height:48px;width:48px;border:8px solid var(--filament);border-radius:50%;box-shadow:0 0 0 3px #0b1621,inset 0 0 0 3px #0b1621;display:grid;place-items:center}
-      .hub{width:13px;height:13px;border:3px solid #8da0b0;border-radius:50%}.feeding .spool{animation:spin 1.8s linear infinite}.feed{font-size:10px;color:var(--filament);animation:pulse 1s linear infinite;white-space:nowrap}
+      .tool.selected{border-color:var(--filament);box-shadow:0 0 14px color-mix(in srgb,var(--filament) 42%,transparent),inset 0 0 16px #52baff15}.spool{height:48px;width:48px;border:8px solid var(--filament);border-radius:50%;box-shadow:0 0 0 3px #0b1621,inset 0 0 0 3px #0b1621;display:grid;place-items:center}
+      .hub{width:13px;height:13px;border:3px solid #8da0b0;border-radius:50%}.feeding .spool{animation:spin 2.8s linear infinite}.feeding{animation:active-glow 2s ease-in-out infinite}@keyframes active-glow{50%{filter:brightness(1.22)}}.feed{font-size:10px;color:var(--filament);animation:pulse 1s linear infinite;white-space:nowrap}
       .tool small{font-size:11px;color:#a7b8c8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool span{font-size:12px}.bar{height:7px;border-radius:8px;background:#304456;margin-top:18px;overflow:hidden}.bar>div{height:100%;background:#49b8fa;transition:width .4s}.foot{margin-top:8px;color:#b8c9d7;font-size:12px;display:flex;justify-content:space-between}
-      @keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
+      @media(prefers-reduced-motion:reduce){.feeding,.feeding .spool{animation:none}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
       @media(max-width:480px){ha-card{padding:12px}.scene-layout{grid-template-columns:minmax(0,1fr) minmax(0,2.5fr) minmax(0,1fr);gap:3px}.spool{height:29px;width:29px;border-width:5px}.tool{padding:6px 2px}.tool small{font-size:9px}.tool span{font-size:10px}}
     </style><ha-card><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Sin conexión":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout"><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 0 360 250" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
