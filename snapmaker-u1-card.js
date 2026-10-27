@@ -30,8 +30,10 @@ class SnapmakerU1Card extends HTMLElement {
     if (!this.shadowRoot || !this.config) return;
     const c=this.config, printer=this.read(c.printer_state), state=this.read(c.print_state);
     const offline=["unknown","unavailable"].includes(printer);
-    const normalizedState=String(state).toLowerCase();\n    const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
-    const rawActive=this.read(c.active_tool);\n    const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
+    const normalizedState=String(state).toLowerCase();
+    const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
+    const rawActive=this.read(c.active_tool);
+    const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
     const progress=Math.max(0,Math.min(100,Number(this.read(c.progress))||0));
     const metric=(id,suffix="")=>{const v=this.read(id);return ["unknown","unavailable","none",""].includes(String(v).toLowerCase())?"—":this.esc(v)+suffix;};
     const layer=(printing||paused)?metric(c.current_layer):"—", total=(printing||paused)?metric(c.total_layers):"—";
