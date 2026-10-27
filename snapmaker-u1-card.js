@@ -68,18 +68,18 @@ class SnapmakerU1Card extends HTMLElement {
         <circle cx="0" cy="2" r="5" fill="${color}" stroke="#ffffff44" stroke-width="1"/>
       </g>`;
     }).join("");
-    const filamentGuides=headColors.map((color,i)=>{
-      const startX=i<2?32:328, startY=(i===0||i===3)?72:166;
-      const endX=105+i*52, endY=13;
-      const controlX=i<2?42:318;
-      return `<path d="M${startX} ${startY} C${controlX} ${startY-60},${endX-32} -14,${endX} ${endY}" fill="none" stroke="#6c8798" stroke-width="1.4" stroke-opacity=".5" stroke-dasharray="2 4"/>`;
-    }).join("");
+    const filamentRoute=(i)=>{
+      const x=105+i*52;
+      const entryX=i<2?80:280;
+      const fromY=(i===0||i===3)?24:32;
+      return `M${entryX} ${fromY} C${entryX} 5,${x} 3,${x} 13`;
+    };
+    const filamentGuides=headColors.map((color,i)=>
+      `<path d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="2.4" stroke-opacity=".68" stroke-linecap="round"/>`
+    ).join("");
     const filamentPaths=headColors.map((color,i)=>{
       if(!printing || active!==i) return "";
-      const startX=i<2?32:328, startY=(i===0||i===3)?72:166;
-      const endX=105+i*52, endY=13;
-      const controlX=i<2?42:318;
-      return `<path class="filament-track" d="M${startX} ${startY} C${controlX} ${startY-60},${endX-32} -14,${endX} ${endY}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
+      return `<path class="filament-track" d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>`;
     }).join("");
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
