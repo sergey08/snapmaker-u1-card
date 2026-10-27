@@ -57,7 +57,9 @@ class SnapmakerU1Card extends HTMLElement {
       if(fresh) saved[i]={color,weight,material};
       if(fresh) return {color,weight,material};
       if(saved[i]) return saved[i];
-      const spoolId=[1,2,4,3][i];
+      const spoolIds=Array.isArray(c.spoolman_spool_ids)?c.spoolman_spool_ids:[];
+      const spoolId=Number(spoolIds[i]);
+      if(!Number.isInteger(spoolId)||spoolId<=0) return {color:"#FFFFFF",weight:"",material:""};
       const fallbackColor=this.read("sensor.spoolman_spool_"+spoolId+"_color_hex");
       const fallbackWeight=this.read("sensor.spoolman_spool_"+spoolId);
       const fallbackName=this.read("sensor.spoolman_spool_"+spoolId+"_filament_name");
