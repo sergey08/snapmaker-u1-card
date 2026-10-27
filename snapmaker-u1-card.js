@@ -171,8 +171,10 @@ class SnapmakerU1Card extends HTMLElement {
     if(exception?.state==="on")warnings.push(Array.isArray(exceptionText)&&exceptionText.length?exceptionText.map(x=>typeof x==="string"?x:JSON.stringify(x)).join("; "):"La impresora comunica una incidencia");
     if(printing||paused){for(let i=0;i<4;i++)if(slotPresent[i]===false&&(plannedTools[i]||active===i))warnings.push("T"+i+": falta filamento");}
     const required=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_job_estimated"]||"sensor.slot_"+i+"_job_filament_estimated_lava");const n=Number(v);return valid(v)&&Number.isFinite(n)&&n>0?n:null;});
-    const filamentCheck=(printing||paused)?required.map((need,i)=>{if(need===null)return null;const available=Number(spoolData[i].weight);if(!Number.isFinite(available)||spoolData[i].empty)return {i,need,available:null,low:true};return {i,need,available,low:available<need};}).filter(Boolean):[];
-    for(const f of filamentCheck)if(f.low)warnings.push("T"+f.i+": filamento insuficiente ("+(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.need)+" g necesarios)");
+    const marginRaw=Number(c.filament_safety_margin??0);
+    const filamentMargin=Number.isFinite(marginRaw)?Math.max(0,Math.min(100,marginRaw)):0;
+    const filamentCheck=(printing||paused)?required.map((need,i)=>{if(need===null)return null;const raw=spoolData[i].weight;const available=raw!==null&&raw!==undefined&&String(raw).trim()!==""&&valid(raw)&&Number.isFinite(Number(raw))?Number(raw):null;const needed=need*(1+filamentMargin/100);if(available===null||spoolData[i].empty)return {i,need,needed,available:null,low:false,unknown:true};return {i,need,needed,available,low:available<needed,unknown:false};}).filter(Boolean):[];
+    for(const f of filamentCheck)if(f.low)warnings.push("T"+f.i+": filamento insuficiente ("+Math.round(f.available)+" g / "+Math.round(f.needed)+" g con margen)");
     const powerRaw=this.read(c.power_sensor||"sensor.impresora3d_energy_power");
     const power=valid(powerRaw)&&Number.isFinite(Number(powerRaw))?Number(powerRaw):null;
     const energyRaw=this.read(c.energy_sensor||"sensor.impresora_3d_energy_total");
@@ -190,7 +192,7 @@ class SnapmakerU1Card extends HTMLElement {
     const energyUsed=this._jobTracking&&energy!==null&&this._jobTracking.energyStart!==null?Math.max(0,energy-this._jobTracking.energyStart):null;
     const jobCost=this._jobTracking&&price!==null?this._jobTracking.cost:null;
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>Trabajo: <b>${energyUsed===null?"—":energyUsed.toFixed(2)+" kWh"}</b></span><span>Coste: <b>${jobCost===null?"—":jobCost.toFixed(2)+" €"}</b></span></div>`:"";
-    const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.low?"low":"ok"}">T${f.i}: ${f.available===null?"—":Math.round(f.available)} / ${Math.round(f.need)} g ${f.low?"⚠":"✓"}</span>`).join("")}</div>`:"";
+    const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.available===null?"sin lectura":Math.round(f.available)+" g"} / ${Math.round(f.needed)} g ${f.unknown?"?":f.low?"⚠":"✓"}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
     const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
     const previewHtml=c.show_preview!==false?`<details class="preview-panel" ${this._previewOpen?"open":""}><summary>🖼 Vista previa de la pieza</summary><div class="preview-body">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Miniatura del trabajo" loading="lazy">`:`<span>Miniatura no disponible</span>`}${jobName?`<strong>${this.esc(jobName)}</strong>`:""}${(printing||paused)?`<small>Finalización estimada: ${eta}</small>`:""}</div></details>`:"";
@@ -303,6 +305,10 @@ class SnapmakerU1CardEditor extends HTMLElement {
     toggle.checked=this._config.show_spoolman_inventory===true;
     toggle.addEventListener("change",()=>this.change("show_spoolman_inventory",toggle.checked));
     this.shadowRoot.appendChild(inventoryToggle);
+    const marginRow=document.createElement("section");marginRow.className="group";marginRow.innerHTML='<h3>Control de filamento</h3><label>Margen de seguridad (%)</label><input data-margin type="number" min="0" max="100" step="0.5"><p>0 % = comparación exacta; puedes añadir un margen si lo deseas.</p>';
+    this.shadowRoot.appendChild(marginRow);
+    const marginInput=marginRow.querySelector("[data-margin]");marginInput.value=this._config.filament_safety_margin??0;
+    marginInput.addEventListener("change",()=>{const n=Number(marginInput.value);this.change("filament_safety_margin",Number.isFinite(n)?Math.max(0,Math.min(100,n)):0);});
     const extra=document.createElement("section");extra.className="group";extra.innerHTML='<h3>Visualización y electricidad</h3><label>Modo de tarjeta</label><select data-display><option value="full">Completo</option><option value="compact">Compacto</option></select><label>Origen del precio eléctrico</label><select data-price-mode><option value="sensor">Sensor de Home Assistant</option><option value="fixed">Precio fijo</option></select><div data-sensor-row><label>Sensor de precio (€/kWh)</label><ha-entity-picker data-price-sensor allow-custom-entity></ha-entity-picker></div><div data-fixed-row><label>Precio fijo (€/kWh)</label><input data-rate type="number" min="0" step="0.0001" placeholder="0.0753"></input></div>';
     this.shadowRoot.appendChild(extra);
     const display=extra.querySelector("[data-display]");display.value=this._config.display_mode||"full";display.addEventListener("change",()=>this.change("display_mode",display.value));
