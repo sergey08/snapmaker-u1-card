@@ -29,6 +29,8 @@ class SnapmakerU1Card extends HTMLElement {
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
     if (!this.shadowRoot || !this.config) return;
+    const existingInventory=this.shadowRoot.querySelector("details.inventory");
+    if(existingInventory) this._inventoryOpen=existingInventory.open;
     const c=this.config, printer=this.read(c.printer_state), state=this.read(c.print_state);
     const offline=["unknown","unavailable"].includes(printer);
     const normalizedState=String(state).toLowerCase();
@@ -134,7 +136,7 @@ class SnapmakerU1Card extends HTMLElement {
         const vendor=this.read(prefix+"_vendor");
         return {id,color,name:valid(name)?String(name):"Filamento",grams:Number(grams),vendor:valid(vendor)?String(vendor):""};
       }).filter(item=>Number.isFinite(item.grams)&&item.grams>=0).sort((a,b)=>a.name.localeCompare(b.name,"es")):[];
-    const inventoryHtml=showInventory&&inventory.length?`<details class="inventory"><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
+    const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
       ha-card{background:linear-gradient(145deg,#152536,#09111b);color:inherit;border:1px solid #31485c;border-radius:20px;padding:20px;overflow:hidden}
@@ -178,6 +180,8 @@ class SnapmakerU1Card extends HTMLElement {
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
+    const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
+    if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
   }
 }
 
