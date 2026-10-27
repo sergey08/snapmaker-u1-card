@@ -110,14 +110,16 @@ class SnapmakerU1Card extends HTMLElement {
     ];
     const filamentRoute=(i)=>{
       const [sx,sy,ex]=routePoints[i];
-      const entryY=42; // end above temperature labels, not through them
+      const entryY=42; // finish above temperature labels
+      // Smooth separated lanes: upper spools use a higher arch,
+      // lower spools use a lower arch. No sharp turns or backtracking.
+      const topY=(i===0||i===2)?8:28;
       const sideX=i<2?135:465;
-      const laneY=8; // uniform approach height for all four tubes
-      const approachX=ex+(i<2?-24:24);
-      const startDirection=i<2?1:-1;
-      return `M${sx} ${sy} C${sx+startDirection*55} ${sy},${sideX} ${laneY},${sideX+startDirection*18} ${laneY} S${approachX} ${laneY},${ex} ${laneY+15} L${ex} ${entryY}`;
+      const sign=i<2?1:-1;
+      const approachX=ex-sign*25;
+      return `M${sx} ${sy} C${sx+sign*48} ${sy},${sideX-sign*12} ${topY},${sideX} ${topY} C${sideX+sign*48} ${topY},${approachX} ${topY},${ex} ${entryY}`;
     };
-        const filamentGuides=headColors.map((color,i)=>
+    const filamentGuides=headColors.map((color,i)=>
       `<path d="${filamentRoute(i)}" fill="none" stroke="#0a1520" stroke-width="5" stroke-linecap="round"/><path d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-opacity=".85" stroke-linecap="round"/>`
     ).join("");
     const filamentPaths=headColors.map((color,i)=>{
