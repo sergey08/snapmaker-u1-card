@@ -31,6 +31,8 @@ class SnapmakerU1Card extends HTMLElement {
     if (!this.shadowRoot || !this.config) return;
     const existingInventory=this.shadowRoot.querySelector("details.inventory");
     if(existingInventory) this._inventoryOpen=existingInventory.open;
+    const existingCamera=this.shadowRoot.querySelector("details.camera-panel");
+    if(existingCamera) this._cameraOpen=existingCamera.open;
     const c=this.config, printer=this.read(c.printer_state), state=this.read(c.print_state);
     const offline=["unknown","unavailable"].includes(printer);
     const normalizedState=String(state).toLowerCase();
@@ -52,10 +54,12 @@ class SnapmakerU1Card extends HTMLElement {
     let saved={};
     try { saved=JSON.parse(localStorage.getItem(spoolCacheKey)||"{}")||{}; } catch(e) {}
     const valid=(v)=>!["unknown","unavailable","none","null",""].includes(String(v).trim().toLowerCase());
+    const slotPresent=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_present"]||"binary_sensor.slot_"+i+"_filament_present_lava");return v==="on"?true:v==="off"?false:null;});
     const spoolData=[0,1,2,3].map(i=>{
       const color=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
       const weight=this.read(c["tool"+i+"_weight"]||"sensor.u1_t"+i+"_peso_spoolman");
       const material=this.read(c["tool"+i+"_material"]||"sensor.t"+i+"_filamento_display");
+      if(!offline && slotPresent[i]===false){delete saved[i];return {color:"#FFFFFF",weight:"",material:"",empty:true};}
       const fresh=!offline && valid(material) && String(material).toLowerCase()!=="libre" && /^#?[0-9a-fA-F]{6}$/.test(String(color).trim()) && valid(weight) && Number(weight)>0;
       if(fresh) saved[i]={color,weight,material};
       if(fresh) return {color,weight,material};
@@ -73,6 +77,7 @@ class SnapmakerU1Card extends HTMLElement {
     });
     if(!offline) { try {localStorage.setItem(spoolCacheKey,JSON.stringify(saved));}catch(e){} }
     const spool=(i)=>{
+      if(spoolData[i].empty)return `<div class="tool empty"><div class="empty-slot">T${i}<small>Libre</small></div></div>`;
       const color=spoolData[i].color;
       const normalizedColor=String(color).trim();
       const safeColor=/^#?[0-9a-fA-F]{6}$/.test(normalizedColor)?(normalizedColor.startsWith("#")?normalizedColor:"#"+normalizedColor):"#808080";
@@ -120,10 +125,10 @@ class SnapmakerU1Card extends HTMLElement {
       return `M${sx} ${sy} C${sx+sign*32} ${sy},${edgeX-sign*28} ${laneY},${edgeX} ${laneY} L${bendX} ${laneY} Q${ex} ${laneY},${ex} ${laneY+12} L${ex} ${entryY}`;
     };
     const filamentGuides=headColors.map((color,i)=>
-      `<path d="${filamentRoute(i)}" fill="none" stroke="#0a1520" stroke-width="5" stroke-linecap="round"/><path d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-opacity=".85" stroke-linecap="round"/>`
+      spoolData[i].empty?"":`<path d="${filamentRoute(i)}" fill="none" stroke="#0a1520" stroke-width="5" stroke-linecap="round"/><path d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="2.5" stroke-opacity=".85" stroke-linecap="round"/>`
     ).join("");
     const filamentPaths=headColors.map((color,i)=>{
-      if(!printing || active!==i) return "";
+      if(!printing || active!==i || spoolData[i].empty) return "";
       return `<path class="filament-track" d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>`;
     }).join("");
     const controls=[
@@ -146,11 +151,28 @@ class SnapmakerU1Card extends HTMLElement {
         const vendor=this.read(prefix+"_vendor");
         return {id,color,name:valid(name)?String(name):"Filamento",grams:Number(grams),vendor:valid(vendor)?String(vendor):""};
       }).filter(item=>Number.isFinite(item.grams)&&item.grams>=0).sort((a,b)=>a.name.localeCompare(b.name,"es")):[];
+    const fileName=this.read(c.filename||"sensor.filename_snapmaker_u1_despacho");
+    const jobName=valid(fileName)?String(fileName).split("/").pop():"";
+    const picture=(id)=>{const state=this._hass?.states?.[id];const path=state?.attributes?.entity_picture;return state&&!["unknown","unavailable"].includes(state.state)&&typeof path==="string"&&path.startsWith("/api/camera_proxy/")?path:"";};
+    const thumbUrl=picture(c.thumbnail_camera||"camera.thumbnail_snapmaker_u1_despacho");
+    const cameraUrl=picture(c.live_camera||"camera.case_snapmaker_u1_despacho");
+    const rawEta=this.read(c.print_eta||"sensor.print_eta_snapmaker_u1_despacho");
+    let eta="—";
+    if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
+    const exception=this._hass?.states?.[c.exception_sensor||"binary_sensor.exception_lava"];
+    const exceptionText=exception?.attributes?.exceptions;
+    const warnings=[];
+    if(exception?.state==="on")warnings.push(Array.isArray(exceptionText)&&exceptionText.length?exceptionText.map(x=>typeof x==="string"?x:JSON.stringify(x)).join("; "):"La impresora comunica una incidencia");
+    if(printing||paused){for(let i=0;i<4;i++)if(slotPresent[i]===false&&(plannedTools[i]||active===i))warnings.push("T"+i+": falta filamento");}
+    const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
+    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
+    const cameraHtml=c.show_camera!==false&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="lazy"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
       ha-card{background:linear-gradient(145deg,#152536,#09111b);color:inherit;border:1px solid #31485c;border-radius:20px;padding:20px;overflow:hidden}
       .inventory{margin-top:16px;border:1px solid #334a5b;border-radius:12px;padding:10px 12px;background:#0c1a27}.inventory summary{cursor:pointer;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}.inventory summary span{color:#91afc1;font-size:11px}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-top:12px}.inventory-item{display:flex;align-items:center;gap:10px;padding:9px;background:#172a3a;border-radius:10px;min-width:0}.inventory-reel{width:34px;height:34px;flex:none;border-radius:50%;background:radial-gradient(circle at center,#152535 0 20%,#7c8790 22% 29%,var(--filament) 31% 70%,#647584 72% 78%,#1b2b38 80%);box-shadow:0 2px 8px #0007}.inventory-info{display:flex;flex-direction:column;min-width:0;gap:2px}.inventory-info b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info small{font-size:10px;color:#9cb2c2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info strong{font-size:11px;color:#d7e8f3}
+      .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
       .scene{margin:12px auto 8px;width:min(360px,100%);height:auto;position:relative;transition:filter .5s,opacity .5s}.machine{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 16px #0007)}
       .print-carriage{transform-origin:center;will-change:transform}.print-carriage.moving{animation:carriage-sweep 3.2s ease-in-out infinite}@keyframes carriage-sweep{0%,100%{transform:translateX(0)}25%{transform:translateX(73px)}50%{transform:translateX(0)}75%{transform:translateX(-73px)}}.filament-track{stroke-dasharray:7 8;animation:filament-move 1.1s linear infinite;opacity:.9;filter:drop-shadow(0 0 3px #d1e8ff)}@keyframes filament-move{to{stroke-dashoffset:-30}}.head-planned:not(.head-printing){filter:drop-shadow(0 0 2px var(--head-color))}.head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{opacity:.55}.scene-layout.offline .tool{opacity:.55}.scene-layout.offline .filament-overlay{opacity:.5}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
@@ -189,7 +211,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${controlsHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${warningsHtml}${controlsHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
     for(const button of this.shadowRoot.querySelectorAll("button.printer-action")){
       button.addEventListener("click",async()=>{
         if(button.disabled||this._commandPending)return;
@@ -203,6 +225,8 @@ ${heads}
         finally{this._commandPending=false;}
       });
     }
+    const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
+    if(cameraDetails)cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
     if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
   }
@@ -227,8 +251,9 @@ class SnapmakerU1CardEditor extends HTMLElement {
         ["active_tool","Herramienta activa"],["progress","Progreso"],
         ["current_layer","Capa actual"],["total_layers","Capas totales"],
         ["time_left","Tiempo restante"],["bed_temperature","Temperatura de cama"],
-        ["chamber_temperature","Temperatura de cámara"]
+        ["chamber_temperature","Temperatura interior"],["filename","Archivo de impresión"],["print_eta","Hora de finalización"],["thumbnail_camera","Cámara de miniatura"],["live_camera","Cámara interior"],["exception_sensor","Sensor de errores"]
       ]],
+      ["Presencia de filamento", [0,1,2,3].map(i=>["tool"+i+"_present","Filamento presente en T"+i])],
       ["Temperaturas de los cabezales",[0,1,2,3].map(i=>["extruder"+(i+1)+"_temperature","Temperatura T"+i])],
       ...[0,1,2,3].map(i=>["Bobina T"+i,[
         ["tool"+i+"_color","Color del filamento"],
@@ -265,4 +290,4 @@ if(!customElements.get("snapmaker-u1-card-editor"))customElements.define("snapma
 
 if (!customElements.get("snapmaker-u1-card")) customElements.define("snapmaker-u1-card",SnapmakerU1Card);
 window.customCards=window.customCards||[];
-window.customCards.push({type:"snapmaker-u1-card",name:"Snapmaker U1 Card",description:"Read-only printer status and four Spoolman slots"});
+window.customCards.push({type:"snapmaker-u1-card",name:"Snapmaker U1 Card",description:"Printer status, controls, camera and four Spoolman slots"});
