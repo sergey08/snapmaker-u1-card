@@ -23,7 +23,22 @@ class SnapmakerU1Card extends HTMLElement {
     this.render();
   }
   attachShadowOnce() { if (!this.shadowRoot) this.attachShadow({mode:"open"}); }
-  set hass(hass) { this._hass = hass; if (this.config) this.render(); }
+  set hass(hass) {
+    this._hass=hass;
+    if(!this.config)return;
+    const c=this.config;
+    const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|number|input_boolean)\./.test(v)));
+    for(const [k,v] of Object.entries(DEFAULTS))ids.add(c[k]||v);
+    for(let i=0;i<4;i++){
+      for(const [key,fallback] of [["present","binary_sensor.slot_"+i+"_filament_present_lava"],["color","sensor.u1_t"+i+"_color_spoolman"],["weight","sensor.u1_t"+i+"_peso_spoolman"],["material","sensor.t"+i+"_filamento_display"],["job_estimated","sensor.slot_"+i+"_job_filament_estimated_lava"]])ids.add(c["tool"+i+"_"+key]||fallback);
+      const spoolId=Number(c.spoolman_spool_ids?.[i]);if(spoolId>0)for(const suffix of ["","_color_hex","_filament_name"])ids.add("sensor.spoolman_spool_"+spoolId+suffix);
+    }
+    for(const id of [c.filename||"sensor.filename_snapmaker_u1_despacho",c.print_eta||"sensor.print_eta_snapmaker_u1_despacho",c.thumbnail_camera||"camera.thumbnail_snapmaker_u1_despacho",c.live_camera||"camera.case_snapmaker_u1_despacho",c.exception_sensor||"binary_sensor.exception_lava",c.power_sensor||"sensor.impresora3d_energy_power",c.energy_sensor||"sensor.impresora_3d_energy_total",c.electricity_price_sensor||"sensor.precio_kwh"])ids.add(id);
+    if(c.show_spoolman_inventory===true)for(const id of Object.keys(hass.states))if(/^sensor\.spoolman_spool_\d+(?:_color_hex|_filament_name|_vendor)?$/.test(id))ids.add(id);
+    const changed=!this._lastHass||[...ids].some(id=>this._lastHass.states?.[id]!==hass.states?.[id]);
+    this._lastHass=hass;
+    if(changed)this.render();
+  }
   getCardSize() { return 5; }
   static getStubConfig() { return {type:"custom:snapmaker-u1-card"}; }
   static getConfigElement() { return document.createElement("snapmaker-u1-card-editor"); }
@@ -269,7 +284,12 @@ ${heads}
 class SnapmakerU1CardEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});}
   setConfig(config){this._config={...config};this.render();}
-  set hass(hass){this._hass=hass;this.render();}
+  set hass(hass){
+    // The visual editor only needs a fresh entity registry when it is first built.
+    // Avoid recreating dozens of entity pickers on every sensor update.
+    this._hass=hass;
+    if(!this._editorInitialized){this._editorInitialized=true;this.render();}
+  }
   change(key,value){
     if(!this._config)return;
     const config={...this._config};
