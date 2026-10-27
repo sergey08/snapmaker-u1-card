@@ -3,7 +3,12 @@ const DEFAULTS = {
   printer_state: "sensor.printer_state_snapmaker_u1_despacho",
   print_state: "sensor.current_print_state_snapmaker_u1_despacho",
   active_tool: "sensor.active_tool_lava",
-  progress: "sensor.progress_snapmaker_u1_despacho"
+  progress: "sensor.progress_snapmaker_u1_despacho",
+  current_layer: "sensor.current_layer_snapmaker_u1_despacho",
+  total_layers: "sensor.total_layer_snapmaker_u1_despacho",
+  time_left: "sensor.slicer_print_time_left_estimate_snapmaker_u1_despacho",
+  bed_temperature: "sensor.bed_temperature_snapmaker_u1_despacho",
+  chamber_temperature: "sensor.cavity_temp_snapmaker_u1_despacho"
 };
 class SnapmakerU1Card extends HTMLElement {
   setConfig(config) {
@@ -24,6 +29,10 @@ class SnapmakerU1Card extends HTMLElement {
     const printing=!offline && state==="printing", paused=!offline && state==="paused";
     const active=Number(this.read(c.active_tool));
     const progress=Math.max(0,Math.min(100,Number(this.read(c.progress))||0));
+    const metric=(id,suffix="")=>{const v=this.read(id);return ["unknown","unavailable","none",""].includes(String(v).toLowerCase())?"—":this.esc(v)+suffix;};
+    const layer=metric(c.current_layer), total=metric(c.total_layers);
+    const remaining=metric(c.time_left);
+    const bed=metric(c.bed_temperature," °C"), chamber=metric(c.chamber_temperature," °C");
     const tools=[0,1,2,3].map(i=>{
       const prefix=c["tool"+i+"_"]||"";
       const color=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
@@ -43,6 +52,7 @@ class SnapmakerU1Card extends HTMLElement {
       .scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
       .printer:before{content:"";position:absolute;left:12%;right:12%;bottom:19%;height:8px;background:#738e9d;box-shadow:0 4px 9px #000}
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
+      .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
       .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}.tool{border:1px solid #304658;border-radius:12px;padding:12px 5px;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
       .tool.selected{border-color:#73b9e5;box-shadow:inset 0 0 16px #52baff15}.spool{height:48px;width:48px;border:8px solid var(--filament);border-radius:50%;box-shadow:0 0 0 3px #0b1621,inset 0 0 0 3px #0b1621;display:grid;place-items:center}
       .hub{width:13px;height:13px;border:3px solid #8da0b0;border-radius:50%}.feeding .spool{animation:spin 1.8s linear infinite}.feed{font-size:10px;color:var(--filament);animation:pulse 1s linear infinite;white-space:nowrap}
@@ -68,7 +78,7 @@ class SnapmakerU1Card extends HTMLElement {
 <text x="184" y="220" text-anchor="middle" fill="#d8e8f3" font-size="13" font-family="system-ui" font-weight="700">U1</text>
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
-</svg></div><div class="tools">${tools}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${this.esc(state)}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
+</svg></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="tools">${tools}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${this.esc(state)}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
   }
 }
 if (!customElements.get("snapmaker-u1-card")) customElements.define("snapmaker-u1-card",SnapmakerU1Card);
