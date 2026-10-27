@@ -24,6 +24,7 @@ class SnapmakerU1Card extends HTMLElement {
   set hass(hass) { this._hass = hass; if (this.config) this.render(); }
   getCardSize() { return 5; }
   static getStubConfig() { return {type:"custom:snapmaker-u1-card"}; }
+  static getConfigElement() { return document.createElement("snapmaker-u1-card-editor"); }
   read(id) { return this._hass?.states?.[id]?.state ?? "unavailable"; }
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
@@ -164,6 +165,55 @@ ${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
   }
 }
+
+class SnapmakerU1CardEditor extends HTMLElement {
+  constructor(){super();this.attachShadow({mode:"open"});}
+  setConfig(config){this._config={...config};this.render();}
+  set hass(hass){this._hass=hass;this.render();}
+  change(key,value){
+    if(!this._config)return;
+    const config={...this._config};
+    if(value===""||value===null)delete config[key];else config[key]=value;
+    this._config=config;
+    this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));
+  }
+  render(){
+    if(!this._config||!this._hass)return;
+    const sections=[
+      ["Impresora y estado",[
+        ["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],
+        ["active_tool","Herramienta activa"],["progress","Progreso"],
+        ["current_layer","Capa actual"],["total_layers","Capas totales"],
+        ["time_left","Tiempo restante"],["bed_temperature","Temperatura de cama"],
+        ["chamber_temperature","Temperatura de cámara"]
+      ]],
+      ["Temperaturas de los cabezales",[0,1,2,3].map(i=>["extruder"+(i+1)+"_temperature","Temperatura T"+i])],
+      ...[0,1,2,3].map(i=>["Bobina T"+i,[
+        ["tool"+i+"_color","Color del filamento"],
+        ["tool"+i+"_weight","Peso del filamento"],
+        ["tool"+i+"_material","Material"],
+        ["tool"+i+"_job_estimated","Filamento previsto para el trabajo"]
+      ]])
+    ];
+    const style=`<style>:host{display:block;color:var(--primary-text-color)}.group{border:1px solid var(--divider-color);border-radius:12px;padding:12px;margin:12px 0}h3{font-size:15px;margin:0 0 12px}label{display:block;font-size:13px;margin:10px 0 5px}ha-entity-picker{display:block;width:100%}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}p{font-size:12px;color:var(--secondary-text-color)}</style>`;
+    this.shadowRoot.innerHTML=style+sections.map(([title,fields])=>`<section class="group"><h3>${title}</h3>${fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</section>`).join("")+`<section class="group"><h3>Spoolman (opcional)</h3><p>Introduce el ID de cada bobina de Spoolman. Si no utilizas Spoolman, deja estos campos vacíos.</p>${[0,1,2,3].map(i=>`<label>Bobina T${i} · ID de Spoolman</label><input data-spool="${i}" type="number" min="1" step="1" placeholder="Sin Spoolman"></input>`).join("")}</section>`;
+    for(const el of this.shadowRoot.querySelectorAll("ha-entity-picker")){
+      const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??DEFAULTS[key]??(
+        key.startsWith("tool") ? (()=>{const m=key.match(/^tool([0-3])_(.+)$/);if(!m)return "";const i=m[1];return m[2]==="color"?"sensor.u1_t"+i+"_color_spoolman":m[2]==="weight"?"sensor.u1_t"+i+"_peso_spoolman":m[2]==="material"?"sensor.t"+i+"_filamento_display":m[2]==="job_estimated"?"sensor.slot_"+i+"_job_filament_estimated_lava":"";})():"");
+      el.addEventListener("value-changed",ev=>{if(ev.detail?.value!==undefined)this.change(key,ev.detail.value);});
+    }
+    for(const el of this.shadowRoot.querySelectorAll("input[data-spool]")){
+      const i=Number(el.dataset.spool);el.value=this._config.spoolman_spool_ids?.[i]??"";
+      el.addEventListener("change",()=>{
+        const ids=Array.isArray(this._config.spoolman_spool_ids)?[...this._config.spoolman_spool_ids]:[];
+        ids[i]=el.value?Number(el.value):null;
+        this.change("spoolman_spool_ids",ids.some(Boolean)?ids:"");
+      });
+    }
+  }
+}
+if(!customElements.get("snapmaker-u1-card-editor"))customElements.define("snapmaker-u1-card-editor",SnapmakerU1CardEditor);
+
 if (!customElements.get("snapmaker-u1-card")) customElements.define("snapmaker-u1-card",SnapmakerU1Card);
 window.customCards=window.customCards||[];
 window.customCards.push({type:"snapmaker-u1-card",name:"Snapmaker U1 Card",description:"Read-only printer status and four Spoolman slots"});
