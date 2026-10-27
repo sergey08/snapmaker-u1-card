@@ -17,6 +17,8 @@ const DEFAULTS = {
 class SnapmakerU1Card extends HTMLElement {
   setConfig(config) {
     this.config = { ...DEFAULTS, ...config };
+    this._previewOpen=undefined;
+    this._cameraOpen=undefined;
     this.attachShadowOnce();
     this.render();
   }
@@ -35,6 +37,8 @@ class SnapmakerU1Card extends HTMLElement {
     if(existingPreview) this._previewOpen=existingPreview.open;
     const existingCamera=this.shadowRoot.querySelector("details.camera-panel");
     if(existingCamera) this._cameraOpen=existingCamera.open;
+    if(this._previewOpen===undefined)this._previewOpen=this.config.preview_open_default===true;
+    if(this._cameraOpen===undefined)this._cameraOpen=this.config.camera_open_default===true;
     const c=this.config, printer=this.read(c.printer_state), state=this.read(c.print_state);
     const offline=["unknown","unavailable"].includes(printer);
     const normalizedState=String(state).toLowerCase();
@@ -277,6 +281,13 @@ class SnapmakerU1CardEditor extends HTMLElement {
     toggle.checked=this._config.show_spoolman_inventory===true;
     toggle.addEventListener("change",()=>this.change("show_spoolman_inventory",toggle.checked));
     this.shadowRoot.appendChild(inventoryToggle);
+    for(const [key,label] of [["preview_open_default","Miniatura abierta por defecto"],["camera_open_default","Cámara abierta por defecto"]]){
+      const row=document.createElement("label");
+      row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
+      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=this._config[key]===true;
+      checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
+      row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
+    }
     for(const el of this.shadowRoot.querySelectorAll("ha-entity-picker")){
       const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??DEFAULTS[key]??(
         key.startsWith("tool") ? (()=>{const m=key.match(/^tool([0-3])_(.+)$/);if(!m)return "";const i=m[1];return m[2]==="color"?"sensor.u1_t"+i+"_color_spoolman":m[2]==="weight"?"sensor.u1_t"+i+"_peso_spoolman":m[2]==="material"?"sensor.t"+i+"_filamento_display":m[2]==="job_estimated"?"sensor.slot_"+i+"_job_filament_estimated_lava":"";})():"");
