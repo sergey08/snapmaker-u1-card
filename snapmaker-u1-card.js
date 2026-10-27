@@ -115,7 +115,7 @@ class SnapmakerU1Card extends HTMLElement {
       const left=i<2, sign=left?1:-1;
       const laneY=(i===0||i===2)?2:-14;
       const edgeX=left?138:462;
-      const entryY=40;
+      const entryY=82; // stop immediately above the hotend temperature labels
       const bendX=ex-sign*12;
       return `M${sx} ${sy} C${sx+sign*32} ${sy},${edgeX-sign*28} ${laneY},${edgeX} ${laneY} L${bendX} ${laneY} Q${ex} ${laneY},${ex} ${laneY+12} L${ex} ${entryY}`;
     };
