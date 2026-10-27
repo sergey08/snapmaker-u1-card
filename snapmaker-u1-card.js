@@ -63,7 +63,7 @@ class SnapmakerU1Card extends HTMLElement {
     const heads=headColors.map((color,i)=>{
       const highlighted=printing && active===i;
       return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},29)" style="--head-color:${color}">
-        <rect x="-18" y="-12" width="36" height="30" rx="5" fill="#111c27" stroke="${highlighted?color:"#667d90"}" stroke-width="2"/><rect x="-12" y="-7" width="24" height="6" rx="2" fill="#344655"/><rect x="-9" y="8" width="18" height="7" rx="2" fill="#263b4b"/>
+        <rect x="-18" y="-12" width="36" height="30" rx="5" fill="#111c27" stroke="${highlighted?color:"#667d90"}" stroke-width="2"/><rect x="-12" y="-7" width="24" height="6" rx="2" fill="#344655"/><rect x="-9" y="8" width="18" height="7" rx="2" fill="#263b4b"/><path d="M-14 -10 H14 M-14 16 H14" stroke="#91a5b2" stroke-width="1" opacity=".65"/><rect x="-15" y="-3" width="4" height="14" rx="1" fill="#455f71"/><rect x="11" y="-3" width="4" height="14" rx="1" fill="#455f71"/>
         <path d="M-6 18 H6 L3 25 H-3Z" fill="${highlighted?color:"#a4b4bf"}"/>
         <circle cx="0" cy="2" r="5" fill="${color}" stroke="#ffffff44" stroke-width="1"/>
       </g>`;
@@ -99,13 +99,13 @@ class SnapmakerU1Card extends HTMLElement {
 <path d="M46 31 L70 12 H312 L329 32 V221 L310 235 H45 L31 217 V46Z" fill="url(#u1shell)" stroke="#8b9aa6" stroke-width="2"/>
 <path d="M50 42 L75 26 H300 L314 42 V203 H50Z" fill="#111b25" stroke="#738796" stroke-width="2"/>
 <path d="M72 48 H294 V190 H72Z" fill="url(#u1glass)" stroke="#415767" stroke-width="2"/><path d="M76 53 H290 V186 H76Z" fill="none" stroke="#9cc0d0" stroke-opacity=".22" stroke-width="2"/><path d="M80 57 L97 57 L97 183" fill="none" stroke="#ffffff" stroke-opacity=".09" stroke-width="4"/>
-<path d="M85 61 H281 M85 74 H281" stroke="#6b8799" stroke-width="3" opacity=".6"/><path d="M91 84 H275" stroke="#a8cad6" stroke-width="2" opacity=".25"/>
-<path d="M91 166 L118 151 H265 L284 166 V184 H91Z" fill="#344a59" stroke="#81929d" stroke-width="2"/>
+<path d="M88 94 V144 M278 94 V144" stroke="#496579" stroke-width="3" opacity=".55"/><path d="M85 61 H281 M85 74 H281" stroke="#6b8799" stroke-width="3" opacity=".6"/><path d="M91 84 H275" stroke="#a8cad6" stroke-width="2" opacity=".25"/>
+<path d="M91 166 L118 151 H265 L284 166 V184 H91Z" fill="#344a59" stroke="#81929d" stroke-width="2"/><path d="M118 151 L132 143 H252 L265 151Z" fill="#617c8d" stroke="#a4b8c3" stroke-width="1.5"/><path d="M131 146 H253" stroke="#d2e4ed" stroke-width="1" opacity=".65"/>
 <path d="M117 155 H266" stroke="#b3bdc3" stroke-width="4"/>
 <path d="M100 163 H276" stroke="#a6c5d7" stroke-width="1.5" opacity=".45"/>
 <path d="M114 166 L132 176 H255 L271 166" fill="none" stroke="#162936" stroke-width="3"/>
 <path d="M92 182 H281" stroke="#4d6777" stroke-width="3" opacity=".65"/>
-<path d="M166 71 H198 V112 L190 121 H173 L166 112Z" fill="#758995" stroke="#b2c2ca" stroke-width="2"/>
+<path d="M158 69 H206 V76 H158Z" fill="#263a49" stroke="#90a9b7" stroke-width="1.5"/><path d="M166 76 H198 V112 L190 121 H173 L166 112Z" fill="#758995" stroke="#b2c2ca" stroke-width="2"/><path d="M171 80 H193 V105 H171Z" fill="#95a8b2" opacity=".28"/><rect x="178" y="84" width="9" height="14" rx="2" fill="#283d4b"/><circle cx="182" cy="103" r="3" fill="#d3e1e9"/>
 <path d="M177 122 L183 136 L189 122" fill="#e7a857"/>
 <path d="M72 48 V190 M294 48 V190" stroke="#a5b6c2" stroke-width="5" opacity=".75"/>
 <path d="M50 42 L72 26 M314 42 L299 26" stroke="#b4c0c8" stroke-width="4"/>
@@ -113,7 +113,7 @@ class SnapmakerU1Card extends HTMLElement {
 <rect x="151" y="205" width="66" height="21" rx="5" fill="#0d1b27" stroke="#526d80"/>
 <text x="184" y="220" text-anchor="middle" fill="#d8e8f3" font-size="13" font-family="system-ui" font-weight="700">U1</text>
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
-<path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
+<path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${filamentPaths}${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
   }
