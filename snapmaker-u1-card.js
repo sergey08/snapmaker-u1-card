@@ -123,7 +123,7 @@ class SnapmakerU1Card extends HTMLElement {
     }).join("");
     const showInventory=c.show_spoolman_inventory===true;
     const inventory=showInventory?Object.keys(this._hass?.states||{})
-      .map(id=>/^sensor\\.spoolman_spool_(\\d+)$/.exec(id))
+      .map(id=>/^sensor\.spoolman_spool_(\d+)$/.exec(id))
       .filter(Boolean)
       .map(match=>{
         const id=Number(match[1]),prefix="sensor.spoolman_spool_"+id;
