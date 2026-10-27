@@ -177,11 +177,19 @@ class SnapmakerU1Card extends HTMLElement {
     const power=valid(powerRaw)&&Number.isFinite(Number(powerRaw))?Number(powerRaw):null;
     const energyRaw=this.read(c.energy_sensor||"sensor.impresora_3d_energy_total");
     const energy=valid(energyRaw)&&Number.isFinite(Number(energyRaw))?Number(energyRaw):null;
-    const rate=Number(c.electricity_price);const price=Number.isFinite(rate)&&rate>=0?rate:null;
-    if(printing&&!this._jobTracking)this._jobTracking={energyStart:energy};
+    const priceMode=c.electricity_price_mode||"sensor";
+    const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor||"sensor.precio_kwh");
+    const price=priceRaw!==null&&priceRaw!==undefined&&String(priceRaw).trim()!==""&&valid(priceRaw)&&Number.isFinite(Number(priceRaw))&&Number(priceRaw)>=0?Number(priceRaw):null;
+    if(printing&&!this._jobTracking)this._jobTracking={energyStart:energy,lastEnergy:energy,lastPrice:price,cost:0};
+    if(this._jobTracking&&energy!==null){
+      const t=this._jobTracking;
+      if(t.lastEnergy!==null&&energy>=t.lastEnergy&&t.lastPrice!==null)t.cost+=(energy-t.lastEnergy)*t.lastPrice;
+      t.lastEnergy=energy;t.lastPrice=price;
+    }
     if(!printing&&!paused)this._jobTracking=null;
     const energyUsed=this._jobTracking&&energy!==null&&this._jobTracking.energyStart!==null?Math.max(0,energy-this._jobTracking.energyStart):null;
-    const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>Trabajo: <b>${energyUsed===null?"—":energyUsed.toFixed(2)+" kWh"}</b></span><span>Coste: <b>${energyUsed===null||price===null?"—":(energyUsed*price).toFixed(2)+" €"}</b></span></div>`:"";
+    const jobCost=this._jobTracking&&price!==null?this._jobTracking.cost:null;
+    const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>Trabajo: <b>${energyUsed===null?"—":energyUsed.toFixed(2)+" kWh"}</b></span><span>Coste: <b>${jobCost===null?"—":jobCost.toFixed(2)+" €"}</b></span></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.low?"low":"ok"}">T${f.i}: ${f.available===null?"—":Math.round(f.available)} / ${Math.round(f.need)} g ${f.low?"⚠":"✓"}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
     const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
@@ -295,9 +303,14 @@ class SnapmakerU1CardEditor extends HTMLElement {
     toggle.checked=this._config.show_spoolman_inventory===true;
     toggle.addEventListener("change",()=>this.change("show_spoolman_inventory",toggle.checked));
     this.shadowRoot.appendChild(inventoryToggle);
-    const extra=document.createElement("section");extra.className="group";extra.innerHTML='<h3>Visualización y electricidad</h3><label>Modo de tarjeta</label><select data-display><option value="full">Completo</option><option value="compact">Compacto</option></select><label>Precio de electricidad (€/kWh)</label><input data-rate type="number" min="0" step="0.001" placeholder="Sin configurar"></input>';
+    const extra=document.createElement("section");extra.className="group";extra.innerHTML='<h3>Visualización y electricidad</h3><label>Modo de tarjeta</label><select data-display><option value="full">Completo</option><option value="compact">Compacto</option></select><label>Origen del precio eléctrico</label><select data-price-mode><option value="sensor">Sensor de Home Assistant</option><option value="fixed">Precio fijo</option></select><div data-sensor-row><label>Sensor de precio (€/kWh)</label><ha-entity-picker data-price-sensor allow-custom-entity></ha-entity-picker></div><div data-fixed-row><label>Precio fijo (€/kWh)</label><input data-rate type="number" min="0" step="0.0001" placeholder="0.0753"></input></div>';
     this.shadowRoot.appendChild(extra);
     const display=extra.querySelector("[data-display]");display.value=this._config.display_mode||"full";display.addEventListener("change",()=>this.change("display_mode",display.value));
+    const mode=extra.querySelector("[data-price-mode]");mode.value=this._config.electricity_price_mode||"sensor";
+    const sensorPicker=extra.querySelector("[data-price-sensor]");sensorPicker.hass=this._hass;sensorPicker.value=this._config.electricity_price_sensor||"sensor.precio_kwh";
+    sensorPicker.addEventListener("value-changed",ev=>{if(ev.detail?.value!==undefined)this.change("electricity_price_sensor",ev.detail.value);});
+    const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
+    mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
     for(const [key,label] of [["preview_open_default","Miniatura abierta por defecto"],["camera_open_default","Cámara abierta por defecto"]]){
       const row=document.createElement("label");
