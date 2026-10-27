@@ -43,21 +43,22 @@ class SnapmakerU1Card extends HTMLElement {
     const hotends=[1,2,3,4].map((i)=>`<div class="metric ${(printing||paused)&&active===i-1?"hot-active":""}"><label>Cabezal T${i-1}</label><b>${metric(c["extruder"+i+"_temperature"]," °C")}</b></div>`).join("");
     const spool=(i)=>{
       const color=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
-      const safeColor=/^#[0-9a-fA-F]{6}$/.test(color)?color:"#808080";
+      const normalizedColor=String(color).trim();
+      const safeColor=/^#?[0-9a-fA-F]{6}$/.test(normalizedColor)?(normalizedColor.startsWith("#")?normalizedColor:"#"+normalizedColor):"#808080";
       const rawWeight=this.read(c["tool"+i+"_weight"]||"sensor.u1_t"+i+"_peso_spoolman");
       const weight=Number(rawWeight);
       const grams=rawWeight!=="" && !["unknown","unavailable","none"].includes(String(rawWeight).toLowerCase()) && Number.isFinite(weight)?Math.round(weight)+" g":"—";
       const rawMaterial=this.read(c["tool"+i+"_material"]||"sensor.t"+i+"_filamento_display");
       const material=["unknown","unavailable","none"].includes(String(rawMaterial).toLowerCase())?"Sin asignar":this.esc(rawMaterial);
-      const inUse=this.read(c["tool"+i+"_in_use"]||"binary_sensor.slot_"+i+"_in_use_lava")==="on";
+      
       const selected=!offline && active===i && (printing||paused);
-      const feeding=printing && selected && inUse;
+      const feeding=printing && selected;
       return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span></div>`;
     };
     const leftTools=spool(0)+spool(1),rightTools=spool(3)+spool(2);
     const headColors=[0,1,2,3].map(i=>{
       const value=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
-      return /^#[0-9a-fA-F]{6}$/.test(value)?value:"#808080";
+      const v=String(value).trim();return /^#?[0-9a-fA-F]{6}$/.test(v)?(v.startsWith("#")?v:"#"+v):"#808080";
     });
     const heads=headColors.map((color,i)=>{
       const highlighted=printing && active===i;
@@ -69,7 +70,7 @@ class SnapmakerU1Card extends HTMLElement {
     }).join("");
     const filamentPaths=headColors.map((color,i)=>{
       if(!printing || active!==i) return "";
-      const startX=i<2?32:328, startY=i%2===0?72:166;
+      const startX=i<2?32:328, startY=(i===0||i===3)?72:166;
       const endX=105+i*52, endY=13;
       const controlX=i<2?42:318;
       return `<path class="filament-track" d="M${startX} ${startY} C${controlX} ${startY-60},${endX-32} -14,${endX} ${endY}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
@@ -79,7 +80,7 @@ class SnapmakerU1Card extends HTMLElement {
       ha-card{background:linear-gradient(145deg,#152536,#09111b);color:inherit;border:1px solid #31485c;border-radius:20px;padding:20px;overflow:hidden}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
       .scene{margin:12px auto 8px;width:min(360px,100%);height:auto;position:relative;transition:filter .5s,opacity .5s}.machine{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 16px #0007)}
-      .filament-track{stroke-dasharray:7 8;animation:filament-move 1.1s linear infinite;filter:drop-shadow(0 0 3px currentColor)}@keyframes filament-move{to{stroke-dashoffset:-30}}.head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
+      .filament-track{stroke-dasharray:7 8;animation:filament-move 1.1s linear infinite;opacity:.9;filter:drop-shadow(0 0 3px #d1e8ff)}@keyframes filament-move{to{stroke-dashoffset:-30}}.head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
       .printer:before{content:"";position:absolute;left:12%;right:12%;bottom:19%;height:8px;background:#738e9d;box-shadow:0 4px 9px #000}
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:7px 9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
