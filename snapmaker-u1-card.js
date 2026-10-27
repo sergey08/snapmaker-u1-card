@@ -55,12 +55,24 @@ class SnapmakerU1Card extends HTMLElement {
       return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span></div>`;
     };
     const leftTools=spool(0)+spool(1),rightTools=spool(3)+spool(2);
+    const headColors=[0,1,2,3].map(i=>{
+      const value=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
+      return /^#[0-9a-fA-F]{6}$/.test(value)?value:"#808080";
+    });
+    const heads=headColors.map((color,i)=>{
+      const highlighted=printing && active===i;
+      return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},20)" style="--head-color:${color}">
+        <rect x="-17" y="-8" width="34" height="20" rx="4" fill="${highlighted?color:"#263845"}" stroke="${highlighted?color:"#6b7e8c"}" stroke-width="2"/>
+        <path d="M-7 12 H7 L4 20 H-4Z" fill="${highlighted?color:"#7c8e9a"}"/>
+        <text x="0" y="5" text-anchor="middle" font-size="9" font-weight="700" fill="${highlighted?"#101820":"#c2d1dd"}">T${i}</text>
+      </g>`;
+    }).join("");
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
       ha-card{background:linear-gradient(145deg,#152536,#09111b);color:inherit;border:1px solid #31485c;border-radius:20px;padding:20px;overflow:hidden}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
       .scene{margin:12px auto 8px;width:min(360px,100%);height:auto;position:relative;transition:filter .5s,opacity .5s}.machine{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 16px #0007)}
-      .scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
+      .head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{filter:grayscale(1);opacity:.35}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
       .printer:before{content:"";position:absolute;left:12%;right:12%;bottom:19%;height:8px;background:#738e9d;box-shadow:0 4px 9px #000}
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:7px 9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
@@ -71,7 +83,7 @@ class SnapmakerU1Card extends HTMLElement {
     </style><ha-card><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Sin conexión":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout"><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 0 360 250" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
-<ellipse cx="181" cy="233" rx="155" ry="11" fill="#000" opacity=".35"/>
+${heads}<ellipse cx="181" cy="233" rx="155" ry="11" fill="#000" opacity=".35"/>
 <path d="M46 31 L70 12 H312 L329 32 V221 L310 235 H45 L31 217 V46Z" fill="url(#u1shell)" stroke="#8b9aa6" stroke-width="2"/>
 <path d="M50 42 L75 26 H300 L314 42 V203 H50Z" fill="#111b25" stroke="#738796" stroke-width="2"/>
 <path d="M72 48 H294 V190 H72Z" fill="url(#u1glass)" stroke="#415767" stroke-width="2"/>
