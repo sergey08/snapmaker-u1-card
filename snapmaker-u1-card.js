@@ -316,8 +316,8 @@ class SnapmakerU1CardEditor extends HTMLElement {
         ["tool"+i+"_job_estimated","Filamento previsto para el trabajo"]
       ]])
     ];
-    const style=`<style>:host{display:block;color:var(--primary-text-color)}.group{border:1px solid var(--divider-color);border-radius:12px;padding:12px;margin:12px 0}h3{font-size:15px;margin:0 0 12px}label{display:block;font-size:13px;margin:10px 0 5px}ha-entity-picker{display:block;width:100%}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}p{font-size:12px;color:var(--secondary-text-color)}</style>`;
-    this.shadowRoot.innerHTML=style+sections.map(([title,fields])=>`<section class="group"><h3>${title}</h3>${fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</section>`).join("")+`<section class="group"><h3>Spoolman (opcional)</h3><p>Introduce el ID de cada bobina de Spoolman. Si no utilizas Spoolman, deja estos campos vacíos.</p>${[0,1,2,3].map(i=>`<label>Bobina T${i} · ID de Spoolman</label><input data-spool="${i}" type="number" min="1" step="1" placeholder="Sin Spoolman"></input>`).join("")}</section>`;
+    const style=`<style>:host{display:block;color:var(--primary-text-color)}.group{border:1px solid var(--divider-color);border-radius:12px;padding:12px;margin:12px 0}.group summary{cursor:pointer;font-size:15px;font-weight:650;padding:4px 0;list-style-position:inside}.group[open] summary{margin-bottom:12px}h3{font-size:15px;margin:0 0 12px}label{display:block;font-size:13px;margin:10px 0 5px}ha-entity-picker{display:block;width:100%}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}p{font-size:12px;color:var(--secondary-text-color)}</style>`;
+    this.shadowRoot.innerHTML=style+sections.map(([title,fields],index)=>`<details class="group" data-editor-group="${index}" ${this._openGroups?.has(String(index))?"open":""}><summary>${title}</summary>${fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</details>`).join("")+`<details class="group" data-editor-group="spoolman" ${this._openGroups?.has("spoolman")?"open":""}><summary>Spoolman (opcional)</summary><p>Introduce el ID de cada bobina de Spoolman. Si no utilizas Spoolman, deja estos campos vacíos.</p>${[0,1,2,3].map(i=>`<label>Bobina T${i} · ID de Spoolman</label><input data-spool="${i}" type="number" min="1" step="1" placeholder="Sin Spoolman"></input>`).join("")}</details>`;
     const inventoryToggle=document.createElement("label");
     inventoryToggle.style.cssText="display:flex;align-items:center;gap:10px;margin:14px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
     inventoryToggle.innerHTML='<input type="checkbox" style="width:auto"> Mostrar inventario completo de Spoolman (opcional)';
@@ -325,12 +325,12 @@ class SnapmakerU1CardEditor extends HTMLElement {
     toggle.checked=this._config.show_spoolman_inventory===true;
     toggle.addEventListener("change",()=>this.change("show_spoolman_inventory",toggle.checked));
     this.shadowRoot.appendChild(inventoryToggle);
-    const marginRow=document.createElement("section");marginRow.className="group";marginRow.innerHTML='<h3>Control de filamento</h3><label>Margen de seguridad (%)</label><input data-margin type="number" min="0" max="100" step="0.5"><p>0 % = comparación exacta; puedes añadir un margen si lo deseas.</p>';
-    this.shadowRoot.appendChild(marginRow);
+    const marginRow=document.createElement("details");marginRow.className="group";marginRow.innerHTML='<summary>Control de filamento</summary><label>Margen de seguridad (%)</label><input data-margin type="number" min="0" max="100" step="0.5"><p>0 % = comparación exacta; puedes añadir un margen si lo deseas.</p>';
+    marginRow.dataset.editorGroup="filament";marginRow.open=this._openGroups?.has("filament")??false;this.shadowRoot.appendChild(marginRow);
     const marginInput=marginRow.querySelector("[data-margin]");marginInput.value=this._config.filament_safety_margin??0;
     marginInput.addEventListener("change",()=>{const n=Number(marginInput.value);this.change("filament_safety_margin",Number.isFinite(n)?Math.max(0,Math.min(100,n)):0);});
-    const extra=document.createElement("section");extra.className="group";extra.innerHTML='<h3>Visualización y electricidad</h3><label>Modo de tarjeta</label><select data-display><option value="full">Completo</option><option value="compact">Compacto</option></select><label>Origen del precio eléctrico</label><select data-price-mode><option value="sensor">Sensor de Home Assistant</option><option value="fixed">Precio fijo</option></select><div data-sensor-row><label>Sensor de precio (€/kWh)</label><ha-entity-picker data-price-sensor allow-custom-entity></ha-entity-picker></div><div data-fixed-row><label>Precio fijo (€/kWh)</label><input data-rate type="number" min="0" step="0.0001" placeholder="0.0753"></input></div>';
-    this.shadowRoot.appendChild(extra);
+    const extra=document.createElement("details");extra.className="group";extra.innerHTML='<summary>Visualización y electricidad</summary><label>Modo de tarjeta</label><select data-display><option value="full">Completo</option><option value="compact">Compacto</option></select><label>Origen del precio eléctrico</label><select data-price-mode><option value="sensor">Sensor de Home Assistant</option><option value="fixed">Precio fijo</option></select><div data-sensor-row><label>Sensor de precio (€/kWh)</label><ha-entity-picker data-price-sensor allow-custom-entity></ha-entity-picker></div><div data-fixed-row><label>Precio fijo (€/kWh)</label><input data-rate type="number" min="0" step="0.0001" placeholder="0.0753"></input></div>';
+    extra.dataset.editorGroup="electricity";extra.open=this._openGroups?.has("electricity")??false;this.shadowRoot.appendChild(extra);
     const display=extra.querySelector("[data-display]");display.value=this._config.display_mode||"full";display.addEventListener("change",()=>this.change("display_mode",display.value));
     const mode=extra.querySelector("[data-price-mode]");mode.value=this._config.electricity_price_mode||"sensor";
     const sensorPicker=extra.querySelector("[data-price-sensor]");sensorPicker.hass=this._hass;sensorPicker.value=this._config.electricity_price_sensor||"sensor.precio_kwh";
@@ -345,9 +345,19 @@ class SnapmakerU1CardEditor extends HTMLElement {
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
+    for(const section of this.shadowRoot.querySelectorAll("details[data-editor-group]"))section.addEventListener("toggle",()=>{
+      if(!this._openGroups)this._openGroups=new Set();
+      if(section.open)this._openGroups.add(section.dataset.editorGroup);else this._openGroups.delete(section.dataset.editorGroup);
+    });
+    const entityFallback=(key)=>{
+      const fixed={filename:"sensor.filename_snapmaker_u1_despacho",print_eta:"sensor.print_eta_snapmaker_u1_despacho",thumbnail_camera:"camera.thumbnail_snapmaker_u1_despacho",live_camera:"camera.case_snapmaker_u1_despacho",exception_sensor:"binary_sensor.exception_lava",power_sensor:"sensor.impresora3d_energy_power",energy_sensor:"sensor.impresora_3d_energy_total"};
+      if(fixed[key])return fixed[key];
+      const match=key.match(/^tool([0-3])_(.+)$/);if(!match)return "";
+      const i=match[1],type=match[2];
+      return ({present:"binary_sensor.slot_"+i+"_filament_present_lava",color:"sensor.u1_t"+i+"_color_spoolman",weight:"sensor.u1_t"+i+"_peso_spoolman",material:"sensor.t"+i+"_filamento_display",job_estimated:"sensor.slot_"+i+"_job_filament_estimated_lava"})[type]||"";
+    };
     for(const el of this.shadowRoot.querySelectorAll("ha-entity-picker[data-key]")){
-      const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??DEFAULTS[key]??(
-        key.startsWith("tool") ? (()=>{const m=key.match(/^tool([0-3])_(.+)$/);if(!m)return "";const i=m[1];return m[2]==="color"?"sensor.u1_t"+i+"_color_spoolman":m[2]==="weight"?"sensor.u1_t"+i+"_peso_spoolman":m[2]==="material"?"sensor.t"+i+"_filamento_display":m[2]==="job_estimated"?"sensor.slot_"+i+"_job_filament_estimated_lava":"";})():"");
+      const key=el.dataset.key;el.hass=this._hass;el.value=this._config[key]??DEFAULTS[key]??entityFallback(key);
       el.addEventListener("value-changed",ev=>{if(ev.detail?.value!==undefined)this.change(key,ev.detail.value);});
     }
     for(const el of this.shadowRoot.querySelectorAll("input[data-spool]")){
