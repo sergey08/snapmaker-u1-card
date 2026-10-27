@@ -55,7 +55,7 @@ class SnapmakerU1Card extends HTMLElement {
       const feeding=printing && selected;
       return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span></div>`;
     };
-    const leftTools=spool(0)+spool(1),rightTools=spool(3)+spool(2);
+    const leftTools=spool(0)+spool(2),rightTools=spool(1)+spool(3);
     const headColors=[0,1,2,3].map(i=>{
       const value=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
       const v=String(value).trim();return /^#?[0-9a-fA-F]{6}$/.test(v)?(v.startsWith("#")?v:"#"+v):"#808080";
@@ -70,17 +70,17 @@ class SnapmakerU1Card extends HTMLElement {
     }).join("");
     const routePoints=[
       [55,82,236,125],
-      [55,252,291,125],
-      [545,252,346,125],
-      [545,82,401,125]
+      [545,82,291,125],
+      [55,252,346,125],
+      [545,252,401,125]
     ];
     const filamentRoute=(i)=>{
       const [sx,sy,ex]=routePoints[i];
       const entryY=99;
-      const sideX=i<2?135:465;
-      const laneY=[53,8,8,53][i];
-      const approachX=ex+(i<2?-24:24);
-      const startDirection=i<2?1:-1;
+      const sideX=(i===0||i===2)?135:465;
+      const laneY=[53,53,8,8][i];
+      const approachX=ex+((i===0||i===2)?-24:24);
+      const startDirection=(i===0||i===2)?1:-1;
       return `M${sx} ${sy} C${sx+startDirection*55} ${sy},${sideX} ${laneY},${sideX+startDirection*18} ${laneY} S${approachX} ${laneY},${ex} ${laneY+15} Q${ex} ${laneY+24},${ex} ${entryY}`;
     };
     const filamentGuides=headColors.map((color,i)=>
