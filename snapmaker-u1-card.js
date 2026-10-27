@@ -47,7 +47,7 @@ class SnapmakerU1Card extends HTMLElement {
       const raw=this.read(c["tool"+i+"_job_estimated"]||"sensor.slot_"+i+"_job_filament_estimated_lava");
       return (printing||paused) && Number.isFinite(Number(raw)) && Number(raw)>0;
     });
-    const hotends=[1,2,3,4].map((i)=>`<div class="metric ${(printing||paused)&&active===i-1?"hot-active":""}"><label>Cabezal T${i-1}</label><b>${metric(c["extruder"+i+"_temperature"]," °C")}</b></div>`).join("");
+
     const spoolCacheKey="snapmaker-u1-card-spools-v1";
     let saved={};
     try { saved=JSON.parse(localStorage.getItem(spoolCacheKey)||"{}")||{}; } catch(e) {}
@@ -95,8 +95,9 @@ class SnapmakerU1Card extends HTMLElement {
     const heads=headColors.map((color,i)=>{
       const highlighted=printing && active===i;
       const planned=plannedTools[i] || ((printing||paused) && active===i);
+      const temp=metric(c["extruder"+(i+1)+"_temperature"]," °C");
       return `<g class="head ${highlighted?"head-printing":""} ${planned?"head-planned":""}" transform="translate(${105+i*52},29)" style="--head-color:${color}">
-        <rect x="-18" y="-12" width="36" height="30" rx="5" fill="#111c27" stroke="${planned?color:"#667d90"}" stroke-width="2"/><rect x="-12" y="-7" width="24" height="6" rx="2" fill="#344655"/><rect x="-9" y="8" width="18" height="7" rx="2" fill="#263b4b"/><path d="M-14 -10 H14 M-14 16 H14" stroke="#91a5b2" stroke-width="1" opacity=".65"/><rect x="-15" y="-3" width="4" height="14" rx="1" fill="#455f71"/><rect x="11" y="-3" width="4" height="14" rx="1" fill="#455f71"/>
+        <text x="0" y="-20" text-anchor="middle" font-size="10" font-weight="700" fill="${highlighted?color:"#e3eff7"}">${this.esc(temp)}</text><rect x="-18" y="-12" width="36" height="30" rx="5" fill="#111c27" stroke="${planned?color:"#667d90"}" stroke-width="2"/><rect x="-12" y="-7" width="24" height="6" rx="2" fill="#344655"/><rect x="-9" y="8" width="18" height="7" rx="2" fill="#263b4b"/><path d="M-14 -10 H14 M-14 16 H14" stroke="#91a5b2" stroke-width="1" opacity=".65"/><rect x="-15" y="-3" width="4" height="14" rx="1" fill="#455f71"/><rect x="11" y="-3" width="4" height="14" rx="1" fill="#455f71"/>
         <path d="M-6 18 H6 L3 25 H-3Z" fill="${highlighted?color:"#a4b4bf"}"/>
         <circle cx="0" cy="2" r="5" fill="${color}" stroke="#ffffff44" stroke-width="1"/>
       </g>`;
@@ -123,6 +124,13 @@ class SnapmakerU1Card extends HTMLElement {
       if(!printing || active!==i) return "";
       return `<path class="filament-track" d="${filamentRoute(i)}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round"/>`;
     }).join("");
+    const controls=[
+      {key:"pause",label:"Pausar",icon:"⏸",entity:c.pause_button||"button.pause_print_snapmaker_u1_despacho",enabled:printing},
+      {key:"resume",label:"Reanudar",icon:"▶",entity:c.resume_button||"button.resume_print_snapmaker_u1_despacho",enabled:paused},
+      {key:"cancel",label:"Parar",icon:"■",entity:c.cancel_button||"button.cancel_print_snapmaker_u1_despacho",enabled:printing||paused},
+      {key:"emergency",label:"Emergencia",icon:"!",entity:c.emergency_button||"button.emergency_stop_snapmaker_u1_despacho",enabled:!offline}
+    ];
+    const controlsHtml=`<div class="printer-controls">${controls.map(item=>`<button type="button" class="printer-action ${item.key}" data-action="${item.key}" ${!item.enabled||this.read(item.entity)==="unavailable"?"disabled":""} title="${item.label}"><span>${item.icon}</span>${item.label}</button>`).join("")}</div>`;
     const showInventory=c.show_spoolman_inventory===true;
     const inventory=showInventory?Object.keys(this._hass?.states||{})
       .map(id=>/^sensor\.spoolman_spool_(\d+)$/.exec(id))
@@ -147,7 +155,7 @@ class SnapmakerU1Card extends HTMLElement {
       .printer:before{content:"";position:absolute;left:12%;right:12%;bottom:19%;height:8px;background:#738e9d;box-shadow:0 4px 9px #000}
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:6px 9px;min-height:0}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:2px}
-      .hot-active{border-color:#73b9e5;background:#1b3245}.scene-layout{position:relative;display:grid;grid-template-columns:minmax(68px,1fr) minmax(0,4.1fr) minmax(68px,1fr);gap:5px;align-items:center;margin-top:14px;isolation:isolate}.scene-layout .tools-side:first-child{margin-right:0;z-index:2}.scene-layout .tools-side:last-child{margin-left:0;z-index:2}.filament-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}.scene-layout .scene{z-index:1;transform:scale(1.02);filter:drop-shadow(0 9px 10px #0008)}.tools-side{display:flex;flex-direction:column;gap:12px;min-width:0}.scene-layout .scene{width:100%;margin:0}.tool{border:0;border-radius:9px;padding:5px 1px;background:transparent;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
+      .hot-active{border-color:#73b9e5;background:#1b3245}.printer-controls{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:10px}.printer-action{border:1px solid #47637a;border-radius:10px;background:#1a3449;color:#e9f6ff;padding:10px 3px;font:600 11px system-ui;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}.printer-action span{font-size:19px}.printer-action.cancel{border-color:#a37d51}.printer-action.emergency{background:#69262b;border-color:#d66a6a;color:white}.printer-action:disabled{opacity:.35;cursor:not-allowed}.scene-layout{position:relative;display:grid;grid-template-columns:minmax(68px,1fr) minmax(0,4.1fr) minmax(68px,1fr);gap:5px;align-items:center;margin-top:14px;isolation:isolate}.scene-layout .tools-side:first-child{margin-right:0;z-index:2}.scene-layout .tools-side:last-child{margin-left:0;z-index:2}.filament-overlay{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none;overflow:visible}.scene-layout .scene{z-index:1;transform:scale(1.02);filter:drop-shadow(0 9px 10px #0008)}.tools-side{display:flex;flex-direction:column;gap:12px;min-width:0}.scene-layout .scene{width:100%;margin:0}.tool{border:0;border-radius:9px;padding:5px 1px;background:transparent;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
       .tool.planned:not(.selected) .spool-side{filter:drop-shadow(0 0 5px var(--filament))}.tool-planned{font-style:normal;font-size:9px;color:#a8cde4;white-space:nowrap}.tool.selected{background:color-mix(in srgb,var(--filament) 12%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--filament) 30%,transparent)}.spool-side{position:relative;width:43px;height:78px;transform:perspective(160px) rotateY(-17deg);filter:drop-shadow(0 3px 5px #0008)}.tools-side:last-child .spool-side{transform:perspective(160px) rotateY(17deg)}.spool-winding{position:absolute;left:5px;right:5px;top:7px;bottom:7px;border-radius:8px;background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--filament) 72%,#111) 0px,var(--filament) 3px,color-mix(in srgb,var(--filament) 60%,#000) 5px);box-shadow:inset 3px 0 5px #0007,inset -3px 0 4px #fff3}.spool-rim{position:absolute;z-index:2;left:0;top:1px;bottom:1px;width:6px;border-radius:45%;background:linear-gradient(90deg,#aeb7bc,#414b54);border:1px solid #8b979f}.spool-side:after{content:"";position:absolute;inset:12px 8px;border:1px solid #ffffff24;border-radius:4px;pointer-events:none}.spool-rim.rear{left:auto;right:0;background:linear-gradient(90deg,#48515a,#a4b0b8)}.feeding .spool-winding{animation:filament-flow 1.8s linear infinite}.feeding .spool-side{filter:drop-shadow(0 0 8px var(--filament))}@keyframes filament-flow{50%{filter:brightness(1.35);background-position:0 8px}}.tool small{font-size:10px;color:#a7b8c8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool span{font-size:11px}.bar{height:7px;border-radius:8px;background:#304456;margin-top:18px;overflow:hidden}.bar>div{height:100%;background:#49b8fa;transition:width .4s}.foot{margin-top:8px;color:#b8c9d7;font-size:12px;display:flex;justify-content:space-between}
       @media(prefers-reduced-motion:reduce){.feeding,.feeding .spool-winding,.filament-track,.print-carriage.moving{animation:none}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
       @media(max-width:480px){ha-card{padding:12px}.scene-layout{grid-template-columns:minmax(57px,1fr) minmax(0,3.8fr) minmax(57px,1fr);gap:3px}.spool-side{width:28px;height:56px}.spool-winding{top:5px;bottom:5px}.tool{padding:6px 2px}.tool small{font-size:9px}.tool span{font-size:9px}}
@@ -179,7 +187,20 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div>${controlsHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
+    for(const button of this.shadowRoot.querySelectorAll("button.printer-action")){
+      button.addEventListener("click",async()=>{
+        if(button.disabled||this._commandPending)return;
+        const action=button.dataset.action;
+        const item=controls.find(x=>x.key===action);
+        if(!item||!item.enabled||this.read(item.entity)==="unavailable")return;
+        if((action==="cancel"||action==="emergency")&&!window.confirm(action==="emergency"?"¿Ejecutar PARADA DE EMERGENCIA? Puede interrumpir inmediatamente el funcionamiento.":"¿Cancelar la impresión actual?"))return;
+        this._commandPending=true;button.disabled=true;
+        try{await this._hass.callService("button","press",{entity_id:item.entity});}
+        catch(error){console.error("Snapmaker U1 control failed",error);window.alert("No se pudo ejecutar "+item.label+". Revisa la conexión de la impresora.");}
+        finally{this._commandPending=false;}
+      });
+    }
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
     if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
   }
