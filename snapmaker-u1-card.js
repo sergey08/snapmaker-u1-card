@@ -61,16 +61,16 @@ class SnapmakerU1Card extends HTMLElement {
     });
     const heads=headColors.map((color,i)=>{
       const highlighted=printing && active===i;
-      return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},40)" style="--head-color:${color}">
-        <rect x="-17" y="-8" width="34" height="20" rx="4" fill="#17232e" stroke="${highlighted?color:"#71808b"}" stroke-width="2"/>
-        <path d="M-7 12 H7 L4 20 H-4Z" fill="${highlighted?color:"#7c8e9a"}"/>
+      return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},29)" style="--head-color:${color}">
+        <rect x="-18" y="-12" width="36" height="30" rx="5" fill="#111c27" stroke="${highlighted?color:"#667d90"}" stroke-width="2"/><rect x="-12" y="-7" width="24" height="6" rx="2" fill="#344655"/><rect x="-9" y="8" width="18" height="7" rx="2" fill="#263b4b"/>
+        <path d="M-6 18 H6 L3 25 H-3Z" fill="${highlighted?color:"#a4b4bf"}"/>
         <circle cx="0" cy="2" r="5" fill="${color}" stroke="#ffffff44" stroke-width="1"/>
       </g>`;
     }).join("");
     const filamentPaths=headColors.map((color,i)=>{
       if(!printing || active!==i) return "";
       const startX=i<2?32:328, startY=i%2===0?72:166;
-      const endX=105+i*52, endY=25;
+      const endX=105+i*52, endY=13;
       const controlX=i<2?42:318;
       return `<path class="filament-track" d="M${startX} ${startY} C${controlX} ${startY-60},${endX-32} -14,${endX} ${endY}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round"/>`;
     }).join("");
@@ -84,17 +84,17 @@ class SnapmakerU1Card extends HTMLElement {
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:7px 9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
       .hot-active{border-color:#73b9e5;background:#1b3245}.scene-layout{display:grid;grid-template-columns:minmax(0,0.65fr) minmax(0,4.5fr) minmax(0,0.65fr);gap:0;align-items:center;margin-top:14px;isolation:isolate}.scene-layout .tools-side:first-child{margin-right:-25px;z-index:0}.scene-layout .tools-side:last-child{margin-left:-25px;z-index:0}.scene-layout .scene{z-index:1;transform:scale(1.12)}.tools-side{display:flex;flex-direction:column;gap:12px;min-width:0}.scene-layout .scene{width:100%;margin:0}.tool{border:0;border-radius:9px;padding:5px 1px;background:transparent;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
-      .tool.selected{background:color-mix(in srgb,var(--filament) 12%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--filament) 30%,transparent)}.spool-side{position:relative;width:36px;height:69px;transform:perspective(160px) rotateY(-17deg);filter:drop-shadow(0 3px 5px #0008)}.tools-side:last-child .spool-side{transform:perspective(160px) rotateY(17deg)}.spool-winding{position:absolute;left:5px;right:5px;top:7px;bottom:7px;border-radius:8px;background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--filament) 72%,#111) 0px,var(--filament) 3px,color-mix(in srgb,var(--filament) 60%,#000) 5px);box-shadow:inset 3px 0 5px #0007,inset -3px 0 4px #fff3}.spool-rim{position:absolute;z-index:2;left:0;top:1px;bottom:1px;width:6px;border-radius:45%;background:linear-gradient(90deg,#aeb7bc,#414b54);border:1px solid #8b979f}.spool-rim.rear{left:auto;right:0;background:linear-gradient(90deg,#48515a,#a4b0b8)}.feeding .spool-winding{animation:filament-flow 1.8s linear infinite}.feeding .spool-side{filter:drop-shadow(0 0 8px var(--filament))}@keyframes filament-flow{50%{filter:brightness(1.35);background-position:0 8px}}.tool small{font-size:10px;color:#a7b8c8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool span{font-size:11px}.bar{height:7px;border-radius:8px;background:#304456;margin-top:18px;overflow:hidden}.bar>div{height:100%;background:#49b8fa;transition:width .4s}.foot{margin-top:8px;color:#b8c9d7;font-size:12px;display:flex;justify-content:space-between}
+      .tool.selected{background:color-mix(in srgb,var(--filament) 12%,transparent);box-shadow:0 0 12px color-mix(in srgb,var(--filament) 30%,transparent)}.spool-side{position:relative;width:43px;height:78px;transform:perspective(160px) rotateY(-17deg);filter:drop-shadow(0 3px 5px #0008)}.tools-side:last-child .spool-side{transform:perspective(160px) rotateY(17deg)}.spool-winding{position:absolute;left:5px;right:5px;top:7px;bottom:7px;border-radius:8px;background:repeating-linear-gradient(0deg,color-mix(in srgb,var(--filament) 72%,#111) 0px,var(--filament) 3px,color-mix(in srgb,var(--filament) 60%,#000) 5px);box-shadow:inset 3px 0 5px #0007,inset -3px 0 4px #fff3}.spool-rim{position:absolute;z-index:2;left:0;top:1px;bottom:1px;width:6px;border-radius:45%;background:linear-gradient(90deg,#aeb7bc,#414b54);border:1px solid #8b979f}.spool-rim.rear{left:auto;right:0;background:linear-gradient(90deg,#48515a,#a4b0b8)}.feeding .spool-winding{animation:filament-flow 1.8s linear infinite}.feeding .spool-side{filter:drop-shadow(0 0 8px var(--filament))}@keyframes filament-flow{50%{filter:brightness(1.35);background-position:0 8px}}.tool small{font-size:10px;color:#a7b8c8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool span{font-size:11px}.bar{height:7px;border-radius:8px;background:#304456;margin-top:18px;overflow:hidden}.bar>div{height:100%;background:#49b8fa;transition:width .4s}.foot{margin-top:8px;color:#b8c9d7;font-size:12px;display:flex;justify-content:space-between}
       @media(prefers-reduced-motion:reduce){.feeding,.feeding .spool-winding,.filament-track{animation:none}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes pulse{50%{opacity:.35}}
-      @media(max-width:480px){ha-card{padding:12px}.scene-layout{grid-template-columns:minmax(0,.7fr) minmax(0,3.6fr) minmax(0,.7fr);gap:0}.spool-side{width:23px;height:50px}.spool-winding{top:5px;bottom:5px}.tool{padding:6px 2px}.tool small{font-size:9px}.tool span{font-size:9px}}
+      @media(max-width:480px){ha-card{padding:12px}.scene-layout{grid-template-columns:minmax(0,.7fr) minmax(0,3.6fr) minmax(0,.7fr);gap:0}.spool-side{width:28px;height:56px}.spool-winding{top:5px;bottom:5px}.tool{padding:6px 2px}.tool small{font-size:9px}.tool span{font-size:9px}}
     </style><ha-card><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Sin conexión":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout"><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
-<svg class="machine" viewBox="0 0 360 250" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
+<svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
 <ellipse cx="181" cy="233" rx="155" ry="11" fill="#000" opacity=".35"/>
 <path d="M46 31 L70 12 H312 L329 32 V221 L310 235 H45 L31 217 V46Z" fill="url(#u1shell)" stroke="#8b9aa6" stroke-width="2"/>
 <path d="M50 42 L75 26 H300 L314 42 V203 H50Z" fill="#111b25" stroke="#738796" stroke-width="2"/>
-<path d="M72 48 H294 V190 H72Z" fill="url(#u1glass)" stroke="#415767" stroke-width="2"/>
-<path d="M85 61 H281 M85 74 H281" stroke="#6b8799" stroke-width="3" opacity=".6"/>
+<path d="M72 48 H294 V190 H72Z" fill="url(#u1glass)" stroke="#415767" stroke-width="2"/><path d="M76 53 H290 V186 H76Z" fill="none" stroke="#9cc0d0" stroke-opacity=".22" stroke-width="2"/><path d="M80 57 L97 57 L97 183" fill="none" stroke="#ffffff" stroke-opacity=".09" stroke-width="4"/>
+<path d="M85 61 H281 M85 74 H281" stroke="#6b8799" stroke-width="3" opacity=".6"/><path d="M91 84 H275" stroke="#a8cad6" stroke-width="2" opacity=".25"/>
 <path d="M91 166 L118 151 H265 L284 166 V184 H91Z" fill="#344a59" stroke="#81929d" stroke-width="2"/>
 <path d="M117 155 H266" stroke="#b3bdc3" stroke-width="4"/>
 <path d="M166 71 H198 V112 L190 121 H173 L166 112Z" fill="#758995" stroke="#b2c2ca" stroke-width="2"/>
