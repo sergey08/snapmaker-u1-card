@@ -61,7 +61,7 @@ class SnapmakerU1Card extends HTMLElement {
     });
     const heads=headColors.map((color,i)=>{
       const highlighted=printing && active===i;
-      return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},20)" style="--head-color:${color}">
+      return `<g class="head ${highlighted?"head-printing":""}" transform="translate(${105+i*52},40)" style="--head-color:${color}">
         <rect x="-17" y="-8" width="34" height="20" rx="4" fill="${highlighted?color:"#263845"}" stroke="${highlighted?color:"#6b7e8c"}" stroke-width="2"/>
         <path d="M-7 12 H7 L4 20 H-4Z" fill="${highlighted?color:"#7c8e9a"}"/>
         <text x="0" y="5" text-anchor="middle" font-size="9" font-weight="700" fill="${highlighted?"#101820":"#c2d1dd"}">T${i}</text>
@@ -83,7 +83,7 @@ class SnapmakerU1Card extends HTMLElement {
     </style><ha-card><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Sin conexión":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout"><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 0 360 250" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
-${heads}<ellipse cx="181" cy="233" rx="155" ry="11" fill="#000" opacity=".35"/>
+<ellipse cx="181" cy="233" rx="155" ry="11" fill="#000" opacity=".35"/>
 <path d="M46 31 L70 12 H312 L329 32 V221 L310 235 H45 L31 217 V46Z" fill="url(#u1shell)" stroke="#8b9aa6" stroke-width="2"/>
 <path d="M50 42 L75 26 H300 L314 42 V203 H50Z" fill="#111b25" stroke="#738796" stroke-width="2"/>
 <path d="M72 48 H294 V190 H72Z" fill="url(#u1glass)" stroke="#415767" stroke-width="2"/>
@@ -99,6 +99,7 @@ ${heads}<ellipse cx="181" cy="233" rx="155" ry="11" fill="#000" opacity=".35"/>
 <text x="184" y="220" text-anchor="middle" fill="#d8e8f3" font-size="13" font-family="system-ui" font-weight="700">U1</text>
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
+${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
   }
 }
