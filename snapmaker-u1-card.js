@@ -8,7 +8,11 @@ const DEFAULTS = {
   total_layers: "sensor.total_layer_snapmaker_u1_despacho",
   time_left: "sensor.slicer_print_time_left_estimate_snapmaker_u1_despacho",
   bed_temperature: "sensor.bed_temperature_snapmaker_u1_despacho",
-  chamber_temperature: "sensor.cavity_temp_snapmaker_u1_despacho"
+  chamber_temperature: "sensor.cavity_temp_snapmaker_u1_despacho",
+  extruder1_temperature: "sensor.extruder1_temperature_snapmaker_u1_despacho",
+  extruder2_temperature: "sensor.extruder2_temperature_snapmaker_u1_despacho",
+  extruder3_temperature: "sensor.extruder3_temperature_snapmaker_u1_despacho",
+  extruder4_temperature: "sensor.extruder4_temperature_snapmaker_u1_despacho"
 };
 class SnapmakerU1Card extends HTMLElement {
   setConfig(config) {
@@ -30,9 +34,11 @@ class SnapmakerU1Card extends HTMLElement {
     const active=Number(this.read(c.active_tool));
     const progress=Math.max(0,Math.min(100,Number(this.read(c.progress))||0));
     const metric=(id,suffix="")=>{const v=this.read(id);return ["unknown","unavailable","none",""].includes(String(v).toLowerCase())?"—":this.esc(v)+suffix;};
-    const layer=metric(c.current_layer), total=metric(c.total_layers);
-    const remaining=metric(c.time_left);
+    const layer=(printing||paused)?metric(c.current_layer):"—", total=(printing||paused)?metric(c.total_layers):"—";
+    const rawRemaining=this.read(c.time_left);
+    const remaining=(!printing && !paused)?"—":(()=>{const n=Number(rawRemaining);if(!Number.isFinite(n)||n<0||["unknown","unavailable",""].includes(rawRemaining))return "—";const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const minutes=unit==="s"?Math.ceil(n/60):unit==="h"?Math.ceil(n*60):Math.ceil(n);return `${Math.floor(minutes/60)} h ${String(minutes%60).padStart(2,"0")} min`;})();
     const bed=metric(c.bed_temperature," °C"), chamber=metric(c.chamber_temperature," °C");
+    const hotends=[1,2,3,4].map((i)=>`<div class="metric ${active===i-1?"hot-active":""}"><label>Cabezal T${i-1}</label><b>${metric(c["extruder"+i+"_temperature"]," °C")}</b></div>`).join("");
     const tools=[0,1,2,3].map(i=>{
       const prefix=c["tool"+i+"_"]||"";
       const color=this.read(c["tool"+i+"_color"]||"sensor.u1_t"+i+"_color_spoolman");
@@ -53,7 +59,7 @@ class SnapmakerU1Card extends HTMLElement {
       .printer:before{content:"";position:absolute;left:12%;right:12%;bottom:19%;height:8px;background:#738e9d;box-shadow:0 4px 9px #000}
       .printer:after{content:"U1";position:absolute;left:46%;top:20%;font-size:13px;background:#152533;padding:12px 5px 20px;border-radius:4px;box-shadow:0 0 12px #5da0ca55}
       .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.metric{background:#142536;border:1px solid #304658;border-radius:10px;padding:9px}.metric label{display:block;color:#9fb4c4;font-size:11px}.metric b{display:block;font-size:14px;margin-top:3px}
-      .tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}.tool{border:1px solid #304658;border-radius:12px;padding:12px 5px;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
+      .hot-active{border-color:#73b9e5;background:#1b3245}.tools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:16px}.tool{border:1px solid #304658;border-radius:12px;padding:12px 5px;display:flex;align-items:center;flex-direction:column;gap:5px;min-width:0}
       .tool.selected{border-color:#73b9e5;box-shadow:inset 0 0 16px #52baff15}.spool{height:48px;width:48px;border:8px solid var(--filament);border-radius:50%;box-shadow:0 0 0 3px #0b1621,inset 0 0 0 3px #0b1621;display:grid;place-items:center}
       .hub{width:13px;height:13px;border:3px solid #8da0b0;border-radius:50%}.feeding .spool{animation:spin 1.8s linear infinite}.feed{font-size:10px;color:var(--filament);animation:pulse 1s linear infinite;white-space:nowrap}
       .tool small{font-size:11px;color:#a7b8c8;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.tool span{font-size:12px}.bar{height:7px;border-radius:8px;background:#304456;margin-top:18px;overflow:hidden}.bar>div{height:100%;background:#49b8fa;transition:width .4s}.foot{margin-top:8px;color:#b8c9d7;font-size:12px;display:flex;justify-content:space-between}
@@ -78,7 +84,7 @@ class SnapmakerU1Card extends HTMLElement {
 <text x="184" y="220" text-anchor="middle" fill="#d8e8f3" font-size="13" font-family="system-ui" font-weight="700">U1</text>
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
-</svg></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="tools">${tools}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${this.esc(state)}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
+</svg></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Cámara</label><b>${chamber}</b></div></div><div class="metrics">${hotends}</div><div class="tools">${tools}</div><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${this.esc(state)}</span><span>${progress.toFixed(0)}%</span></div></ha-card>`;
   }
 }
 if (!customElements.get("snapmaker-u1-card")) customElements.define("snapmaker-u1-card",SnapmakerU1Card);
