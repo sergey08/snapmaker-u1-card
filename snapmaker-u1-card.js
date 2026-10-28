@@ -56,7 +56,9 @@ class SnapmakerU1Card extends HTMLElement {
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
     const rawActive=this.read(c.active_tool);
     const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
-    const progress=Math.max(0,Math.min(100,Number(this.read(c.progress))||0));
+    const rawProgress=this.read(c.progress);
+    const progressValid=!offline&&!statusMissing(rawProgress)&&Number.isFinite(Number(rawProgress));
+    const progress=progressValid?Math.max(0,Math.min(100,Number(rawProgress))):0;
     const metric=(id,suffix="")=>{const v=this.read(id);return ["unknown","unavailable","none",""].includes(String(v).toLowerCase())?"—":this.esc(v)+suffix;};
     const layer=(printing||paused)?metric(c.current_layer):"—", total=(printing||paused)?metric(c.total_layers):"—";
     const rawRemaining=this.read(c.time_left);
@@ -301,7 +303,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
