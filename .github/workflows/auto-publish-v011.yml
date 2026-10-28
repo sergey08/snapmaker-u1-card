@@ -1,0 +1,48 @@
+name: Auto publish v0.1.1
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.release/v0.1.1.txt'
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate release
+        run: |
+          node --check snapmaker-u1-card.js
+          node tests/validate-card.cjs
+          test -s assets/screenshots/card-full.png
+          test -s assets/screenshots/card-compact.png
+          test -s assets/screenshots/spoolman-inventory.png
+      - name: Publish stable v0.1.1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view v0.1.1 >/dev/null 2>&1; then
+            echo "Release v0.1.1 already exists; nothing to do."
+            exit 0
+          fi
+          if git ls-remote --exit-code --tags origin refs/tags/v0.1.1 >/dev/null 2>&1; then
+            echo "::error::Tag v0.1.1 exists without a release; refusing to move it."
+            exit 1
+          fi
+          cat > /tmp/notes.md <<'NOTES'
+          ## Español
+          **Snapmaker U1 Card v0.1.1**
+          - README completo en inglés y español, con botón HACS y enlaces a Moonraker, Lava/U1 Companion y Spoolman.
+          - Capturas actualizadas del diseño blanco.
+          - Descripción bilingüe en el selector de tarjetas.
+          ## English
+          **Snapmaker U1 Card v0.1.1**
+          - Complete bilingual README, HACS button and links to Moonraker, Lava/U1 Companion and Spoolman.
+          - Updated screenshots showing the light design.
+          - Bilingual card-picker description.
+          NOTES
+          gh release create v0.1.1 snapmaker-u1-card.js --target "$GITHUB_SHA" --title "Snapmaker U1 Card v0.1.1" --notes-file /tmp/notes.md --latest
