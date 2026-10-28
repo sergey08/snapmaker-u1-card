@@ -38,12 +38,12 @@ This checklist is for the **first public beta**, not a stable release.
 
 - [x] User provided a genuine PNG of the first step of the three-step wizard (1021 × 849 px), with the editor and printer preview visible.
 - [x] Uploaded `assets/screenshots/setup-wizard.png` to GitHub and verified it is readable through the repository API.
-- [ ] The preview in this screenshot is unconfigured and therefore shows `Apagada`/unavailable values; it is **not** evidence of a failure in the configured dashboard.
+- [x] Documented that the unconfigured wizard preview can show `Apagada`/unavailable values; this does **not** indicate a failure in the configured dashboard.
 
 ## Publication / Publicación
 
 - [x] Collect four genuine Home Assistant screenshots of the approved light/cyan design; a local ZIP contains all four, including the user-provided wizard image (2026-10-28).
-- [ ] Upload the four verified PNG files from the prepared ZIP into GitHub at `assets/screenshots/` with exact names `card-full.png`, `card-compact.png`, `setup-wizard.png`, and `spoolman-inventory.png`, then link them in README. **Local ZIP preparation is not a repository upload.**
+- [x] Uploaded and verified all four PNGs in GitHub under `assets/screenshots/`, and linked them in README (2026-10-28).
 - [ ] Update README with verified HACS installation instructions.
 - [ ] Create a pre-release GitHub tag and release notes (for example `v0.1.0-beta.1`).
 - [ ] Install the exact release through HACS and test a fresh dashboard.
