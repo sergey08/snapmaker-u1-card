@@ -10,14 +10,21 @@
 
 ## Screenshots / Capturas de pantalla
 
-**Screenshots of the final approved light/cyan theme are required before the beta release.** Older dark-theme development screenshots are intentionally excluded. / **Antes de la beta se necesitan capturas del diseño claro y azul cian aprobado.** No publicaremos las capturas antiguas del tema oscuro.
+These are genuine screenshots of the approved light/cyan Home Assistant design. / Capturas reales del diseño claro y azul cian aprobado en Home Assistant.
 
-Planned gallery / Galería prevista:
+### Full dashboard / Vista completa
+![Snapmaker U1 Card — full dashboard](assets/screenshots/card-full.png)
 
-- Full dashboard with four toolheads / Vista completa con cuatro cabezales.
-- Compact mode / Modo compacto.
-- First-run setup wizard and auto-detection / Asistente inicial y detección automática.
-- Filament and Spoolman inventory / Filamento e inventario Spoolman.
+### Compact mode / Modo compacto
+![Snapmaker U1 Card — compact mode](assets/screenshots/card-compact.png)
+
+### Initial setup wizard / Asistente de configuración inicial
+![Snapmaker U1 Card — setup wizard step 1](assets/screenshots/setup-wizard.png)
+
+The setup wizard preview is not yet connected to printer entities, so it may show unavailable values. / La vista previa del asistente aún no tiene entidades asignadas, por lo que puede mostrar valores no disponibles.
+
+### Spoolman inventory / Inventario Spoolman
+![Snapmaker U1 Card — Spoolman inventory](assets/screenshots/spoolman-inventory.png)
 
 ## Features / Funciones
 
