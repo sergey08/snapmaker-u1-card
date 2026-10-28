@@ -6,7 +6,7 @@
 
 ![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
 
-> **Preview / Versión en desarrollo.** The card is being tested before its first public beta. / Estamos probando la tarjeta antes de publicar la primera beta.
+> **Public beta / Beta pública:** `v0.1.0-beta.1` is available as a GitHub pre-release. / La versión `v0.1.0-beta.1` está disponible como versión preliminar en GitHub.
 
 ## Screenshots / Capturas de pantalla
 
@@ -72,19 +72,19 @@ type: custom:snapmaker-u1-card
 
 ### HACS custom repository / Repositorio personalizado HACS
 
-The repository includes `hacs.json` and can be added as a **custom dashboard repository** in HACS once a downloadable release is available. / El repositorio incluye `hacs.json` y podrá añadirse como **repositorio personalizado de tipo Dashboard** cuando exista una versión descargable.
+The repository includes `hacs.json` and can be added as a **custom dashboard repository** in HACS. / El repositorio incluye `hacs.json` y puede añadirse como **repositorio personalizado de tipo Dashboard** en HACS.
 
 1. Open **HACS → ⋮ → Custom repositories** / Abre **HACS → ⋮ → Repositorios personalizados**.
 2. Add `https://github.com/sergey08/snapmaker-u1-card` with category **Dashboard** / Añade esa URL con categoría **Dashboard**.
 3. Install the card and add `custom:snapmaker-u1-card` to a dashboard / Instala la tarjeta y añádela al panel.
 
-**Not released yet / Aún sin publicar:** The first public beta and official HACS catalog submission remain pending. / La primera beta pública y su inclusión en el catálogo oficial de HACS siguen pendientes.
+**Beta available / Beta disponible:** [v0.1.0-beta.1](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0-beta.1). Official HACS catalog inclusion is still pending. / La inclusión en el catálogo oficial de HACS sigue pendiente.
 
 ## Beta release process / Publicación de la beta
 
-The beta workflow runs **only** when a tag matching `v*-beta.*` is pushed. It validates JavaScript and HACS metadata before creating a GitHub **pre-release** with `snapmaker-u1-card.js` attached. / El flujo de beta se ejecuta **solo** al publicar una etiqueta con formato `v*-beta.*`. Valida el código y HACS antes de crear una **versión preliminar** con el archivo JavaScript adjunto.
+The beta workflow runs when a matching tag (`v*-beta.*`) is pushed or manually using **Run workflow** with an existing tag. It validates the card and screenshots, then creates or updates the GitHub pre-release and attaches `snapmaker-u1-card.js`. / El flujo se ejecuta al crear una etiqueta `v*-beta.*` o manualmente con **Run workflow** indicando una etiqueta existente. Valida la tarjeta y las capturas, crea o actualiza la versión preliminar y adjunta `snapmaker-u1-card.js`.
 
-No release has been published by adding this workflow. See [BETA_CHECKLIST.md](BETA_CHECKLIST.md) for the remaining manual acceptance tests. / Añadir este flujo **no publica** ninguna versión. Consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md) para las pruebas manuales pendientes.
+The first beta has been published; see [BETA_CHECKLIST.md](BETA_CHECKLIST.md) for remaining installation and live-print acceptance tests. / La primera beta ya está publicada; consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md) para las pruebas pendientes de instalación e impresión real.
 
 ## Safety / Seguridad
 
@@ -94,7 +94,7 @@ Printer controls can execute real actions once configured. Verify entity mapping
 
 ## Development status / Estado del desarrollo
 
-The wizard and auto-detection have been validated on one Home Assistant installation. The current card styling has been reviewed in light mode. Full localization, screenshots in the repository, cross-browser testing, release validation and multi-printer matching are still pending. / El asistente y la detección se han validado en una instalación y el estilo claro se ha revisado visualmente. Siguen pendientes la traducción completa, subir las capturas, pruebas entre navegadores, validación de la versión y detección de varias impresoras.
+The wizard and auto-detection have been validated on one Home Assistant installation. The current card styling has been reviewed in light mode. Translation coverage, cross-browser testing, HACS installation testing, live-print controls and multi-printer matching still need further validation. / El asistente y la detección se han validado en una instalación y el diseño claro se ha revisado. Aún hay que ampliar la cobertura de traducciones y validar la instalación por HACS, los controles durante una impresión real, distintos navegadores y varias impresoras.
 
 ## License
 
