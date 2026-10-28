@@ -63,3 +63,13 @@ assert(source.includes('.job-summary{background:var(--u1-surface)'), 'Current-jo
 assert(source.includes('.filament-check .ok{background:color-mix'), 'Filament status must use the cyan theme');
 assert(source.includes('tool-active-label'), 'Active T0-T3 label must remain visible');
 console.log('Approved UI regression checks passed.');
+
+// Prevent obsolete preview settings and missing job-label translations from returning.
+assert(!source.includes('["preview_open_default","Miniatura abierta por defecto"]'), 'Removed preview toggle must not reappear in the editor');
+for (const locale of ['en', 'fr', 'de', 'it', 'pt', 'nl']) {
+  for (const label of ['Trabajo actual', 'En este trabajo']) {
+    const actual = vm.runInContext('cardTranslate(' + JSON.stringify(label) + ',' + JSON.stringify(locale) + ')', context);
+    assert.notEqual(actual, label, 'Untranslated job label: ' + locale + ' / ' + label);
+  }
+}
+console.log('Job labels and obsolete preview setting verified.');
