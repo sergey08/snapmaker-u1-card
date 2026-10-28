@@ -23,7 +23,7 @@ This checklist is for the **first public beta**, not a stable release.
 
 ## Verified on the development Home Assistant / Verificado en el Home Assistant de desarrollo
 
-- [x] Existing `custom:snapmaker-u1-card` instances located in `lovelace` and `dashboard-sca` via read-only dashboard search (2026-10-28).
+- [x] The definitive `custom:snapmaker-u1-card` instance is in `lovelace` (Resumen). The redundant `dashboard-sca` was deleted on user request and its absence confirmed via a fresh dashboard list (2026-10-28).
 - [x] Current JavaScript resource successfully deployed to Home Assistant in the preceding development step.
 - [ ] Clean HACS installation remains unverified; the current test deployment is **not** proof of HACS installability.
 - [ ] Visual verification of the final changes on both dashboards is still pending.
