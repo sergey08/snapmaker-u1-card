@@ -236,6 +236,16 @@ class SnapmakerU1Card extends HTMLElement {
       .electricity{color:var(--u1-text);gap:6px}
       .electricity span{background:var(--u1-tile);border:1px solid var(--u1-line);color:var(--u1-text);border-radius:14px;padding:8px 10px}
       .electricity span b{color:var(--u1-text);font-weight:750}
+
+      /* EV Builder visual identity: cyan-blue accent on text and progress. */
+      :host{--u1-accent:#00a6d6;--u1-accent-strong:#008dbd}
+      .bar{background:color-mix(in srgb,var(--u1-accent) 16%,var(--u1-tile));border-radius:999px;overflow:hidden}
+      .bar>div{background:var(--u1-accent)!important;border-radius:999px}
+      .foot{color:var(--u1-accent-strong)}.foot span{color:var(--u1-accent-strong)}
+      .electricity span{color:var(--u1-accent-strong)}.electricity span b{color:var(--u1-accent-strong)}
+      .inventory-info small{color:var(--u1-accent-strong)}
+      .metric label{color:var(--u1-accent-strong)}
+      .printer-action:not(:disabled):not(.emergency){color:var(--u1-accent-strong)}
 </style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
