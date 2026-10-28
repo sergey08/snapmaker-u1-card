@@ -54,6 +54,29 @@ assert.equal(vm.runInContext('cardLanguage({language:"auto"},{language:"es-ES"})
 assert.equal(vm.runInContext('cardLanguage({language:"auto"},{language:"xx-XX"})', context), 'en');
 console.log('Browser bundle initialization and locale smoke tests passed.');
 
+// Verify disconnection and recovery trigger a fresh render without resetting config.
+const CardClass = registered.get('snapmaker-u1-card');
+const recoveryCard = new CardClass();
+recoveryCard.config = {printer_state: 'sensor.u1_printer', print_state: 'sensor.u1_print', language: 'auto'};
+let recoveryRenders = 0;
+recoveryCard.render = () => { recoveryRenders++; };
+const makeHass = (printer, print) => ({
+  language: 'es-ES',
+  states: {
+    'sensor.u1_printer': {state: printer},
+    'sensor.u1_print': {state: print}
+  }
+});
+recoveryCard.hass = makeHass('online', 'printing');
+assert.equal(recoveryRenders, 1, 'Initial connection must render');
+recoveryCard.hass = makeHass('online', 'unavailable');
+assert.equal(recoveryRenders, 2, 'Lost print-state feed must trigger a render');
+recoveryCard.hass = makeHass('online', 'printing');
+assert.equal(recoveryRenders, 3, 'Recovered print-state feed must trigger a render');
+assert.equal(recoveryCard.config.printer_state, 'sensor.u1_printer', 'Recovery must preserve configuration');
+console.log('Disconnection and recovery refresh tests passed.');
+
+
 // Verify that every non-Spanish locale has the essential wizard requirement
 // and detection-result translations, rather than silently falling back to English.
 for (const locale of ['fr', 'de', 'it', 'pt', 'nl']) {
