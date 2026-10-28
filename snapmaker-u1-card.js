@@ -100,7 +100,7 @@ class SnapmakerU1Card extends HTMLElement {
       const selected=!offline && active===i && (printing||paused);
       const feeding=printing && selected;
       const planned=plannedTools[i] || selected;
-      return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""} ${planned?"planned":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span>${planned?`<em class="tool-planned">${selected?"Imprimiendo":"En este trabajo"}</em>`:""}</div>`;
+      return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""} ${planned?"planned":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span>${selected?`<strong class="tool-active-label">T${i} · ${feeding?"Imprimiendo":"En pausa"}</strong>`:planned?`<em class="tool-planned">T${i} · En este trabajo</em>`:""}</div>`;
     };
     const leftTools=spool(0)+spool(1),rightTools=spool(2)+spool(3);
     const headColors=[0,1,2,3].map(i=>{
@@ -255,6 +255,15 @@ class SnapmakerU1Card extends HTMLElement {
       .job-summary small{color:var(--u1-accent-strong);font-weight:650}
       .job-summary strong{color:var(--u1-text)}
       .job-summary span{color:var(--u1-muted)}
+
+      /* Filament estimates and active tool: neutral, high-contrast EV Builder look. */
+      .filament-check span{background:var(--u1-tile);color:var(--u1-text);border:1px solid var(--u1-line);border-radius:14px;font-weight:650}
+      .filament-check .ok{background:color-mix(in srgb,var(--u1-accent) 9%,var(--u1-surface));border-color:color-mix(in srgb,var(--u1-accent) 38%,var(--u1-line));color:var(--u1-accent-strong)}
+      .filament-check .unknown{background:var(--u1-tile);color:var(--u1-muted)}
+      .filament-check .low{background:color-mix(in srgb,#d67b22 13%,var(--u1-surface));border-color:#c77a25;color:var(--u1-text)}
+      .tool.selected{background:color-mix(in srgb,var(--u1-accent) 12%,var(--u1-surface));border:2px solid var(--u1-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--u1-accent) 14%,transparent);padding:3px 0}
+      .tool-active-label{display:block;color:var(--u1-accent-strong);font-size:10px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap}
+      .tool.selected .spool-side{filter:drop-shadow(0 0 5px var(--u1-accent))}
 </style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
