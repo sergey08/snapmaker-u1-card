@@ -1,0 +1,71 @@
+name: Publish stable release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Stable version tag (e.g. v0.1.0)'
+        required: true
+        default: 'v0.1.0'
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check stable version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Stable version must look like v0.1.0"; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate card
+        run: |
+          node --check snapmaker-u1-card.js
+          node tests/validate-card.cjs
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          h=json.loads(Path('hacs.json').read_text())
+          assert h['filename']=='snapmaker-u1-card.js'
+          assert Path(h['filename']).is_file()
+          for name in ('card-full.png','card-compact.png','setup-wizard.png','spoolman-inventory.png'):
+              assert (Path('assets/screenshots')/name).stat().st_size>0
+          PY
+      - name: Publish GitHub stable release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            echo "::error::Release $VERSION already exists; refusing to overwrite a stable release"
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$VERSION" >/dev/null 2>&1; then
+            echo "::error::Tag $VERSION already exists; refusing to move it"
+            exit 1
+          fi
+          cat > /tmp/release-notes.md <<'NOTES'
+          ## Español
+          Primera versión estable de Snapmaker U1 Card para Home Assistant.
+          Incluye monitorización de cuatro cabezales, impresión, filamentos, Spoolman opcional, cámara, editor y asistente de configuración.
+          **Instalación:** HACS → Repositorios personalizados → `sergey08/snapmaker-u1-card` → Dashboard.
+          Revisa las entidades antes de utilizar los controles de la impresora.
+
+          ## English
+          First stable release of Snapmaker U1 Card for Home Assistant.
+          Includes four-toolhead monitoring, print status, filament, optional Spoolman, camera, editor and setup wizard.
+          **Installation:** HACS → Custom repositories → `sergey08/snapmaker-u1-card` → Dashboard.
+          Verify entity mappings before using printer controls.
+          NOTES
+          gh release create "$VERSION" snapmaker-u1-card.js \
+            --target "$GITHUB_SHA" \
+            --title "Snapmaker U1 Card $VERSION" \
+            --notes-file /tmp/release-notes.md \
+            --latest
