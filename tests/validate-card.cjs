@@ -47,3 +47,12 @@ for (const locale of ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl']) {
 assert.equal(vm.runInContext('cardLanguage({language:"auto"},{language:"es-ES"})', context), 'es');
 assert.equal(vm.runInContext('cardLanguage({language:"auto"},{language:"xx-XX"})', context), 'en');
 console.log('Browser bundle initialization and locale smoke tests passed.');
+
+// Verify that every non-Spanish locale has the essential wizard requirement
+// and detection-result translations, rather than silently falling back to English.
+for (const locale of ['fr', 'de', 'it', 'pt', 'nl']) {
+  const hasPrerequisite = vm.runInContext('Boolean(CARD_WIZARD_EXTRA_I18N[' + JSON.stringify(locale) + ']["Para utilizar todas las funciones necesitas Moonraker y Lava. Spoolman es opcional."])', context);
+  const hasDetection = vm.runInContext('Boolean(CARD_WIZARD_EXTRA_I18N[' + JSON.stringify(locale) + ']["Detectadas y aplicadas"])', context);
+  assert(hasPrerequisite && hasDetection, 'Wizard translation missing: ' + locale);
+}
+console.log('Wizard requirements and detection translations verified.');
