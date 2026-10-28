@@ -29,7 +29,8 @@ Planned gallery / Galería prevista:
 - Optional power and electricity cost / Potencia y coste eléctrico opcionales.
 - Print controls with confirmation for destructive actions / Controles con confirmación para acciones destructivas.
 - Visual editor, three-step setup wizard and read-only entity auto-detection / Editor visual, asistente de tres pasos y detección de entidades de solo lectura.
-- English and Spanish setup and editor / Asistente y editor en inglés y español.
+- Language selector with automatic Home Assistant locale detection: English, Spanish, Portuguese, French, German, Italian and Dutch (translation coverage is still being completed). / Selector de idioma con detección automática: inglés, español, portugués, francés, alemán, italiano y neerlandés (traducciones todavía en revisión).
+- Light/dark Home Assistant theme-aware design with cyan-blue accents / Diseño adaptable al tema claro/oscuro y acentos azul cian.
 
 ## Requirements / Requisitos
 
@@ -57,7 +58,15 @@ type: custom:snapmaker-u1-card
 3. In the initial wizard, select **Auto-detect entities / Detectar entidades automáticamente**. Review all matches before finishing. / Revisa las entidades detectadas antes de finalizar.
 4. Complete any optional entities in the advanced editor. / Completa las entidades opcionales desde el editor avanzado.
 
-**HACS:** The repository is not yet listed in the official HACS catalog. Packaging and release validation are in progress. / El repositorio todavía no está publicado en el catálogo oficial de HACS.
+### HACS custom repository / Repositorio personalizado HACS
+
+The repository includes `hacs.json` and can be added as a **custom dashboard repository** in HACS once a downloadable release is available. / El repositorio incluye `hacs.json` y podrá añadirse como **repositorio personalizado de tipo Dashboard** cuando exista una versión descargable.
+
+1. Open **HACS → ⋮ → Custom repositories** / Abre **HACS → ⋮ → Repositorios personalizados**.
+2. Add `https://github.com/sergey08/snapmaker-u1-card` with category **Dashboard** / Añade esa URL con categoría **Dashboard**.
+3. Install the card and add `custom:snapmaker-u1-card` to a dashboard / Instala la tarjeta y añádela al panel.
+
+**Not released yet / Aún sin publicar:** The first public beta and official HACS catalog submission remain pending. / La primera beta pública y su inclusión en el catálogo oficial de HACS siguen pendientes.
 
 ## Safety / Seguridad
 
@@ -67,7 +76,7 @@ Printer controls can execute real actions once configured. Verify entity mapping
 
 ## Development status / Estado del desarrollo
 
-The wizard and auto-detection have been validated on one Home Assistant installation. Multi-printer matching, full runtime localization, screenshots, and HACS packaging still require testing. / El asistente y la detección están validados en una instalación; quedan pruebas de varias impresoras, traducción completa, capturas y empaquetado HACS.
+The wizard and auto-detection have been validated on one Home Assistant installation. The current card styling has been reviewed in light mode. Full localization, screenshots in the repository, cross-browser testing, release validation and multi-printer matching are still pending. / El asistente y la detección se han validado en una instalación y el estilo claro se ha revisado visualmente. Siguen pendientes la traducción completa, subir las capturas, pruebas entre navegadores, validación de la versión y detección de varias impresoras.
 
 ## License
 
