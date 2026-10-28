@@ -34,7 +34,7 @@ jobs:
           names = ("card-full.png", "card-compact.png", "setup-wizard.png", "spoolman-inventory.png")
           for name in names:
               data = (Path("assets/screenshots") / name).read_bytes()
-              assert data[:8] == b"\\x89PNG\\r\\n\\x1a\\n", f"{name}: invalid PNG signature"
+              assert data[:8] == bytes.fromhex("89504e470d0a1a0a"), f"{name}: invalid PNG signature"
               assert data[12:16] == b"IHDR", f"{name}: missing PNG IHDR"
               width, height = struct.unpack(">II", data[16:24])
               assert width >= 400 and height >= 300, f"{name}: screenshot too small ({width}x{height})"
