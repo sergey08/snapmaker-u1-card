@@ -37,7 +37,7 @@ This checklist is for the **first public beta**, not a stable release.
 ## Wizard screenshot / Captura del asistente (2026-10-28)
 
 - [x] User provided a genuine PNG of the first step of the three-step wizard (1021 × 849 px), with the editor and printer preview visible.
-- [ ] Upload the screenshot as `assets/screenshots/setup-wizard.png` to GitHub; receipt and local validation alone do not mean the image is in the repository.
+- [x] Uploaded `assets/screenshots/setup-wizard.png` to GitHub and verified it is readable through the repository API.
 - [ ] The preview in this screenshot is unconfigured and therefore shows `Apagada`/unavailable values; it is **not** evidence of a failure in the configured dashboard.
 
 ## Publication / Publicación
