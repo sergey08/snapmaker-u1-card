@@ -68,6 +68,12 @@ The repository includes `hacs.json` and can be added as a **custom dashboard rep
 
 **Not released yet / Aún sin publicar:** The first public beta and official HACS catalog submission remain pending. / La primera beta pública y su inclusión en el catálogo oficial de HACS siguen pendientes.
 
+## Beta release process / Publicación de la beta
+
+The beta workflow runs **only** when a tag matching `v*-beta.*` is pushed. It validates JavaScript and HACS metadata before creating a GitHub **pre-release** with `snapmaker-u1-card.js` attached. / El flujo de beta se ejecuta **solo** al publicar una etiqueta con formato `v*-beta.*`. Valida el código y HACS antes de crear una **versión preliminar** con el archivo JavaScript adjunto.
+
+No release has been published by adding this workflow. See [BETA_CHECKLIST.md](BETA_CHECKLIST.md) for the remaining manual acceptance tests. / Añadir este flujo **no publica** ninguna versión. Consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md) para las pruebas manuales pendientes.
+
 ## Safety / Seguridad
 
 Automatic detection only reads Home Assistant state; it does not execute printer actions. / La detección automática solo lee estados de Home Assistant y no ejecuta acciones.
