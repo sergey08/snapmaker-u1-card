@@ -2,6 +2,10 @@
 
 **Documentation / Documentación:** [English](#english) · [Español](#español)
 
+[![Open in HACS / Abrir en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
+
+**Install via HACS / Instalar mediante HACS:** Click the button above to open the repository in Home Assistant. / Pulsa el botón para abrir el repositorio en Home Assistant. If it is not registered yet, add `https://github.com/sergey08/snapmaker-u1-card` as a custom **Dashboard** repository. / Si todavía no está registrado, añádelo como repositorio personalizado de tipo **Dashboard**.
+
 ---
 
 <a id="english"></a>
