@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Stable version tag (e.g. v0.1.0)'
+        description: 'Stable version tag (e.g. v0.1.1)'
         required: true
         default: 'v0.1.1'
         type: string
@@ -53,9 +53,9 @@ jobs:
           fi
           cat > /tmp/release-notes.md <<'NOTES'
           ## Español
-          **Snapmaker U1 Card $VERSION** para Home Assistant.
+          **Snapmaker U1 Card v0.1.1** para Home Assistant.
 
-          - Documentación principal completa en español, con versión inglesa independiente.
+          - README principal completo en inglés y español, con capturas actualizadas.
           - Descripción bilingüe en el selector de tarjetas de Home Assistant.
           - Monitorización de cuatro cabezales, temperaturas, impresión, cámara y Spoolman opcional.
           - Instalación y actualizaciones mediante HACS.
@@ -66,7 +66,7 @@ jobs:
           ## English
           **Snapmaker U1 Card $VERSION** for Home Assistant.
 
-          - Spanish-first documentation, with separate English documentation.
+          - Complete English and Spanish documentation in the same README, with updated screenshots.
           - Bilingual description in the Home Assistant card picker.
           - Four toolheads, temperatures, print monitoring, optional camera and Spoolman.
           - Install and update through HACS.
