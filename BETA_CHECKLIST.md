@@ -26,13 +26,19 @@ This checklist is for the **first public beta**, not a stable release.
 - [x] The definitive `custom:snapmaker-u1-card` instance is in `lovelace` (Resumen). The redundant `dashboard-sca` was deleted on user request and its absence confirmed via a fresh dashboard list (2026-10-28).
 - [x] Current JavaScript resource successfully deployed to Home Assistant in the preceding development step.
 - [ ] Clean HACS installation remains unverified; the current test deployment is **not** proof of HACS installability.
-- [ ] Visual verification of the final changes on both dashboards is still pending.
+- [ ] Visual verification of the final changes on the definitive `lovelace` dashboard is still pending.
 
 ## Read-only entity audit / Auditoría de entidades (2026-10-28)
 
 - [x] Verified all 45 entity references on the definitive `lovelace` card via Home Assistant read-only state queries.
 - [x] Printer state `ready`, print state `complete`; camera entities, all four filament materials/weights/colors, temperatures, and electricity entities responded.
 - [ ] `print_eta` and four print-control button entities returned `unknown` while no print was active. Verify them during a controlled live print before release; do **not** assume they are broken and do not trigger emergency/stop actions merely to test.
+
+## Wizard screenshot / Captura del asistente (2026-10-28)
+
+- [x] User provided a genuine PNG of the first step of the three-step wizard (1021 × 849 px), with the editor and printer preview visible.
+- [ ] Upload the screenshot as `assets/screenshots/setup-wizard.png` to GitHub; receipt and local validation alone do not mean the image is in the repository.
+- [ ] The preview in this screenshot is unconfigured and therefore shows `Apagada`/unavailable values; it is **not** evidence of a failure in the configured dashboard.
 
 ## Publication / Publicación
 
