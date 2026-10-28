@@ -10,7 +10,7 @@
 
 ## Screenshots / Capturas de pantalla
 
-**Real Home Assistant screenshots will be added here before the beta release.** We want to show the real interface rather than mock-ups. / **Añadiremos capturas reales de Home Assistant antes de la beta**, mostrando la tarjeta completa, la vista compacta y el asistente de configuración.
+**Screenshots of the final approved light/cyan theme are required before the beta release.** Older dark-theme development screenshots are intentionally excluded. / **Antes de la beta se necesitan capturas del diseño claro y azul cian aprobado.** No publicaremos las capturas antiguas del tema oscuro.
 
 Planned gallery / Galería prevista:
 
