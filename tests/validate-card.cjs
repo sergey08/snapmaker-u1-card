@@ -17,3 +17,33 @@ assert(source.includes('cardTranslate('), 'Card translation missing');
 assert(source.includes('--u1-accent:#00a6d6'), 'EV Builder accent missing');
 assert(source.includes('printer-action.emergency'), 'Emergency button styling missing');
 console.log('Snapmaker U1 Card pre-release checks passed.');
+
+// Execute the complete browser bundle in a minimal DOM-like VM to catch
+// top-level initialization errors and verify the public card registration.
+const vm = require('node:vm');
+const registered = new Map();
+class HTMLElementMock {}
+const context = vm.createContext({
+  HTMLElement: HTMLElementMock,
+  customElements: {
+    get: name => registered.get(name),
+    define: (name, klass) => {
+      assert(!registered.has(name), 'Duplicate custom element: ' + name);
+      registered.set(name, klass);
+    }
+  },
+  window: { customCards: [] },
+  navigator: { language: 'en-US' },
+  console
+});
+vm.runInContext(source, context, { filename: 'snapmaker-u1-card.js', timeout: 3000 });
+assert(registered.has('snapmaker-u1-card'), 'Card did not register');
+assert(registered.has('snapmaker-u1-card-editor'), 'Editor did not register');
+assert(context.window.customCards.some(c => c.type === 'snapmaker-u1-card'), 'Card picker registration missing');
+for (const locale of ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl']) {
+  const actual = vm.runInContext('cardLanguage({language:' + JSON.stringify(locale) + '},{language:"en"})', context);
+  assert.equal(actual, locale, 'Language selection failed: ' + locale);
+}
+assert.equal(vm.runInContext('cardLanguage({language:"auto"},{language:"es-ES"})', context), 'es');
+assert.equal(vm.runInContext('cardLanguage({language:"auto"},{language:"xx-XX"})', context), 'en');
+console.log('Browser bundle initialization and locale smoke tests passed.');
