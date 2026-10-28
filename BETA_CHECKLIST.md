@@ -21,6 +21,13 @@ This checklist is for the **first public beta**, not a stable release.
 - [ ] Pause/resume/stop/emergency actions are tested with explicit user confirmation and safe conditions.
 - [ ] Multiple-printer installations do not accidentally mix entity mappings.
 
+## Verified on the development Home Assistant / Verificado en el Home Assistant de desarrollo
+
+- [x] Existing `custom:snapmaker-u1-card` instances located in `lovelace` and `dashboard-sca` via read-only dashboard search (2026-10-28).
+- [x] Current JavaScript resource successfully deployed to Home Assistant in the preceding development step.
+- [ ] Clean HACS installation remains unverified; the current test deployment is **not** proof of HACS installability.
+- [ ] Visual verification of the final changes on both dashboards is still pending.
+
 ## Publication / Publicación
 
 - [ ] Capture **new** genuine Home Assistant screenshots of the approved **light background / cyan-blue EV Builder-inspired design** (the older dark-theme screenshots are outdated).
