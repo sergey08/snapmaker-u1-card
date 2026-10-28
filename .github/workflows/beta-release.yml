@@ -1,0 +1,31 @@
+name: Publish beta release
+
+on:
+  push:
+    tags:
+      - 'v*-beta.*'
+
+permissions:
+  contents: write
+
+jobs:
+  beta:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript and HACS metadata
+        run: |
+          node --check snapmaker-u1-card.js
+          node tests/validate-card.cjs
+      - name: Publish prerelease after successful checks
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" snapmaker-u1-card.js \\
+            --title "Snapmaker U1 Card $TAG" \\
+            --prerelease \\
+            --generate-notes
