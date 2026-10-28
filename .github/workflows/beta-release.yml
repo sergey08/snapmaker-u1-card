@@ -20,6 +20,11 @@ jobs:
         run: |
           node --check snapmaker-u1-card.js
           node tests/validate-card.cjs
+      - name: Require real screenshots for public beta
+        run: |
+          for file in card-full.png card-compact.png setup-wizard.png spoolman-inventory.png; do
+            test -s "assets/screenshots/$file" || { echo "::error::Missing assets/screenshots/$file"; exit 1; }
+          done
       - name: Publish prerelease after successful checks
         env:
           GH_TOKEN: ${{ github.token }}
