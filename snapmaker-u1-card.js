@@ -199,7 +199,7 @@ class SnapmakerU1Card extends HTMLElement {
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.available===null?"sin lectura":Math.round(f.available)+" g"} / ${Math.round(f.needed)} g ${f.unknown?"?":f.low?"⚠":"✓"}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
     const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
-    const previewHtml=c.show_preview!==false?`<details class="preview-panel" ${this._previewOpen?"open":""}><summary>🖼 Vista previa de la pieza</summary><div class="preview-body">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Miniatura del trabajo" loading="lazy">`:`<span>Miniatura no disponible</span>`}${jobName?`<strong>${this.esc(jobName)}</strong>`:""}${(printing||paused)?`<small>Finalización estimada: ${eta}</small>`:""}</div></details>`:"";
+    const previewHtml=c.show_preview!==false&&!((printing||paused)&&Boolean(thumbUrl)&&Boolean(jobName))?`<details class="preview-panel" ${this._previewOpen?"open":""}><summary>🖼 Vista previa de la pieza</summary><div class="preview-body">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Miniatura del trabajo" loading="lazy">`:`<span>Miniatura no disponible</span>`}${jobName?`<strong>${this.esc(jobName)}</strong>`:""}${(printing||paused)?`<small>Finalización estimada: ${eta}</small>`:""}</div></details>`:"";
     const cameraHtml=c.show_camera!==false&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="lazy"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
@@ -248,6 +248,13 @@ class SnapmakerU1Card extends HTMLElement {
       .inventory-info small{color:var(--u1-accent-strong)}
       .metric label{color:var(--u1-accent-strong)}
       .printer-action:not(:disabled):not(.emergency){color:var(--u1-accent-strong)}
+
+      /* Current job: match the approved EV Builder-inspired light theme. */
+      .job-summary{background:var(--u1-surface);border:1px solid var(--u1-line);color:var(--u1-text);border-radius:14px}
+      .job-summary img{background:var(--u1-tile);border:1px solid var(--u1-line)}
+      .job-summary small{color:var(--u1-accent-strong);font-weight:650}
+      .job-summary strong{color:var(--u1-text)}
+      .job-summary span{color:var(--u1-muted)}
 </style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top"><div class="title">SNAPMAKER U1</div><div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
