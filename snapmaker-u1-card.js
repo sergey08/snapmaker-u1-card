@@ -1,5 +1,9 @@
 /* Snapmaker U1 Card — early preview, read-only. MIT License. */
 const DEFAULTS = {};
+const CARD_I18N={en:{"Apagada":"Offline","Imprimiendo":"Printing","En pausa":"Paused","Disponible":"Available","En espera":"Standby","Capa":"Layer","Tiempo restante":"Time left","Cama":"Bed","Interior":"Chamber","Pausar":"Pause","Reanudar":"Resume","Parar":"Stop","Emergencia":"Emergency","Vista previa de la pieza":"Print preview","Cámara de la impresora":"Printer camera","Inventario Spoolman":"Spoolman inventory","bobinas":"spools","Potencia":"Power","Trabajo":"Job","Coste":"Cost","Finalización estimada":"Estimated finish","Miniatura no disponible":"Thumbnail unavailable","La impresora comunica una incidencia":"The printer reports an issue","falta filamento":"filament missing","Filamento":"Filament","Completo":"Full","Compacto":"Compact","Desconocido":"Unknown","No se pudo ejecutar":"Could not execute","Revisa la conexión de la impresora.":"Check the printer connection.","¿Cancelar la impresión actual?":"Cancel the current print?","¿Ejecutar PARADA DE EMERGENCIA? Puede interrumpir inmediatamente el funcionamiento.":"Execute EMERGENCY STOP? This may immediately interrupt operation."}};
+function cardLanguage(config,hass){const selected=config?.language||"auto";return selected==="es"||selected==="en"?selected:(hass?.language||navigator.language||"en").toLowerCase().startsWith("es")?"es":"en";}
+function cardTranslate(text,language){if(language==="es")return text;return String(text).replace(/Apagada|Imprimiendo|En pausa|Disponible|En espera|Tiempo restante|Finalización estimada|Vista previa de la pieza|Cámara de la impresora|Inventario Spoolman|Miniatura no disponible|La impresora comunica una incidencia|Revisa la conexión de la impresora\.|¿Ejecutar PARADA DE EMERGENCIA\? Puede interrumpir inmediatamente el funcionamiento\.|¿Cancelar la impresión actual\?|No se pudo ejecutar|falta filamento|Emergencia|Reanudar|Pausar|Parar|Potencia|Trabajo|Coste|Interior|Capa|Cama|bobinas|Filamento|Desconocido/g,match=>CARD_I18N.en[match]||match);}
+
 class SnapmakerU1Card extends HTMLElement {
   setConfig(config) {
     this.config = { ...DEFAULTS, ...config };
@@ -34,7 +38,7 @@ class SnapmakerU1Card extends HTMLElement {
     if(existingCamera) this._cameraOpen=existingCamera.open;
     if(this._previewOpen===undefined)this._previewOpen=this.config.preview_open_default===true;
     if(this._cameraOpen===undefined)this._cameraOpen=this.config.camera_open_default===true;
-    const c=this.config, printer=this.read(c.printer_state), state=this.read(c.print_state);
+    const c=this.config, lang=cardLanguage(c,this._hass), printer=this.read(c.printer_state), state=this.read(c.print_state);
     const offline=["unknown","unavailable"].includes(printer);
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
@@ -239,6 +243,11 @@ class SnapmakerU1Card extends HTMLElement {
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progress.toFixed(0)}%</span></div>${inventoryHtml}</ha-card>`;
+    if(lang==="en"){
+      const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
+      let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
+      for(const el of this.shadowRoot.querySelectorAll("[title]"))el.title=cardTranslate(el.title,lang);
+    }
     for(const button of this.shadowRoot.querySelectorAll("button.printer-action")){
       button.addEventListener("click",async()=>{
         if(button.disabled||this._commandPending)return;
@@ -308,7 +317,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
     this.renderWizard();
   }
   renderWizard(){
-    const es=(this._hass?.language||navigator.language||"en").toLowerCase().startsWith("es");
+    const es=cardLanguage(this._config,this._hass)==="es";
     const tr=(esText,enText)=>es?esText:enText;
     const steps=[
       {title:tr("1. Impresora","1. Printer"),desc:tr("Selecciona las entidades principales para mostrar el estado de la Snapmaker U1.","Select the main entities to display your Snapmaker U1 status."),fields:[["printer_state",tr("Estado de la impresora","Printer status")],["print_state",tr("Estado de impresión","Print status")],["progress",tr("Progreso (%)","Progress (%)")],["active_tool",tr("Cabezal activo (T0–T3)","Active toolhead (T0–T3)")]]},
@@ -338,6 +347,10 @@ class SnapmakerU1CardEditor extends HTMLElement {
     if(this._wizardActive&&this._config.setup_complete!==true){
       this.renderWizard();return;
     }
+    const languageRow=document.createElement("label");languageRow.style.cssText="display:block;margin:8px 0 14px";languageRow.textContent=cardLanguage(this._config,this._hass)==="es"?"Idioma / Language":"Language / Idioma";
+    const languageSelect=document.createElement("select");languageSelect.style.cssText="display:block;width:100%;padding:10px;margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)";
+    for(const [value,label] of [["auto","Auto / Automático"],["es","Español"],["en","English"]]){const opt=document.createElement("option");opt.value=value;opt.textContent=label;languageSelect.appendChild(opt);}
+    languageSelect.value=this._config.language||"auto";languageSelect.addEventListener("change",()=>this.change("language",languageSelect.value));languageRow.appendChild(languageSelect);
     const sections=[
       ["Impresora y estado",[
         ["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],
@@ -360,6 +373,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
     if(!es){const terms={"Impresora y estado":"Printer and status","Estado de la impresora":"Printer status","Estado de impresión":"Print status","Herramienta activa":"Active tool","Progreso":"Progress","Capa actual":"Current layer","Capas totales":"Total layers","Tiempo restante":"Time remaining","Temperatura de cama":"Bed temperature","Temperatura interior":"Chamber temperature","Archivo de impresión":"Print file","Hora de finalización":"Finish time","Cámara de miniatura":"Thumbnail camera","Cámara interior":"Live camera","Sensor de errores":"Error sensor","Potencia eléctrica (W)":"Electric power (W)","Energía acumulada (kWh)":"Total energy (kWh)","Controles de impresión":"Print controls","Botón de pausa":"Pause button","Botón de reanudación":"Resume button","Botón de cancelar":"Cancel button","Botón de emergencia":"Emergency stop button","Presencia de filamento":"Filament presence","Filamento presente en T":"Filament present in T","Temperaturas de los cabezales":"Toolhead temperatures","Temperatura T":"Temperature T","Bobina T":"Spool T","Color del filamento":"Filament color","Peso del filamento":"Filament weight","Material":"Material","Filamento previsto para el trabajo":"Estimated filament for job"};for(const section of sections){section[0]=terms[section[0]]||section[0].replace("Bobina T","Spool T");for(const field of section[1]){field[1]=terms[field[1]]||field[1].replace("Filamento presente en T","Filament present in T").replace("Temperatura T","Temperature T");}}}
     const style=`<style>:host{display:block;color:var(--primary-text-color)}.group{border:1px solid var(--divider-color);border-radius:12px;padding:12px;margin:12px 0}.group summary{cursor:pointer;font-size:15px;font-weight:650;padding:4px 0;list-style-position:inside}.group[open] summary{margin-bottom:12px}h3{font-size:15px;margin:0 0 12px}label{display:block;font-size:13px;margin:10px 0 5px}ha-entity-picker{display:block;width:100%}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}p{font-size:12px;color:var(--secondary-text-color)}</style>`;
     this.shadowRoot.innerHTML=style+sections.map(([title,fields],index)=>`<details class="group" data-editor-group="${index}" ${this._openGroups?.has(String(index))?"open":""}><summary>${title}</summary>${fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</details>`).join("")+`<details class="group" data-editor-group="spoolman" ${this._openGroups?.has("spoolman")?"open":""}><summary>Spoolman (opcional)</summary><p>Introduce el ID de cada bobina de Spoolman. Si no utilizas Spoolman, deja estos campos vacíos.</p>${[0,1,2,3].map(i=>`<label>Bobina T${i} · ID de Spoolman</label><input data-spool="${i}" type="number" min="1" step="1" placeholder="Sin Spoolman"></input>`).join("")}</details>`;
+    this.shadowRoot.prepend(languageRow);
     const inventoryToggle=document.createElement("label");
     inventoryToggle.style.cssText="display:flex;align-items:center;gap:10px;margin:14px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
     inventoryToggle.innerHTML='<input type="checkbox" style="width:auto"> Mostrar inventario completo de Spoolman (opcional)';
