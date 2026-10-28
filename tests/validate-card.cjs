@@ -17,6 +17,8 @@ assert(source.includes('cardTranslate('), 'Card translation missing');
 assert(source.includes('this._lastLanguage!==language'), 'Language change must refresh the card');
 assert(source.includes('this._lastThemeSignature!==themeSignature'), 'Theme changes must refresh the card');
 assert(source.includes('statusMissing(printer)||statusMissing(state)'), 'Missing printer or print status must be treated as offline');
+assert(source.includes('const progressValid=!offline&&!statusMissing(rawProgress)'), 'Unknown progress must not be shown as zero');
+assert(source.includes('progressValid?progress.toFixed(0)+"%":"—"'), 'Unavailable progress must show a dash');
 assert(source.includes('--u1-accent:#00a6d6'), 'EV Builder accent missing');
 assert(source.includes('printer-action.emergency'), 'Emergency button styling missing');
 console.log('Snapmaker U1 Card pre-release checks passed.');
