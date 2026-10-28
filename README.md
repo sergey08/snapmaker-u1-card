@@ -34,15 +34,20 @@ Planned gallery / Galería prevista:
 
 ## Requirements / Requisitos
 
-| Component / Componente | Required / Obligatorio | Purpose / Función |
-| --- | --- | --- |
-| Home Assistant printer entities / Entidades de impresora | Yes / Sí | Printer status and print state / Estado de impresora e impresión |
-| Lava | No | Toolheads and filament sensors / Cabezales y sensores de filamento |
-| Spoolman | No | Filament inventory / Inventario de bobinas |
-| Camera entities / Entidades de cámara | No | Thumbnail and live view / Miniatura y vista en directo |
-| Power and electricity-price sensors / Sensores de potencia y precio | No | Electricity metrics / Métricas eléctricas |
+For the **full Snapmaker U1 Card experience**, configure **Moonraker and Lava** in Home Assistant. **Spoolman is optional**. / Para disfrutar de **todas las funciones de Snapmaker U1 Card**, configura **Moonraker y Lava** en Home Assistant. **Spoolman es opcional**.
 
-There is no mandatory dependency on a particular integration name: the card uses Home Assistant entity IDs configured by the user. / No se exige una integración con nombre concreto: la tarjeta utiliza las entidades configuradas por el usuario.
+| Component / Componente | Requirement / Requisito | What it provides / Qué aporta |
+| --- | --- | --- |
+| **Home Assistant** | **Required / Obligatorio** | Lovelace dashboard and entity configuration / Panel Lovelace y configuración de entidades |
+| **Moonraker** | **Required for core printing features / Necesario para las funciones principales de impresión** | Printer status, print progress, temperatures and compatible controls / Estado, progreso, temperaturas y controles compatibles |
+| **Lava** | **Required for full U1-specific functionality / Necesario para todas las funciones específicas de U1** | Snapmaker U1-specific toolhead and filament information / Información específica de los cuatro cabezales y filamentos |
+| **Spoolman** | **Optional / Opcional** | Filament inventory, spool colors, weights and remaining material / Inventario de filamento, colores, pesos y material restante |
+| Camera entities / Entidades de cámara | Optional / Opcional | Camera and print preview when entities are available / Cámara y vista previa cuando existen entidades |
+| Power, energy and electricity-price entities / Entidades de potencia, energía y precio | Optional / Opcional | Electricity consumption and estimated cost / Consumo eléctrico y coste estimado |
+
+**Important / Importante:** The card reads entities exposed in Home Assistant; installing the card alone does not install or configure Moonraker, Lava or Spoolman. The available features depend on the entities provided by those integrations and their configured mappings. / La tarjeta utiliza las entidades disponibles en Home Assistant: instalarla no instala ni configura Moonraker, Lava o Spoolman. Las funciones disponibles dependen de las entidades que expongan esas integraciones y de su asignación.
+
+**Without Spoolman / Sin Spoolman:** The printer status and printing controls can still work with Moonraker and Lava; only the optional inventory functionality is unavailable. / El estado y los controles de impresión pueden seguir funcionando con Moonraker y Lava; únicamente faltará el inventario opcional.
 
 ## Installation / Instalación
 
