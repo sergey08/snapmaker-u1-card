@@ -28,6 +28,12 @@ This checklist is for the **first public beta**, not a stable release.
 - [ ] Clean HACS installation remains unverified; the current test deployment is **not** proof of HACS installability.
 - [ ] Visual verification of the final changes on both dashboards is still pending.
 
+## Read-only entity audit / Auditoría de entidades (2026-10-28)
+
+- [x] Verified all 45 entity references on the definitive `lovelace` card via Home Assistant read-only state queries.
+- [x] Printer state `ready`, print state `complete`; camera entities, all four filament materials/weights/colors, temperatures, and electricity entities responded.
+- [ ] `print_eta` and four print-control button entities returned `unknown` while no print was active. Verify them during a controlled live print before release; do **not** assume they are broken and do not trigger emergency/stop actions merely to test.
+
 ## Publication / Publicación
 
 - [ ] Capture **new** genuine Home Assistant screenshots of the approved **light background / cyan-blue EV Builder-inspired design** (the older dark-theme screenshots are outdated).
