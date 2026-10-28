@@ -23,7 +23,8 @@ This checklist is for the **first public beta**, not a stable release.
 
 ## Publication / Publicación
 
-- [ ] Add genuine Home Assistant screenshots to `assets/` and link them in README.
+- [ ] Capture **new** genuine Home Assistant screenshots of the approved **light background / cyan-blue EV Builder-inspired design** (the older dark-theme screenshots are outdated).
+- [ ] Add four current screenshots to `assets/screenshots/` with exact names `card-full.png`, `card-compact.png`, `setup-wizard.png`, and `spoolman-inventory.png`, then link them in README.
 - [ ] Update README with verified HACS installation instructions.
 - [ ] Create a pre-release GitHub tag and release notes (for example `v0.1.0-beta.1`).
 - [ ] Install the exact release through HACS and test a fresh dashboard.
