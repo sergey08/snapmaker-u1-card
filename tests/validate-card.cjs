@@ -15,6 +15,7 @@ assert(source.includes('translateEditor(this.shadowRoot'), 'Editor translation m
 assert(source.includes('CARD_EDITOR_EXTRA_I18N'), 'Advanced editor translations missing');
 assert(source.includes('cardTranslate('), 'Card translation missing');
 assert(source.includes('this._lastLanguage!==language'), 'Language change must refresh the card');
+assert(source.includes('this._lastThemeSignature!==themeSignature'), 'Theme changes must refresh the card');
 assert(source.includes('--u1-accent:#00a6d6'), 'EV Builder accent missing');
 assert(source.includes('printer-action.emergency'), 'Emergency button styling missing');
 console.log('Snapmaker U1 Card pre-release checks passed.');
