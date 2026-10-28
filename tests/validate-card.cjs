@@ -80,6 +80,15 @@ assert.equal(recoveryRenders, 2, 'Lost print-state feed must trigger a render');
 recoveryCard.hass = makeHass('online', 'printing');
 assert.equal(recoveryRenders, 3, 'Recovered print-state feed must trigger a render');
 assert.equal(recoveryCard.config.printer_state, 'sensor.u1_printer', 'Recovery must preserve configuration');
+
+recoveryCard.hass = makeHass('unavailable', 'printing');
+assert.equal(recoveryRenders, 4, 'Lost printer feed must trigger a render');
+recoveryCard.hass = makeHass('online', 'printing');
+assert.equal(recoveryRenders, 5, 'Recovered printer feed must trigger a render');
+const stableHass = recoveryCard._lastHass;
+recoveryCard.hass = stableHass;
+assert.equal(recoveryRenders, 5, 'Unchanged Home Assistant state must not render again');
+
 console.log('Disconnection and recovery refresh tests passed.');
 
 
