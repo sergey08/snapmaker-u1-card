@@ -277,18 +277,49 @@ class SnapmakerU1CardEditor extends HTMLElement {
     this._config=config;
     this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));
   }
+  detectEntities(){
+    const states=this._hass?.states||{};
+    const all=Object.keys(states);
+    const specs={printer_state:["sensor",["printer_state","printer_status"]],print_state:["sensor",["current_print_state","print_state"]],progress:["sensor",["progress"]],active_tool:["sensor",["active_tool"]],current_layer:["sensor",["current_layer"]],total_layers:["sensor",["total_layer"]],time_left:["sensor",["print_time_left","time_left"]],bed_temperature:["sensor",["bed_temperature"]],chamber_temperature:["sensor",["cavity_temp","chamber_temperature"]],filename:["sensor",["filename"]],print_eta:["sensor",["print_eta"]],thumbnail_camera:["camera",["thumbnail"]],live_camera:["camera",["case","live"]],exception_sensor:["binary_sensor",["exception"]],pause_button:["button",["pause_print"]],resume_button:["button",["resume_print"]],cancel_button:["button",["cancel_print"]],emergency_button:["button",["emergency_stop"]],power_sensor:["sensor",["energy_power","printer_power"]],energy_sensor:["sensor",["energy_total"]],electricity_price_sensor:["sensor",["precio_kwh","electricity_price"]]};
+    for(let i=0;i<4;i++){
+      specs["extruder"+(i+1)+"_temperature"]=["sensor",["head_"+i+"_nozzle_temperature","extruder"+(i+1)+"_temperature"]];
+      for(const [k,terms,domain] of [["present",["slot_"+i+"_filament_present"],"binary_sensor"],["job_estimated",["slot_"+i+"_job_filament_estimated"],"sensor"],["color",["u1_t"+i+"_color"],"sensor"],["weight",["u1_t"+i+"_peso","u1_t"+i+"_weight"],"sensor"],["material",["t"+i+"_filamento_display"],"sensor"]])specs["tool"+i+"_"+k]=[domain,terms];
+    }
+    const printerIds=all.filter(id=>/snapmaker|lava/i.test(id));
+    const prefixGroups=new Map();
+    for(const id of printerIds){const m=id.match(/(?:snapmaker_u1|u1)_[a-z0-9_]+/i);if(m){const prefix=m[0].replace(/_(?:despacho|office|printer|impresora)$/i,"");prefixGroups.set(prefix,(prefixGroups.get(prefix)||0)+1);}}
+    const candidates={};const ambiguous=[];const detected={};
+    for(const [key,[domain,terms]] of Object.entries(specs)){
+      const matches=all.filter(id=>id.startsWith(domain+".")&&terms.some(t=>id.includes(t)));
+      const scoped=matches.filter(id=>/snapmaker|lava|spoolman|u1_/i.test(id));
+      const pool=scoped.length?scoped:matches;
+      const ranked=pool.map(id=>({id,score:(/snapmaker|lava|u1_/i.test(id)?5:0)+(id.includes("snapmaker_u1")?3:0)+(terms.some(t=>id.endsWith(t))?2:0)})).sort((a,b)=>b.score-a.score);
+      if(ranked.length===1||ranked.length>1&&ranked[0].score>ranked[1].score&&ranked[0].score>=5){detected[key]=ranked[0].id;}
+      else if(ranked.length>0){ambiguous.push(key);candidates[key]=ranked.map(x=>x.id);}
+    }
+    const required=["printer_state","print_state"];
+    return {detected,ambiguous,candidates,required,optional:["Lava","Spoolman","Cámara","Energía"],counts:{printer:printerIds.length,lava:all.filter(x=>x.includes("_lava")).length,spoolman:all.filter(x=>x.includes("spoolman")).length,camera:all.filter(x=>x.startsWith("camera.")&&/snapmaker|u1/i.test(x)).length}};
+  }
+  applyDetection(){
+    const result=this.detectEntities();const changes={};
+    for(const [key,id] of Object.entries(result.detected))if(!this._config[key])changes[key]=id;
+    if(Object.keys(changes).length){this._config={...this._config,...changes};this.dispatchEvent(new CustomEvent("config-changed",{detail:{config:{...this._config}},bubbles:true,composed:true}));}
+    this._detectionResult={...result,applied:Object.keys(changes).length};
+    this.renderWizard();
+  }
   renderWizard(){
     const steps=[
       {title:"1. Impresora",desc:"Selecciona las entidades principales para mostrar el estado de la Snapmaker U1.",fields:[["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],["progress","Progreso (%)"],["active_tool","Cabezal activo (T0–T3)"]]},
       {title:"2. Cabezales",desc:"Asigna los sensores de temperatura. Puedes completar otros sensores más adelante.",fields:[["extruder1_temperature","Temperatura T0"],["extruder2_temperature","Temperatura T1"],["extruder3_temperature","Temperatura T2"],["extruder4_temperature","Temperatura T3"]]},
       {title:"3. Funciones opcionales",desc:"La cámara, Spoolman y la electricidad se pueden configurar después en el editor avanzado.",fields:[["thumbnail_camera","Miniatura"],["live_camera","Cámara"],["power_sensor","Potencia eléctrica"],["electricity_price_sensor","Precio de electricidad"]]}
     ];
-    const step=Math.max(0,Math.min(steps.length-1,this._wizardStep||0));const current=steps[step];
-    this.shadowRoot.innerHTML=`<style>:host{display:block;color:var(--primary-text-color)}.wizard{border:1px solid var(--divider-color);border-radius:12px;padding:16px}.wizard h3{margin:0 0 8px}.wizard p{color:var(--secondary-text-color);font-size:13px}.wizard label{display:block;font-size:13px;margin:14px 0 5px}ha-entity-picker{display:block;width:100%}.actions{display:flex;gap:8px;justify-content:space-between;margin-top:18px}button{padding:10px 14px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color);cursor:pointer}button.primary{background:var(--primary-color);color:var(--text-primary-color,#fff)}</style><div class="wizard"><h3>Configuración inicial · ${current.title}</h3><p>${current.desc}</p><p>Paso ${step+1} de ${steps.length}</p><div class="fields">${current.fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</div><div class="actions"><button data-prev ${step===0?"disabled":""}>Anterior</button><button class="primary" data-next>${step===steps.length-1?"Terminar":"Siguiente"}</button></div><p>Los campos opcionales pueden dejarse vacíos. La configuración avanzada siempre estará disponible.</p></div>`;
+    const step=Math.max(0,Math.min(steps.length-1,this._wizardStep||0));const current=steps[step];const found=this._detectionResult;const safe=v=>String(v).replace(/[&<>"\x27]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[ch]));
+    this.shadowRoot.innerHTML=`<style>:host{display:block;color:var(--primary-text-color)}.wizard{border:1px solid var(--divider-color);border-radius:12px;padding:16px}.wizard h3{margin:0 0 8px}.wizard p{color:var(--secondary-text-color);font-size:13px}.wizard label{display:block;font-size:13px;margin:14px 0 5px}ha-entity-picker{display:block;width:100%}.actions{display:flex;gap:8px;justify-content:space-between;margin-top:18px}button{padding:10px 14px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color);cursor:pointer}button.primary{background:var(--primary-color);color:var(--text-primary-color,#fff)}</style><div class="wizard"><h3>Configuración inicial · ${current.title}</h3><p>${current.desc}</p><p>Paso ${step+1} de ${steps.length}</p><button type="button" data-detect>Detectar entidades automáticamente</button>${found?`<p>Detectadas y aplicadas: ${found.applied}. Revisión manual: ${found.ambiguous.length}. Lava: ${found.counts.lava?"detectada":"no detectada"} · Spoolman: ${found.counts.spoolman?"detectada":"no detectada"} · Cámara: ${found.counts.camera?"detectada":"no detectada"}. Las coincidencias ambiguas no se asignan.</p>`:""}<div class="fields">${current.fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</div><div class="actions"><button data-prev ${step===0?"disabled":""}>Anterior</button><button class="primary" data-next>${step===steps.length-1?"Terminar":"Siguiente"}</button></div><p>Los campos opcionales pueden dejarse vacíos. La configuración avanzada siempre estará disponible.</p></div>`;
     for(const picker of this.shadowRoot.querySelectorAll("ha-entity-picker[data-key]")){
       const key=picker.dataset.key;picker.hass=this._hass;picker.value=this._config[key]||"";
       picker.addEventListener("value-changed",e=>{if(e.detail?.value!==undefined)this.change(key,e.detail.value);});
     }
+    this.shadowRoot.querySelector("[data-detect]").addEventListener("click",()=>this.applyDetection());
     this.shadowRoot.querySelector("[data-prev]").addEventListener("click",()=>{this._wizardStep=step-1;this.renderWizard();});
     this.shadowRoot.querySelector("[data-next]").addEventListener("click",()=>{
       if(step===0&&(!this._config.printer_state||!this._config.print_state)){
