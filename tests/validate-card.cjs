@@ -73,3 +73,10 @@ for (const locale of ['en', 'fr', 'de', 'it', 'pt', 'nl']) {
   }
 }
 console.log('Job labels and obsolete preview setting verified.');
+
+// Validate translated labels and registration with a simulated browser context.
+assert.equal(vm.runInContext('cardTranslate("Trabajo actual","en")', context), 'Current job');
+assert.equal(vm.runInContext('cardTranslate("En este trabajo","en")', context), 'Used in this job');
+assert.equal(vm.runInContext('cardTranslate("Finalización estimada","de")', context), 'Voraussichtliches Ende');
+assert(!source.includes('early preview, read-only'), 'Outdated read-only banner');
+console.log('Release-candidate copy and translation checks passed.');
