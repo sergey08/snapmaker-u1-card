@@ -1,0 +1,1 @@
+Publish Snapmaker U1 Card v0.1.1 after validation.
