@@ -44,7 +44,13 @@ assert(registered.has('snapmaker-u1-card'), 'Card did not register');
 assert(registered.has('snapmaker-u1-card-editor'), 'Editor did not register');
 assert(context.window.customCards.some(c => c.type === 'snapmaker-u1-card'), 'Card picker registration missing');
 // Re-loading the resource must not duplicate the card in the picker.
-vm.runInContext(source, context, { filename: 'snapmaker-u1-card.js', timeout: 3000 });
+vm.runInNewContext(source, {
+  HTMLElement: HTMLElementMock,
+  customElements: context.customElements,
+  window: context.window,
+  navigator: { language: 'en-US' },
+  console
+}, { filename: 'snapmaker-u1-card.js', timeout: 3000 });
 assert.equal(context.window.customCards.filter(c => c.type === 'snapmaker-u1-card').length, 1, 'Duplicate card picker registration');
 for (const locale of ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl']) {
   const actual = vm.runInContext('cardLanguage({language:' + JSON.stringify(locale) + '},{language:"en"})', context);
