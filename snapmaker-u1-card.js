@@ -277,8 +277,33 @@ class SnapmakerU1CardEditor extends HTMLElement {
     this._config=config;
     this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));
   }
+  renderWizard(){
+    const steps=[
+      {title:"1. Impresora",desc:"Selecciona las entidades principales para mostrar el estado de la Snapmaker U1.",fields:[["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],["progress","Progreso (%)"],["active_tool","Cabezal activo (T0–T3)"]]},
+      {title:"2. Cabezales",desc:"Asigna los sensores de temperatura. Puedes completar otros sensores más adelante.",fields:[["extruder1_temperature","Temperatura T0"],["extruder2_temperature","Temperatura T1"],["extruder3_temperature","Temperatura T2"],["extruder4_temperature","Temperatura T3"]]},
+      {title:"3. Funciones opcionales",desc:"La cámara, Spoolman y la electricidad se pueden configurar después en el editor avanzado.",fields:[["thumbnail_camera","Miniatura"],["live_camera","Cámara"],["power_sensor","Potencia eléctrica"],["electricity_price_sensor","Precio de electricidad"]]}
+    ];
+    const step=Math.max(0,Math.min(steps.length-1,this._wizardStep||0));const current=steps[step];
+    this.shadowRoot.innerHTML=`<style>:host{display:block;color:var(--primary-text-color)}.wizard{border:1px solid var(--divider-color);border-radius:12px;padding:16px}.wizard h3{margin:0 0 8px}.wizard p{color:var(--secondary-text-color);font-size:13px}.wizard label{display:block;font-size:13px;margin:14px 0 5px}ha-entity-picker{display:block;width:100%}.actions{display:flex;gap:8px;justify-content:space-between;margin-top:18px}button{padding:10px 14px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color);cursor:pointer}button.primary{background:var(--primary-color);color:var(--text-primary-color,#fff)}</style><div class="wizard"><h3>Configuración inicial · ${current.title}</h3><p>${current.desc}</p><p>Paso ${step+1} de ${steps.length}</p><div class="fields">${current.fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</div><div class="actions"><button data-prev ${step===0?"disabled":""}>Anterior</button><button class="primary" data-next>${step===steps.length-1?"Terminar":"Siguiente"}</button></div><p>Los campos opcionales pueden dejarse vacíos. La configuración avanzada siempre estará disponible.</p></div>`;
+    for(const picker of this.shadowRoot.querySelectorAll("ha-entity-picker[data-key]")){
+      const key=picker.dataset.key;picker.hass=this._hass;picker.value=this._config[key]||"";
+      picker.addEventListener("value-changed",e=>{if(e.detail?.value!==undefined)this.change(key,e.detail.value);});
+    }
+    this.shadowRoot.querySelector("[data-prev]").addEventListener("click",()=>{this._wizardStep=step-1;this.renderWizard();});
+    this.shadowRoot.querySelector("[data-next]").addEventListener("click",()=>{
+      if(step===0&&(!this._config.printer_state||!this._config.print_state)){
+        this.shadowRoot.querySelector(".wizard p").textContent="Selecciona el estado de la impresora y el estado de impresión para continuar.";return;
+      }
+      if(step<steps.length-1){this._wizardStep=step+1;this.renderWizard();}
+      else{this.change("setup_complete",true);this.render();}
+    });
+  }
   render(){
     if(!this._config||!this._hass)return;
+    // First-run wizard: only for a new, unconfigured card.
+    if(this._config.setup_complete!==true&&(!this._config.printer_state||!this._config.print_state)){
+      this.renderWizard();return;
+    }
     const sections=[
       ["Impresora y estado",[
         ["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],
