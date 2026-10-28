@@ -53,7 +53,7 @@ jobs:
           fi
           cat > /tmp/release-notes.md <<'NOTES'
           ## Español
-          **Snapmaker U1 Card v0.1.1** para Home Assistant.
+          **Snapmaker U1 Card __VERSION__** para Home Assistant.
 
           - README principal completo en inglés y español, con capturas actualizadas.
           - Descripción bilingüe en el selector de tarjetas de Home Assistant.
@@ -74,6 +74,7 @@ jobs:
           **Installation:** HACS → Custom repositories → `sergey08/snapmaker-u1-card` → Dashboard.
           Verify entity mappings before using printer controls.
           NOTES
+          sed -i "s/__VERSION__/$VERSION/g" /tmp/release-notes.md
           gh release create "$VERSION" snapmaker-u1-card.js \
             --target "$GITHUB_SHA" \
             --title "Snapmaker U1 Card $VERSION" \
