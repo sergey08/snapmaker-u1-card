@@ -54,12 +54,33 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
         run: |
+          cat > /tmp/snapmaker-u1-release-notes.md <<'NOTES'
+          ## Español
+
+          Primera beta pública de **Snapmaker U1 Card**, una tarjeta para Home Assistant dedicada a la impresora Snapmaker U1.
+
+          **Incluye:** monitorización de cuatro cabezales (T0–T3), temperaturas, progreso y trabajo actual, cámara opcional, filamentos e inventario Spoolman, consumo eléctrico, controles de impresión, editor visual y asistente de configuración con detección de entidades.
+
+          **Instalación:** en HACS, añade `https://github.com/sergey08/snapmaker-u1-card` como repositorio personalizado de tipo **Dashboard**. Instala la tarjeta y añade `type: custom:snapmaker-u1-card` a tu panel.
+
+          **Importante:** es una beta. Comprueba las entidades detectadas antes de utilizar los controles de impresión. Moonraker y Lava son necesarios para la experiencia completa; Spoolman es opcional.
+
+          ## English
+
+          First public beta of **Snapmaker U1 Card**, a Home Assistant dashboard card for the Snapmaker U1 printer.
+
+          **Features:** four toolheads (T0–T3), temperatures, progress and current job, optional camera, filament and Spoolman inventory, electricity monitoring, printer controls, visual editor, and an entity auto-detection setup wizard.
+
+          **Installation:** add `https://github.com/sergey08/snapmaker-u1-card` to HACS as a custom **Dashboard** repository. Install it and add `type: custom:snapmaker-u1-card` to your dashboard.
+
+          **Note:** this is a beta. Verify entity mappings before using printer controls. Moonraker and Lava are required for the full experience; Spoolman is optional.
+          NOTES
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release edit "$TAG" --title "Snapmaker U1 Card $TAG" --prerelease
+            gh release edit "$TAG" --title "Snapmaker U1 Card $TAG" --prerelease --notes-file /tmp/snapmaker-u1-release-notes.md
             gh release upload "$TAG" snapmaker-u1-card.js --clobber
           else
             gh release create "$TAG" snapmaker-u1-card.js \
               --title "Snapmaker U1 Card $TAG" \
               --prerelease \
-              --generate-notes
+              --notes-file /tmp/snapmaker-u1-release-notes.md
           fi
