@@ -49,7 +49,9 @@ class SnapmakerU1Card extends HTMLElement {
     if(this._previewOpen===undefined)this._previewOpen=this.config.preview_open_default===true;
     if(this._cameraOpen===undefined)this._cameraOpen=this.config.camera_open_default===true;
     const c=this.config, lang=cardLanguage(c,this._hass), printer=this.read(c.printer_state), state=this.read(c.print_state);
-    const offline=["unknown","unavailable"].includes(printer);
+    // Treat either missing status feed as disconnected; never show stale print controls.
+    const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
+    const offline=statusMissing(printer)||statusMissing(state);
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
     const rawActive=this.read(c.active_tool);
