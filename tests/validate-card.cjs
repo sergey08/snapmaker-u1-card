@@ -56,3 +56,10 @@ for (const locale of ['fr', 'de', 'it', 'pt', 'nl']) {
   assert(hasPrerequisite && hasDetection, 'Wizard translation missing: ' + locale);
 }
 console.log('Wizard requirements and detection translations verified.');
+
+// UI regression checks for the approved beta layout.
+assert(source.includes('const previewHtml="";'), 'Redundant preview panel must remain hidden');
+assert(source.includes('.job-summary{background:var(--u1-surface)'), 'Current-job panel must use the theme surface');
+assert(source.includes('.filament-check .ok{background:color-mix'), 'Filament status must use the cyan theme');
+assert(source.includes('tool-active-label'), 'Active T0-T3 label must remain visible');
+console.log('Approved UI regression checks passed.');
