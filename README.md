@@ -22,8 +22,8 @@ Planned gallery / Galería prevista:
 ## Features / Funciones
 
 - Four toolheads (T0–T3), temperatures and active tool / Cuatro cabezales, temperaturas y herramienta activa.
-- Print status, progress, layers, estimated time and thumbnail / Estado, progreso, capas, tiempo estimado y miniatura.
-- Optional live camera / Cámara en directo opcional.
+- Print status, progress, layers, estimated time and an in-job thumbnail / Estado, progreso, capas, tiempo estimado y miniatura integrada en el trabajo actual.
+- Optional live camera; the print thumbnail is displayed inside the current-job panel without a duplicate preview section / Cámara en directo opcional; la miniatura aparece dentro del trabajo actual sin una sección duplicada.
 - Optional Lava filament presence and job estimates / Presencia de filamento y estimaciones opcionales mediante Lava.
 - Optional Spoolman spool colors, weights and inventory / Colores, pesos e inventario opcional mediante Spoolman.
 - Optional power and electricity cost / Potencia y coste eléctrico opcionales.
@@ -42,7 +42,7 @@ For the **full Snapmaker U1 Card experience**, configure **Moonraker and Lava** 
 | **Moonraker** | **Required for core printing features / Necesario para las funciones principales de impresión** | Printer status, print progress, temperatures and compatible controls / Estado, progreso, temperaturas y controles compatibles |
 | **Lava** | **Required for full U1-specific functionality / Necesario para todas las funciones específicas de U1** | Snapmaker U1-specific toolhead and filament information / Información específica de los cuatro cabezales y filamentos |
 | **Spoolman** | **Optional / Opcional** | Filament inventory, spool colors, weights and remaining material / Inventario de filamento, colores, pesos y material restante |
-| Camera entities / Entidades de cámara | Optional / Opcional | Camera and print preview when entities are available / Cámara y vista previa cuando existen entidades |
+| Camera entities / Entidades de cámara | Optional / Opcional | Live camera and current-job thumbnail when entities are available / Cámara en directo y miniatura del trabajo actual cuando existen entidades |
 | Power, energy and electricity-price entities / Entidades de potencia, energía y precio | Optional / Opcional | Electricity consumption and estimated cost / Consumo eléctrico y coste estimado |
 
 **Important / Importante:** The card reads entities exposed in Home Assistant; installing the card alone does not install or configure Moonraker, Lava or Spoolman. The available features depend on the entities provided by those integrations and their configured mappings. / La tarjeta utiliza las entidades disponibles en Home Assistant: instalarla no instala ni configura Moonraker, Lava o Spoolman. Las funciones disponibles dependen de las entidades que expongan esas integraciones y de su asignación.
