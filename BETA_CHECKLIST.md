@@ -17,7 +17,7 @@ This checklist is for the **first public beta**, not a stable release.
 - [ ] All seven languages display correctly in the card, wizard, and editor.
 - [ ] Full and compact layouts work in desktop and mobile dashboards.
 - [ ] Light and dark themes have readable text and cyan-blue progress indicators.
-- [ ] Optional camera, thumbnail, Spoolman and electricity sections handle unavailable entities.
+- [ ] Optional camera, current-job thumbnail, Spoolman and electricity sections handle unavailable entities; no duplicate preview section appears.
 - [ ] Pause/resume/stop/emergency actions are tested with explicit user confirmation and safe conditions.
 - [ ] Multiple-printer installations do not accidentally mix entity mappings.
 
@@ -30,4 +30,4 @@ This checklist is for the **first public beta**, not a stable release.
 - [ ] Install the exact release through HACS and test a fresh dashboard.
 - [ ] Only then announce the beta; stable release requires further testing.
 
-**Current status:** In progress. Do not mark the beta released until the above checks have been performed.
+**Current status:** In progress. Direct JavaScript syntax and runtime registration checks were performed against the current GitHub source, but a successful GitHub Actions workflow run has **not** been verified. No public beta tag or release has been created. Do not mark the beta released until the above checks have been performed.
