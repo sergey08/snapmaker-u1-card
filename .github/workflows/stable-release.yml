@@ -64,7 +64,7 @@ jobs:
           Revisa las entidades antes de utilizar los controles de impresión.
 
           ## English
-          **Snapmaker U1 Card $VERSION** for Home Assistant.
+          **Snapmaker U1 Card __VERSION__** for Home Assistant.
 
           - Complete English and Spanish documentation in the same README, with updated screenshots.
           - Bilingual description in the Home Assistant card picker.
