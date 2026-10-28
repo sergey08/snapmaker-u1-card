@@ -55,14 +55,14 @@ For the **full Snapmaker U1 Card experience**, configure **Moonraker and Lava** 
 
 | Component / Componente | Requirement / Requisito | What it provides / Qué aporta |
 | --- | --- | --- |
-| **[Home Assistant](https://www.home-assistant.io/)** | **Required / Obligatorio** | Lovelace dashboard and entity configuration / Panel Lovelace y configuración de entidades |
+| **Home Assistant** | **Required / Obligatorio** | Lovelace dashboard and entity configuration / Panel Lovelace y configuración de entidades |
 | **[Moonraker (Home Assistant)](https://github.com/marcolivierarsenault/moonraker-home-assistant)** | **Required for core printing features / Necesario para las funciones principales de impresión** | Printer status, print progress, temperatures and compatible controls / Estado, progreso, temperaturas y controles compatibles |
-| **Lava** | **Required for full U1-specific functionality / Necesario para todas las funciones específicas de U1** | Snapmaker U1-specific toolhead and filament information / Información específica de los cuatro cabezales y filamentos |
+| **[Lava / U1 Companion](https://github.com/zkasuran/u1-companion)** | **Required for full U1-specific functionality / Necesario para todas las funciones específicas de U1** | Snapmaker U1-specific toolhead and filament information / Información específica de los cuatro cabezales y filamentos |
 | **[Spoolman](https://github.com/Donkie/Spoolman)** | **Optional / Opcional** | Filament inventory, spool colors, weights and remaining material / Inventario de filamento, colores, pesos y material restante |
 | Camera entities / Entidades de cámara | Optional / Opcional | Live camera and current-job thumbnail when entities are available / Cámara en directo y miniatura del trabajo actual cuando existen entidades |
 | Power, energy and electricity-price entities / Entidades de potencia, energía y precio | Optional / Opcional | Electricity consumption and estimated cost / Consumo eléctrico y coste estimado |
 
-**Component links / Enlaces a componentes:** The Moonraker link points to its Home Assistant integration; Spoolman points to its official project. The exact Lava integration repository has not yet been verified, so no unverified link is provided. / El enlace de Moonraker lleva a su integración para Home Assistant y el de Spoolman al proyecto oficial. No añadimos un enlace de Lava sin verificar el repositorio exacto.
+**Component links / Enlaces a componentes:** The Moonraker link points to its Home Assistant integration; Spoolman points to its official project. Lava / U1 Companion links to its project repository. / Lava / U1 Companion enlaza a su repositorio del proyecto.
 
 **Important / Importante:** The card reads entities exposed in Home Assistant; installing the card alone does not install or configure Moonraker, Lava or Spoolman. The available features depend on the entities provided by those integrations and their configured mappings. / La tarjeta utiliza las entidades disponibles en Home Assistant: instalarla no instala ni configura Moonraker, Lava o Spoolman. Las funciones disponibles dependen de las entidades que expongan esas integraciones y de su asignación.
 
@@ -160,14 +160,14 @@ MIT.
 
 | Componente | Necesidad | Función |
 | --- | --- | --- |
-| [Home Assistant](https://www.home-assistant.io/) | Obligatorio | Panel y entidades |
+| Home Assistant | Obligatorio | Panel y entidades |
 | [Moonraker (Home Assistant)](https://github.com/marcolivierarsenault/moonraker-home-assistant) | Necesario para las funciones principales | Estado, temperaturas, progreso y controles compatibles |
-| Lava | Necesario para las funciones específicas de U1 | Información de cabezales y filamentos |
+| [Lava / U1 Companion](https://github.com/zkasuran/u1-companion) | Necesario para las funciones específicas de U1 | Información de cabezales y filamentos |
 | [Spoolman](https://github.com/Donkie/Spoolman) | Opcional | Inventario, colores y cantidades de filamento |
 | Entidad de cámara | Opcional | Vídeo o imagen en directo |
 | Sensores eléctricos | Opcional | Consumo y coste |
 
-**Enlaces:** Moonraker enlaza a su integración para Home Assistant; Spoolman, a su repositorio oficial. El repositorio concreto de Lava está pendiente de verificar para evitar un enlace incorrecto.
+**Enlaces:** Moonraker enlaza a su integración para Home Assistant; Spoolman, a su repositorio oficial. Lava / U1 Companion enlaza a su repositorio en GitHub.
 
 **Importante:** instalar la tarjeta no instala Moonraker, Lava ni Spoolman. Estas integraciones deben estar configuradas por separado y exponer sus entidades en Home Assistant. Sin Spoolman, las funciones principales de impresión pueden seguir funcionando.
 
