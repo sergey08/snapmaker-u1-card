@@ -387,6 +387,18 @@ class SnapmakerU1CardEditor extends HTMLElement {
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
+    if(!es){
+      const dictionary={"Spoolman (opcional)":"Spoolman (optional)","Introduce el ID de cada bobina de Spoolman. Si no utilizas Spoolman, deja estos campos vacíos.":"Enter each Spoolman spool ID. Leave these fields empty if you do not use Spoolman.","Bobina T":"Spool T","Sin Spoolman":"No Spoolman","Mostrar inventario completo de Spoolman (opcional)":"Show full Spoolman inventory (optional)","Control de filamento":"Filament monitoring","Margen de seguridad (%)":"Safety margin (%)","0 % = comparación exacta; puedes añadir un margen si lo deseas.":"0% = exact comparison; you can add a safety margin.","Visualización y electricidad":"Display and electricity","Modo de tarjeta":"Card display mode","Completo":"Full","Compacto":"Compact","Origen del precio eléctrico":"Electricity price source","Sensor de Home Assistant":"Home Assistant sensor","Precio fijo":"Fixed price","Sensor de precio (€/kWh)":"Price sensor (€/kWh)","Precio fijo (€/kWh)":"Fixed price (€/kWh)","Miniatura abierta por defecto":"Thumbnail expanded by default","Cámara abierta por defecto":"Camera expanded by default"};
+      const translateText=(root)=>{
+        const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+        let node;while((node=walker.nextNode())){
+          let value=node.nodeValue;
+          for(const [source,target] of Object.entries(dictionary))value=value.split(source).join(target);
+          if(value!==node.nodeValue)node.nodeValue=value;
+        }
+      };
+      translateText(this.shadowRoot);
+    }
     for(const section of this.shadowRoot.querySelectorAll("details[data-editor-group]"))section.addEventListener("toggle",()=>{
       if(!this._openGroups)this._openGroups=new Set();
       if(section.open)this._openGroups.add(section.dataset.editorGroup);else this._openGroups.delete(section.dataset.editorGroup);
@@ -409,4 +421,4 @@ if(!customElements.get("snapmaker-u1-card-editor"))customElements.define("snapma
 
 if (!customElements.get("snapmaker-u1-card")) customElements.define("snapmaker-u1-card",SnapmakerU1Card);
 window.customCards=window.customCards||[];
-window.customCards.push({type:"snapmaker-u1-card",name:"Snapmaker U1 Card",description:"Printer status, controls, camera and four Spoolman slots"});
+window.customCards.push({type:"snapmaker-u1-card",name:"Snapmaker U1 Card",description:"Four-toolhead Snapmaker U1 dashboard: print status, temperatures, filament, camera and controls.",documentationURL:"https://github.com/sergey08/snapmaker-u1-card"});
