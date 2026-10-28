@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - 'v*-beta.*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing beta tag to repair/publish'
+        required: true
+        default: 'v0.1.0-beta.1'
+        type: string
 
 permissions:
   contents: write
@@ -13,6 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -43,9 +52,14 @@ jobs:
       - name: Publish prerelease after successful checks
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
-          gh release create "$TAG" snapmaker-u1-card.js \
-            --title "Snapmaker U1 Card $TAG" \
-            --prerelease \
-            --generate-notes
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "Snapmaker U1 Card $TAG" --prerelease
+            gh release upload "$TAG" snapmaker-u1-card.js --clobber
+          else
+            gh release create "$TAG" snapmaker-u1-card.js \
+              --title "Snapmaker U1 Card $TAG" \
+              --prerelease \
+              --generate-notes
+          fi
