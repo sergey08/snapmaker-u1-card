@@ -1,0 +1,41 @@
+name: Validate Snapmaker U1 Card
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'snapmaker-u1-card.js'
+      - 'tests/**'
+      - 'hacs.json'
+      - '.github/workflows/validate-card.yml'
+  pull_request:
+    paths:
+      - 'snapmaker-u1-card.js'
+      - 'tests/**'
+      - 'hacs.json'
+      - '.github/workflows/validate-card.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax
+        run: node --check snapmaker-u1-card.js
+      - name: Regression and recovery tests
+        run: node tests/validate-card.cjs
+      - name: HACS manifest and screenshots
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('hacs.json').read_text())
+          assert manifest['filename']=='snapmaker-u1-card.js'
+          assert Path(manifest['filename']).stat().st_size>0
+          for name in ('card-full.png','card-compact.png','setup-wizard.png','spoolman-inventory.png'):
+              assert (Path('assets/screenshots')/name).stat().st_size>0, name
+          PY
