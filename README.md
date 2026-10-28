@@ -78,13 +78,17 @@ The repository includes `hacs.json` and can be added as a **custom dashboard rep
 2. Add `https://github.com/sergey08/snapmaker-u1-card` with category **Dashboard** / Añade esa URL con categoría **Dashboard**.
 3. Install the card and add `custom:snapmaker-u1-card` to a dashboard / Instala la tarjeta y añádela al panel.
 
-**Beta available / Beta disponible:** [v0.1.0-beta.1](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0-beta.1). Official HACS catalog inclusion is still pending. / La inclusión en el catálogo oficial de HACS sigue pendiente.
+**Beta available / Beta disponible:** [v0.1.0-beta.1](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0-beta.1). HACS custom repositories may track the main branch (showing a commit hash) until a stable release is published. / En los repositorios personalizados, HACS puede seguir la rama principal (y mostrar un hash) hasta que se publique una versión estable. La inclusión en el catálogo oficial de HACS sigue pendiente.
 
 ## Beta release process / Publicación de la beta
 
 The beta workflow runs when a matching tag (`v*-beta.*`) is pushed or manually using **Run workflow** with an existing tag. It validates the card and screenshots, then creates or updates the GitHub pre-release and attaches `snapmaker-u1-card.js`. / El flujo se ejecuta al crear una etiqueta `v*-beta.*` o manualmente con **Run workflow** indicando una etiqueta existente. Valida la tarjeta y las capturas, crea o actualiza la versión preliminar y adjunta `snapmaker-u1-card.js`.
 
 The first beta has been published; see [BETA_CHECKLIST.md](BETA_CHECKLIST.md) for remaining installation and live-print acceptance tests. / La primera beta ya está publicada; consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md) para las pruebas pendientes de instalación e impresión real.
+
+## Stable releases and HACS versions / Versiones estables y HACS
+
+The manually triggered [Publish stable release](.github/workflows/stable-release.yml) workflow validates the card and publishes a versioned GitHub release, starting with `v0.1.0`, without moving existing tags. Do not publish it before completing acceptance tests. Once published, refresh the repository information in HACS and install the tagged release. / El flujo manual **Publish stable release** valida la tarjeta y publica una versión numerada en GitHub, empezando por `v0.1.0`, sin modificar etiquetas existentes. No debe ejecutarse hasta completar las pruebas de aceptación. Después, actualiza la información del repositorio en HACS e instala la versión etiquetada.
 
 ## Safety / Seguridad
 
