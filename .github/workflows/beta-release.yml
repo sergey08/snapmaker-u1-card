@@ -24,6 +24,7 @@ jobs:
         run: |
           for file in card-full.png card-compact.png setup-wizard.png spoolman-inventory.png; do
             test -s "assets/screenshots/$file" || { echo "::error::Missing assets/screenshots/$file"; exit 1; }
+            file "assets/screenshots/$file" | grep -q "PNG image data" || { echo "::error::Invalid PNG: $file"; exit 1; }
           done
       - name: Publish prerelease after successful checks
         env:
