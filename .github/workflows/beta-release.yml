@@ -26,6 +26,20 @@ jobs:
             test -s "assets/screenshots/$file" || { echo "::error::Missing assets/screenshots/$file"; exit 1; }
             file "assets/screenshots/$file" | grep -q "PNG image data" || { echo "::error::Invalid PNG: $file"; exit 1; }
           done
+      - name: Validate screenshot dimensions
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+          names = ("card-full.png", "card-compact.png", "setup-wizard.png", "spoolman-inventory.png")
+          for name in names:
+              data = (Path("assets/screenshots") / name).read_bytes()
+              assert data[:8] == b"\\x89PNG\\r\\n\\x1a\\n", f"{name}: invalid PNG signature"
+              assert data[12:16] == b"IHDR", f"{name}: missing PNG IHDR"
+              width, height = struct.unpack(">II", data[16:24])
+              assert width >= 400 and height >= 300, f"{name}: screenshot too small ({width}x{height})"
+              print(f"{name}: {width}x{height} OK")
+          PY
       - name: Publish prerelease after successful checks
         env:
           GH_TOKEN: ${{ github.token }}
