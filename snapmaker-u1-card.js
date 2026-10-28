@@ -301,7 +301,8 @@ class SnapmakerU1CardEditor extends HTMLElement {
   render(){
     if(!this._config||!this._hass)return;
     // First-run wizard: only for a new, unconfigured card.
-    if(this._config.setup_complete!==true&&(!this._config.printer_state||!this._config.print_state)){
+    if(this._wizardActive===undefined)this._wizardActive=this._config.setup_complete!==true&&(!this._config.printer_state||!this._config.print_state);
+    if(this._wizardActive&&this._config.setup_complete!==true){
       this.renderWizard();return;
     }
     const sections=[
