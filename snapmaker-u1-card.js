@@ -188,6 +188,7 @@ class SnapmakerU1Card extends HTMLElement {
     const picture=(id)=>{const state=this._hass?.states?.[id];const path=state?.attributes?.entity_picture;return state&&!["unknown","unavailable"].includes(state.state)&&typeof path==="string"&&path.startsWith("/api/camera_proxy/")?path:"";};
     const thumbUrl=picture(c.thumbnail_camera);
     const cameraUrl=picture(c.live_camera);
+    const guiCameraUrl=picture(c.gui_camera);
     const rawEta=this.read(c.print_eta);
     let eta="—";
     if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
@@ -229,6 +230,7 @@ class SnapmakerU1Card extends HTMLElement {
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
     const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" style="display:none" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager"></details>`:"";
+    const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px;cursor:pointer"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
@@ -257,7 +259,7 @@ class SnapmakerU1Card extends HTMLElement {
       .printer-action{background:var(--u1-tile);color:var(--u1-text);border:1px solid var(--u1-line);border-radius:12px;transition:background .15s,border-color .15s}
       .printer-action:not(:disabled):hover{border-color:var(--u1-accent);background:color-mix(in srgb,var(--u1-accent) 12%,var(--u1-surface))}
       .printer-action.emergency{background:color-mix(in srgb,#d94141 14%,var(--u1-surface));border-color:#d94141;color:var(--u1-text)}
-      .inventory,.preview-panel,.camera-panel{background:var(--u1-surface);border:1px solid var(--u1-line);color:var(--u1-text)}
+      .gui-screen{margin-top:10px;padding:10px;border:1px solid var(--u1-line);border-radius:10px;background:var(--u1-surface);color:var(--u1-text)}.gui-screen summary{cursor:pointer;font-size:12px;font-weight:650}\n      .inventory,.preview-panel,.camera-panel{background:var(--u1-surface);border:1px solid var(--u1-line);color:var(--u1-text)}
       .inventory-item{background:var(--u1-tile);color:var(--u1-text)}
       .inventory-info small,.inventory summary span{color:var(--u1-muted)}
       .top .title,.top .status{color:var(--u1-text)}
@@ -323,7 +325,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}${ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}${guiHtml}${ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -341,6 +343,11 @@ ${heads}
       el.addEventListener("click",openSpool);
       el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSpool();}});
       el.style.cursor="pointer";
+    }
+    const guiDetails=this.shadowRoot.querySelector("details.gui-screen");
+    if(guiDetails){
+      guiDetails.addEventListener("toggle",()=>{this._guiOpen=guiDetails.open;});
+      guiDetails.querySelector("img")?.addEventListener("click",()=>this.dispatchEvent(new CustomEvent("hass-more-info",{bubbles:true,composed:true,detail:{entityId:c.gui_camera}})));
     }
     const powerButton=this.shadowRoot.querySelector("button.power-toggle");
     powerButton?.addEventListener("click",async()=>{
@@ -529,7 +536,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
         ["active_tool","Herramienta activa"],["progress","Progreso"],
         ["current_layer","Capa actual"],["total_layers","Capas totales"],
         ["time_left","Tiempo restante"],["bed_temperature","Temperatura de cama"],
-        ["chamber_temperature","Temperatura interior"],["filename","Archivo de impresión"],["print_eta","Hora de finalización"],["thumbnail_camera","Cámara de miniatura"],["live_camera","Cámara interior"],["exception_sensor","Sensor de errores"],["led_light_entity","Luz LED de la impresora"],["update_available_sensor","Actualización disponible (Lava)"],["power_sensor","Potencia eléctrica (W)"],["daily_energy_sensor","Consumo diario (kWh)"],["energy_sensor","Energía acumulada (kWh)"]
+        ["chamber_temperature","Temperatura interior"],["filename","Archivo de impresión"],["print_eta","Hora de finalización"],["thumbnail_camera","Cámara de miniatura"],["live_camera","Cámara interior"],["gui_camera","Pantalla GUI de la impresora"],["exception_sensor","Sensor de errores"],["led_light_entity","Luz LED de la impresora"],["update_available_sensor","Actualización disponible (Lava)"],["power_sensor","Potencia eléctrica (W)"],["daily_energy_sensor","Consumo diario (kWh)"],["energy_sensor","Energía acumulada (kWh)"]
       ]],
       ["Controles de impresión", [["pause_button","Botón de pausa"],["resume_button","Botón de reanudación"],["cancel_button","Botón de cancelar"],["emergency_button","Botón de emergencia"]]],
       ["Presencia de filamento", [0,1,2,3].map(i=>["tool"+i+"_present","Filamento presente en T"+i])],
