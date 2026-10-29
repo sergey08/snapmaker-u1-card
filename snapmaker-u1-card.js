@@ -56,6 +56,10 @@ class SnapmakerU1Card extends HTMLElement {
     const powerEntity=c.power_switch_entity||(this._hass?.states?.["switch.impresora3d"]?"switch.impresora3d":"");
     const powerState=powerEntity?this._hass?.states?.[powerEntity]?.state:"unavailable";
     const powerReady=powerState==="on"||powerState==="off";
+    const switchChangedAt=Date.parse(this._hass?.states?.[powerEntity]?.last_changed||"");
+    const printerUpdatedAt=Date.parse(this._hass?.states?.[c.printer_state]?.last_updated||"");
+    const freshPrinterSignal=!offline&&(!Number.isFinite(switchChangedAt)||Number.isFinite(printerUpdatedAt)&&printerUpdatedAt>=switchChangedAt);
+    const displayStatus=powerState==="off"?"Apagada":powerState==="on"&&!freshPrinterSignal?"Encendiéndose":offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer);
     const ledEntity=c.led_light_entity;
     const ledState=ledEntity?this._hass?.states?.[ledEntity]?.state:"unavailable";
     const ledOn=ledState==="on";
