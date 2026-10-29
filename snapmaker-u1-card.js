@@ -59,7 +59,6 @@ class SnapmakerU1Card extends HTMLElement {
     const switchChangedAt=Date.parse(this._hass?.states?.[powerEntity]?.last_changed||"");
     const printerUpdatedAt=Date.parse(this._hass?.states?.[c.printer_state]?.last_updated||"");
     const freshPrinterSignal=!offline&&(!Number.isFinite(switchChangedAt)||Number.isFinite(printerUpdatedAt)&&printerUpdatedAt>=switchChangedAt);
-    const displayStatus=powerState==="off"?"Apagada":powerState==="on"&&!freshPrinterSignal?"Encendiéndose":offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer);
     const ledEntity=c.led_light_entity;
     const ledState=ledEntity?this._hass?.states?.[ledEntity]?.state:"unavailable";
     const ledOn=ledState==="on";
@@ -67,6 +66,7 @@ class SnapmakerU1Card extends HTMLElement {
     const ledBrightness=ledOn?Math.round((Number(this._hass?.states?.[ledEntity]?.attributes?.brightness)||255)*100/255):0;
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
+    const displayStatus=powerState==="off"?"Apagada":powerState==="on"&&!freshPrinterSignal?"Encendiéndose":offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer);
     const rawActive=this.read(c.active_tool);
     const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
     const rawProgress=this.read(c.progress);
