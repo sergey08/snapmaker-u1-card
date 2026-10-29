@@ -53,6 +53,9 @@ class SnapmakerU1Card extends HTMLElement {
     const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
     const offline=statusMissing(printer)||statusMissing(state);
     const updateAvailable=this.read(c.update_available_sensor)==="on";
+    const powerEntity=c.power_switch_entity||(this._hass?.states?.["switch.impresora3d"]?"switch.impresora3d":"");
+    const powerState=powerEntity?this._hass?.states?.[powerEntity]?.state:"unavailable";
+    const powerReady=powerState==="on"||powerState==="off";
     const ledEntity=c.led_light_entity;
     const ledState=ledEntity?this._hass?.states?.[ledEntity]?.state:"unavailable";
     const ledOn=ledState==="on";
@@ -281,10 +284,10 @@ class SnapmakerU1Card extends HTMLElement {
       .tool.selected{background:color-mix(in srgb,var(--u1-accent) 12%,var(--u1-surface));border:2px solid var(--u1-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--u1-accent) 14%,transparent);padding:3px 0}
       .tool-active-label{display:block;color:var(--u1-accent-strong);font-size:10px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap}
       .tool.selected .spool-side{filter:drop-shadow(0 0 5px var(--u1-accent))}
-      .update-notice{font-size:11px;font-weight:700;color:#ffe2a0;background:#6b451d;border:1px solid #a87834;border-radius:8px;padding:4px 8px;white-space:nowrap}
+      .power-toggle{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:none;border:1px solid #586879;border-radius:8px;background:#182b3a;color:#8d9ba8;cursor:pointer;padding:3px}.power-toggle.on{color:#40db83;border-color:#36865c;background:#173b2b}.power-toggle:disabled{opacity:.45;cursor:not-allowed}.power-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.update-notice{font-size:11px;font-weight:700;color:#ffe2a0;background:#6b451d;border:1px solid #a87834;border-radius:8px;padding:4px 8px;white-space:nowrap}
 .led-control{display:flex;flex-direction:column;gap:8px;margin:4px auto 12px;padding:10px 12px;max-width:420px;border:1px solid var(--u1-line);border-radius:12px;background:var(--u1-tile);font-size:12px}.led-control.on{border-color:#b28b3d}.led-control .led-header{display:flex;align-items:center;gap:9px}.led-control .led-toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:var(--u1-muted);font-size:21px;cursor:pointer}.led-control .led-toggle{filter:grayscale(1) brightness(.65);opacity:.55}.led-control.on .led-toggle{filter:none;opacity:1;color:#eab748;background:color-mix(in srgb,#eab748 13%,transparent)}.led-control .led-toggle:disabled,.led-control input:disabled{opacity:.35;cursor:not-allowed}.led-control input[type=range]{width:100%;accent-color:#d7a73a;cursor:pointer}
 
-</style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top"><div class="title">${this.esc(c.title||"SNAPMAKER U1")}</div>${updateAvailable?`<div class="update-notice" title="Actualización disponible">⬆ ${lang==="es"?"Actualización disponible":"Update available"}</div>`:""}<div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
+</style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top">${powerEntity?`<button class="power-toggle ${powerState==="on"?"on":""}" type="button" title="${powerState==="on"?"Apagar impresora":"Encender impresora"}" aria-label="${powerState==="on"?"Apagar impresora":"Encender impresora"}" ${!powerReady?"disabled":""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10M5.6 5.6a9 9 0 1 0 12.8 0"/></svg></button>`:""}<div class="title">${this.esc(c.title||"SNAPMAKER U1")}</div>${updateAvailable?`<div class="update-notice" title="Actualización disponible">⬆ ${lang==="es"?"Actualización disponible":"Update available"}</div>`:""}<div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
 <ellipse cx="181" cy="236" rx="160" ry="11" fill="#000" opacity=".42"/>
@@ -318,6 +321,20 @@ ${heads}
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
       for(const el of this.shadowRoot.querySelectorAll("[title]"))el.title=cardTranslate(el.title,lang);
     }
+    const powerButton=this.shadowRoot.querySelector("button.power-toggle");
+    powerButton?.addEventListener("click",async()=>{
+      if(this._commandPending||!powerReady)return;
+      const turningOff=powerState==="on";
+      if(turningOff){
+        const currentPrint=this.read(c.print_state).toLowerCase();
+        if(["printing","paused","pausing","resuming"].includes(currentPrint)){window.alert(lang==="es"?"No se puede apagar: hay una impresión activa o pausada.":"Cannot power off: a print is active or paused.");return;}
+        if(!window.confirm(lang==="es"?"¿Apagar la impresora Snapmaker U1?":"Turn off the Snapmaker U1 printer?"))return;
+      }
+      this._commandPending=true;powerButton.disabled=true;
+      try{await this._hass.callService("switch",turningOff?"turn_off":"turn_on",{entity_id:powerEntity});}
+      catch(error){console.error("Snapmaker U1 power control failed",error);window.alert(lang==="es"?"No se pudo cambiar la alimentación de la impresora.":"Could not change printer power.");}
+      finally{this._commandPending=false;}
+    });
     for(const button of this.shadowRoot.querySelectorAll("button.printer-action")){
       button.addEventListener("click",async()=>{
         if(button.disabled||this._commandPending)return;
@@ -478,7 +495,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
     languageSelect.value=this._config.language||"auto";languageSelect.addEventListener("change",()=>this.change("language",languageSelect.value));languageRow.appendChild(languageSelect);
     const sections=[
       ["Impresora y estado",[
-        ["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],
+        ["printer_state","Estado de la impresora"],["print_state","Estado de impresión"],["power_switch_entity","Interruptor de alimentación"],
         ["active_tool","Herramienta activa"],["progress","Progreso"],
         ["current_layer","Capa actual"],["total_layers","Capas totales"],
         ["time_left","Tiempo restante"],["bed_temperature","Temperatura de cama"],
