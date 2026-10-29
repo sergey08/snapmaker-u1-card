@@ -356,7 +356,7 @@ ${heads}
     if(ledButton)ledButton.addEventListener("click",async()=>{
       if(!ledEntity||ledButton.disabled)return;
       ledButton.disabled=true;
-      try{const isOn=this._hass?.states?.[ledEntity]?.state==="on";await this._hass.callService("light",isOn?"turn_off":"turn_on",isOn?{entity_id:ledEntity}:{entity_id:ledEntity,brightness_pct:100});}
+      try{const isOn=this._hass?.states?.[ledEntity]?.state==="on";if(isOn)await this._hass.callService("light","turn_off",{entity_id:ledEntity});else {await this._hass.callService("light","turn_on",{entity_id:ledEntity});await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:100});}}
       catch(error){console.error("Snapmaker LED toggle failed",error);}
       finally{ledButton.disabled=false;}
     });
