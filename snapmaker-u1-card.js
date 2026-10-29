@@ -53,6 +53,10 @@ class SnapmakerU1Card extends HTMLElement {
     const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
     const offline=statusMissing(printer)||statusMissing(state);
     const updateAvailable=this.read(c.update_available_sensor)==="on";
+    const ledEntity=c.led_light_entity;
+    const ledState=ledEntity?this._hass?.states?.[ledEntity]?.state:"unavailable";
+    const ledOn=ledState==="on";
+    const ledUnavailable=!["on","off"].includes(ledState);
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
     const rawActive=this.read(c.active_tool);
@@ -277,6 +281,7 @@ class SnapmakerU1Card extends HTMLElement {
       .tool-active-label{display:block;color:var(--u1-accent-strong);font-size:10px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap}
       .tool.selected .spool-side{filter:drop-shadow(0 0 5px var(--u1-accent))}
       .update-notice{font-size:11px;font-weight:700;color:#ffe2a0;background:#6b451d;border:1px solid #a87834;border-radius:8px;padding:4px 8px;white-space:nowrap}
+.led-control{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px auto 12px;padding:8px 12px;max-width:420px;border:1px solid #31485c;border-radius:10px;background:#102030;font-size:12px}.led-control.on{border-color:#b28b3d;background:#30291b}.led-control button{border:1px solid #506579;background:#1c3042;color:#edf5ff;border-radius:16px;padding:5px 14px;cursor:pointer}.led-control.on button{background:#b88a2c;color:#101820}.led-control button:disabled{opacity:.45;cursor:not-allowed}
 </style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top"><div class="title">${this.esc(c.title||"SNAPMAKER U1")}</div>${updateAvailable?`<div class="update-notice" title="Actualización disponible">⬆ ${lang==="es"?"Actualización disponible":"Update available"}</div>`:""}<div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
@@ -305,7 +310,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div>${ledEntity?`<div class="led-control ${ledOn?"on":""}"><span>💡 ${lang==="es"?"Luz LED":"LED light"}</span><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Turn off LED":"Turn on LED"}">${ledUnavailable?"—":ledOn?(lang==="es"?"Encendida":"On"):(lang==="es"?"Apagada":"Off")}</button></div>`:""}<div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -324,6 +329,14 @@ ${heads}
         finally{this._commandPending=false;}
       });
     }
+    const ledButton=this.shadowRoot.querySelector(".led-toggle");
+    if(ledButton)ledButton.addEventListener("click",async()=>{
+      if(!ledEntity||ledButton.disabled)return;
+      ledButton.disabled=true;
+      try{await this._hass.callService("light","toggle",{entity_id:ledEntity});}
+      catch(error){console.error("Snapmaker LED toggle failed",error);}
+      finally{ledButton.disabled=false;}
+    });
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
@@ -353,7 +366,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
   detectEntities(){
     const states=this._hass?.states||{};
     const all=Object.keys(states);
-    const specs={printer_state:["sensor",["printer_state","printer_status"]],print_state:["sensor",["current_print_state","print_state"]],progress:["sensor",["progress"]],active_tool:["sensor",["active_tool"]],current_layer:["sensor",["current_layer"]],total_layers:["sensor",["total_layer"]],time_left:["sensor",["print_time_left","time_left"]],bed_temperature:["sensor",["bed_temperature"]],chamber_temperature:["sensor",["cavity_temp","chamber_temperature"]],filename:["sensor",["filename"]],print_eta:["sensor",["print_eta"]],thumbnail_camera:["camera",["thumbnail"]],live_camera:["camera",["case","live"]],exception_sensor:["binary_sensor",["exception"]],update_available_sensor:["binary_sensor",["update_available_lava","update_available"]],pause_button:["button",["pause_print"]],resume_button:["button",["resume_print"]],cancel_button:["button",["cancel_print"]],emergency_button:["button",["emergency_stop"]],power_sensor:["sensor",["energy_power","printer_power"]],energy_sensor:["sensor",["energy_total"]],electricity_price_sensor:["sensor",["precio_kwh","electricity_price"]]};
+    const specs={printer_state:["sensor",["printer_state","printer_status"]],print_state:["sensor",["current_print_state","print_state"]],progress:["sensor",["progress"]],active_tool:["sensor",["active_tool"]],current_layer:["sensor",["current_layer"]],total_layers:["sensor",["total_layer"]],time_left:["sensor",["print_time_left","time_left"]],bed_temperature:["sensor",["bed_temperature"]],chamber_temperature:["sensor",["cavity_temp","chamber_temperature"]],filename:["sensor",["filename"]],print_eta:["sensor",["print_eta"]],thumbnail_camera:["camera",["thumbnail"]],live_camera:["camera",["case","live"]],exception_sensor:["binary_sensor",["exception"]],led_light_entity:["light",["led_cavity_led","snapmaker"]],update_available_sensor:["binary_sensor",["update_available_lava","update_available"]],pause_button:["button",["pause_print"]],resume_button:["button",["resume_print"]],cancel_button:["button",["cancel_print"]],emergency_button:["button",["emergency_stop"]],power_sensor:["sensor",["energy_power","printer_power"]],energy_sensor:["sensor",["energy_total"]],electricity_price_sensor:["sensor",["precio_kwh","electricity_price"]]};
     for(let i=0;i<4;i++){
       specs["extruder"+(i+1)+"_temperature"]=["sensor",["head_"+i+"_nozzle_temperature","extruder"+(i+1)+"_temperature"]];
       for(const [k,terms,domain] of [["present",["slot_"+i+"_filament_present"],"binary_sensor"],["job_estimated",["slot_"+i+"_job_filament_estimated"],"sensor"],["color",["u1_t"+i+"_color"],"sensor"],["weight",["u1_t"+i+"_peso","u1_t"+i+"_weight"],"sensor"],["material",["t"+i+"_filamento_display"],"sensor"]])specs["tool"+i+"_"+k]=[domain,terms];
@@ -427,7 +440,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
         ["active_tool","Herramienta activa"],["progress","Progreso"],
         ["current_layer","Capa actual"],["total_layers","Capas totales"],
         ["time_left","Tiempo restante"],["bed_temperature","Temperatura de cama"],
-        ["chamber_temperature","Temperatura interior"],["filename","Archivo de impresión"],["print_eta","Hora de finalización"],["thumbnail_camera","Cámara de miniatura"],["live_camera","Cámara interior"],["exception_sensor","Sensor de errores"],["update_available_sensor","Actualización disponible (Lava)"],["power_sensor","Potencia eléctrica (W)"],["energy_sensor","Energía acumulada (kWh)"]
+        ["chamber_temperature","Temperatura interior"],["filename","Archivo de impresión"],["print_eta","Hora de finalización"],["thumbnail_camera","Cámara de miniatura"],["live_camera","Cámara interior"],["exception_sensor","Sensor de errores"],["led_light_entity","Luz LED de la impresora"],["update_available_sensor","Actualización disponible (Lava)"],["power_sensor","Potencia eléctrica (W)"],["energy_sensor","Energía acumulada (kWh)"]
       ]],
       ["Controles de impresión", [["pause_button","Botón de pausa"],["resume_button","Botón de reanudación"],["cancel_button","Botón de cancelar"],["emergency_button","Botón de emergencia"]]],
       ["Presencia de filamento", [0,1,2,3].map(i=>["tool"+i+"_present","Filamento presente en T"+i])],
