@@ -66,7 +66,7 @@ class SnapmakerU1Card extends HTMLElement {
     const ledBrightness=ledOn?Math.round((Number(this._hass?.states?.[ledEntity]?.attributes?.brightness)||255)*100/255):0;
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
-    const displayStatus=powerState==="off"?"Apagada":powerState==="on"&&!freshPrinterSignal?"Encendiéndose":offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer);
+    const displayStatus=powerState==="off"?"Apagada":powerState==="on"?(offline||!freshPrinterSignal?"Encendiéndose":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)):offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer);
     const rawActive=this.read(c.active_tool);
     const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
     const rawProgress=this.read(c.progress);
@@ -356,7 +356,7 @@ ${heads}
     if(ledButton)ledButton.addEventListener("click",async()=>{
       if(!ledEntity||ledButton.disabled)return;
       ledButton.disabled=true;
-      try{await this._hass.callService("light","toggle",{entity_id:ledEntity});}
+      try{await this._hass.callService("light",ledOn?"turn_off":"turn_on",ledOn?{entity_id:ledEntity}:{entity_id:ledEntity,brightness_pct:100});}
       catch(error){console.error("Snapmaker LED toggle failed",error);}
       finally{ledButton.disabled=false;}
     });
@@ -367,7 +367,7 @@ ${heads}
         const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
         try{
           if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
-          else {if(this._hass?.states?.[ledEntity]?.state!=="on")await this._hass.callService("light","turn_on",{entity_id:ledEntity});await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
+          else await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});
         }catch(error){console.error("Snapmaker LED brightness failed",error);}
       };
       // Handle pointer interactions ourselves. Native range events can reset the
