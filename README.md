@@ -16,27 +16,29 @@
 
 ![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
 
-> **Stable release / Versión estable:** [v0.1.0](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0). The previous beta remains available. / La versión beta anterior sigue disponible.
+> **Latest documented version / Última versión documentada:** v0.1.2. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
 
 ## What's new in v0.1.2 / Novedades de v0.1.2
 
 ### English
 
 - **Optional printer LED control:** select a Home Assistant `light` entity using the visual editor's **Printer LED light** field (`led_light_entity`).
-- **Lightbulb button:** tap to turn the printer light on or off. The bulb appears dim/grey when off and illuminated when on.
+- **Lightbulb button:** tap to turn the printer light off or turn it on at 100% brightness. For reliable startup, the card sends `light.turn_on` before setting brightness. The bulb appears dim/grey when off and illuminated when on.
 - **Brightness slider (0–100%):** moving above 0% turns the light on and applies the chosen brightness; moving to 0% turns it off. When off, the slider returns to 0%; when on, it reflects the actual brightness reported by Home Assistant.
 - **Moonraker compatibility:** when the light is off, the card first sends `light.turn_on` and then applies `brightness_pct`, accommodating devices that cannot start directly at a specified brightness.
 - **Conditional update notice:** configure `update_available_sensor` (for example, `binary_sensor.update_available_lava`). The notice appears only when the sensor is `on` and remains completely hidden otherwise.
 - Both features are optional and do not affect cards without these entities. The LED must support Home Assistant light services; brightness availability depends on the integration.
+- **Optional card title:** leave **Card name** empty to hide the title completely, or enter any custom title. The visual editor enables saving immediately while typing or clearing the field.
 
 ### Español
 
 - **Control LED opcional:** selecciona una entidad `light` desde el campo **Luz LED de la impresora** del editor visual (`led_light_entity`).
-- **Bombilla interactiva:** pulsa para encender o apagar. Se muestra gris y atenuada cuando está apagada, e iluminada cuando está encendida.
+- **Bombilla interactiva:** pulsa para apagar o encender al 100 % de brillo. Para un encendido fiable, la tarjeta envía `light.turn_on` antes de establecer el brillo. Se muestra gris y atenuada cuando está apagada, e iluminada cuando está encendida.
 - **Barra de brillo (0–100 %):** por encima del 0 % enciende y ajusta la intensidad; al 0 % apaga. Apagada, la barra vuelve al 0 %; encendida, refleja el brillo real comunicado por Home Assistant.
 - **Compatibilidad con Moonraker:** al encender desde la barra, primero se ejecuta `light.turn_on` y después se aplica `brightness_pct`, para integraciones que no admiten arrancar directamente con una intensidad determinada.
 - **Aviso de actualización condicional:** configura `update_available_sensor` (por ejemplo, `binary_sensor.update_available_lava`). Solo se muestra cuando el sensor está en `on`; en cualquier otro estado no ocupa espacio.
 - Ambas funciones son opcionales. La entidad LED debe admitir los servicios de luz de Home Assistant; la regulación depende de la integración.
+- **Título opcional:** deja **Nombre de la tarjeta** vacío para ocultarlo por completo o escribe un título personalizado. El editor visual permite guardar inmediatamente al escribir o borrar, sin salir del campo.
 
 ### Example configuration / Ejemplo de configuración
 
@@ -44,6 +46,7 @@
 type: custom:snapmaker-u1-card
 led_light_entity: light.led_cavity_led_snapmaker_u1_despacho
 update_available_sensor: binary_sensor.update_available_lava
+title: ""  # Hide card title / Ocultar título
 ```
 
 Replace these example entity IDs with your own; keep the rest of your existing card configuration. / Sustituye las entidades del ejemplo por las tuyas y conserva el resto de la configuración actual.
