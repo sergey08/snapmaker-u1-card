@@ -18,6 +18,36 @@
 
 > **Stable release / Versión estable:** [v0.1.0](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0). The previous beta remains available. / La versión beta anterior sigue disponible.
 
+## What's new in v0.1.2 / Novedades de v0.1.2
+
+### English
+
+- **Optional printer LED control:** select a Home Assistant `light` entity using the visual editor's **Printer LED light** field (`led_light_entity`).
+- **Lightbulb button:** tap to turn the printer light on or off. The bulb appears dim/grey when off and illuminated when on.
+- **Brightness slider (0–100%):** moving above 0% turns the light on and applies the chosen brightness; moving to 0% turns it off. When off, the slider returns to 0%; when on, it reflects the actual brightness reported by Home Assistant.
+- **Moonraker compatibility:** when the light is off, the card first sends `light.turn_on` and then applies `brightness_pct`, accommodating devices that cannot start directly at a specified brightness.
+- **Conditional update notice:** configure `update_available_sensor` (for example, `binary_sensor.update_available_lava`). The notice appears only when the sensor is `on` and remains completely hidden otherwise.
+- Both features are optional and do not affect cards without these entities. The LED must support Home Assistant light services; brightness availability depends on the integration.
+
+### Español
+
+- **Control LED opcional:** selecciona una entidad `light` desde el campo **Luz LED de la impresora** del editor visual (`led_light_entity`).
+- **Bombilla interactiva:** pulsa para encender o apagar. Se muestra gris y atenuada cuando está apagada, e iluminada cuando está encendida.
+- **Barra de brillo (0–100 %):** por encima del 0 % enciende y ajusta la intensidad; al 0 % apaga. Apagada, la barra vuelve al 0 %; encendida, refleja el brillo real comunicado por Home Assistant.
+- **Compatibilidad con Moonraker:** al encender desde la barra, primero se ejecuta `light.turn_on` y después se aplica `brightness_pct`, para integraciones que no admiten arrancar directamente con una intensidad determinada.
+- **Aviso de actualización condicional:** configura `update_available_sensor` (por ejemplo, `binary_sensor.update_available_lava`). Solo se muestra cuando el sensor está en `on`; en cualquier otro estado no ocupa espacio.
+- Ambas funciones son opcionales. La entidad LED debe admitir los servicios de luz de Home Assistant; la regulación depende de la integración.
+
+### Example configuration / Ejemplo de configuración
+
+```yaml
+type: custom:snapmaker-u1-card
+led_light_entity: light.led_cavity_led_snapmaker_u1_despacho
+update_available_sensor: binary_sensor.update_available_lava
+```
+
+Replace these example entity IDs with your own; keep the rest of your existing card configuration. / Sustituye las entidades del ejemplo por las tuyas y conserva el resto de la configuración actual.
+
 ## Screenshots / Capturas de pantalla
 
 These are genuine screenshots of the approved light/cyan Home Assistant design. / Capturas reales del diseño claro y azul cian aprobado en Home Assistant.
@@ -45,6 +75,8 @@ The setup wizard preview is not yet connected to printer entities, so it may sho
 - Optional Spoolman spool colors, weights and inventory / Colores, pesos e inventario opcional mediante Spoolman.
 - Optional power and electricity cost / Potencia y coste eléctrico opcionales.
 - Print controls with confirmation for destructive actions / Controles con confirmación para acciones destructivas.
+- Optional LED lightbulb and 0–100% brightness slider, synchronized with Home Assistant / Bombilla LED y barra de brillo 0–100 % opcionales, sincronizadas con Home Assistant.
+- Update notification shown only when an update is available / Aviso visible únicamente cuando hay una actualización disponible.
 - Visual editor, three-step setup wizard and read-only entity auto-detection / Editor visual, asistente de tres pasos y detección de entidades de solo lectura.
 - Language selector with automatic Home Assistant locale detection: English, Spanish, Portuguese, French, German, Italian and Dutch (translation coverage is still being completed). / Selector de idioma con detección automática: inglés, español, portugués, francés, alemán, italiano y neerlandés (traducciones todavía en revisión).
 - Light/dark Home Assistant theme-aware design with cyan-blue accents / Diseño adaptable al tema claro/oscuro y acentos azul cian.
@@ -146,12 +178,17 @@ MIT.
 
 ## Funcionalidades
 
+**Novedades de v0.1.2:** control LED con bombilla y brillo del 0 al 100 %, sincronización automática del estado y aviso de actualización que permanece oculto si no hay novedades. Consulta [la documentación detallada en español e inglés](#whats-new-in-v012--novedades-de-v012).
+
+
 - **Cuatro cabezales T0, T1, T2 y T3:** temperaturas, herramienta activa e información de filamento.
 - **Seguimiento de impresión:** estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
 - **Cámara opcional:** imagen en directo si Home Assistant dispone de la entidad correspondiente.
 - **Spoolman opcional:** inventario, materiales, colores, pesos y filamento restante.
 - **Consumo eléctrico opcional:** potencia, energía y coste estimado según las entidades configuradas.
 - **Controles de impresión:** acciones compatibles con confirmación para operaciones potencialmente destructivas.
+- **Control de luz LED opcional:** bombilla interactiva, brillo regulable de 0 a 100 % y sincronización con el estado real de Home Assistant.
+- **Aviso de actualizaciones opcional:** aparece solo cuando el sensor indica una actualización disponible.
 - **Editor visual y asistente inicial de tres pasos**, con detección automática de entidades y revisión de las asignaciones.
 - **Diseño claro y oscuro**, adaptado al tema de Home Assistant, con modo completo y compacto.
 - **Idiomas:** español, inglés, portugués, francés, alemán, italiano y neerlandés. Algunas traducciones siguen en revisión.
