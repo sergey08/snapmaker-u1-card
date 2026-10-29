@@ -341,13 +341,29 @@ ${heads}
     });
     const ledSlider=this.shadowRoot.querySelector(".led-brightness");
     if(ledSlider){
-      
-      ledSlider.addEventListener("change",async()=>{
+      let pointerHandled=false;
+      const setLedBrightness=async value=>{
         if(!ledEntity||ledUnavailable)return;
-        ledSlider.disabled=true;
-        try{await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:Number(ledSlider.value)});}
+        const pct=Math.max(1,Math.min(100,Math.round(Number(value)||1)));
+        try{await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
         catch(error){console.error("Snapmaker LED brightness failed",error);}
-        finally{ledSlider.disabled=false;}
+      };
+      // A tap must turn the light on even if the slider value did not change.
+      ledSlider.addEventListener("pointerdown",event=>{
+        if(ledSlider.disabled)return;
+        const rect=ledSlider.getBoundingClientRect();
+        const fraction=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
+        const pct=Math.max(1,Math.round(fraction*100));
+        ledSlider.value=String(pct);
+        if(!ledOn){
+          pointerHandled=true;
+          event.preventDefault();
+          void setLedBrightness(pct);
+        }
+      });
+      ledSlider.addEventListener("change",()=>{
+        if(pointerHandled){pointerHandled=false;return;}
+        void setLedBrightness(ledSlider.value);
       });
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
