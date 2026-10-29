@@ -341,30 +341,43 @@ ${heads}
     });
     const ledSlider=this.shadowRoot.querySelector(".led-brightness");
     if(ledSlider){
-      let lastRequested=null;
       const setLedLevel=async value=>{
         if(!ledEntity||ledUnavailable)return;
         const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
-        if(pct===lastRequested)return;
-        lastRequested=pct;
         try{
           if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
           else await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});
-        }catch(error){lastRequested=null;console.error("Snapmaker LED brightness failed",error);}
+        }catch(error){console.error("Snapmaker LED brightness failed",error);}
       };
-      // Send on initial touch, even if the native range input emits no change.
+      // Handle pointer interactions ourselves. Native range events can reset the
+      // thumb to zero while the light state is updating, issuing an unwanted OFF.
+      let dragging=false;
+      const valueAt=event=>{
+        const rect=ledSlider.getBoundingClientRect();
+        return rect.width?Math.round(Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width))*100):Number(ledSlider.value);
+      };
       ledSlider.addEventListener("pointerdown",event=>{
         if(ledSlider.disabled)return;
-        const rect=ledSlider.getBoundingClientRect();
-        if(!rect.width)return;
-        const fraction=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
-        const pct=Math.round(fraction*100);
+        event.preventDefault();
+        dragging=true;
+        ledSlider.setPointerCapture?.(event.pointerId);
+        ledSlider.value=String(valueAt(event));
+      });
+      ledSlider.addEventListener("pointermove",event=>{
+        if(dragging)ledSlider.value=String(valueAt(event));
+      });
+      ledSlider.addEventListener("pointerup",event=>{
+        if(!dragging)return;
+        event.preventDefault();
+        dragging=false;
+        const pct=valueAt(event);
         ledSlider.value=String(pct);
         void setLedLevel(pct);
       });
-      ledSlider.addEventListener("pointerup",()=>{void setLedLevel(ledSlider.value);});
-      ledSlider.addEventListener("change",()=>{void setLedLevel(ledSlider.value);});
-      ledSlider.addEventListener("keydown",()=>{lastRequested=null;});
+      ledSlider.addEventListener("pointercancel",()=>{dragging=false;});
+      ledSlider.addEventListener("change",event=>{
+        if(event.detail===0&&!dragging)void setLedLevel(ledSlider.value);
+      });
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
