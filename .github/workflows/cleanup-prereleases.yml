@@ -1,6 +1,8 @@
 name: Clean obsolete prereleases
 
 on:
+  release:
+    types: [published]
   workflow_dispatch:
     inputs:
       dry_run:
@@ -14,13 +16,14 @@ permissions:
 
 jobs:
   cleanup:
+    if: github.event_name == 'workflow_dispatch' || (github.event.release.prerelease == false && github.event.release.draft == false)
     runs-on: ubuntu-latest
     steps:
       - name: Remove prereleases older than latest stable
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          DRY_RUN: ${{ inputs.dry_run }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
         shell: bash
         run: |
           set -euo pipefail
