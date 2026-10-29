@@ -557,7 +557,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
     translateEditor(this.shadowRoot,cardLanguage(this._config,this._hass));
-    this.shadowRoot.querySelector("#snapmaker-card-title")?.addEventListener("change",e=>this.change("title",e.target.value.trim()));
+    this.shadowRoot.querySelector("#snapmaker-card-title")?.addEventListener("input",e=>this.change("title",e.target.value));
     for(const section of this.shadowRoot.querySelectorAll("details[data-editor-group]"))section.addEventListener("toggle",()=>{
       if(!this._openGroups)this._openGroups=new Set();
       if(section.open)this._openGroups.add(section.dataset.editorGroup);else this._openGroups.delete(section.dataset.editorGroup);
