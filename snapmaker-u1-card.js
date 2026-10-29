@@ -346,7 +346,7 @@ ${heads}
         const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
         try{
           if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
-          else await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});
+          else {if(this._hass?.states?.[ledEntity]?.state!=="on")await this._hass.callService("light","turn_on",{entity_id:ledEntity});await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
         }catch(error){console.error("Snapmaker LED brightness failed",error);}
       };
       // Handle pointer interactions ourselves. Native range events can reset the
