@@ -122,7 +122,7 @@ class SnapmakerU1Card extends HTMLElement {
       const selected=!offline && active===i && (printing||paused);
       const feeding=printing && selected;
       const planned=plannedTools[i] || selected;
-      return `<div class="tool ${selected?"selected":""} ${feeding?"feeding":""} ${planned?"planned":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span>${selected?`<strong class="tool-active-label">T${i} · ${feeding?"Imprimiendo":"En pausa"}</strong>`:planned?`<em class="tool-planned">T${i} · En este trabajo</em>`:""}</div>`;
+      return `<div data-spool-tool="${i}" role="button" tabindex="0" title="${lang==="es"?"Ver propiedades de la bobina":"View spool properties"}" class="tool ${selected?"selected":""} ${feeding?"feeding":""} ${planned?"planned":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span>${selected?`<strong class="tool-active-label">T${i} · ${feeding?"Imprimiendo":"En pausa"}</strong>`:planned?`<em class="tool-planned">T${i} · En este trabajo</em>`:""}</div>`;
     };
     const leftTools=spool(0)+spool(1),rightTools=spool(2)+spool(3);
     const headColors=[0,1,2,3].map(i=>{
@@ -328,6 +328,19 @@ ${heads}
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
       for(const el of this.shadowRoot.querySelectorAll("[title]"))el.title=cardTranslate(el.title,lang);
+    }
+    // Open the complete Home Assistant entity details for the selected spool.
+    for(const el of this.shadowRoot.querySelectorAll("[data-spool-tool]")){
+      const openSpool=()=>{
+        const i=Number(el.dataset.spoolTool);
+        const id=Number(Array.isArray(c.spoolman_spool_ids)?c.spoolman_spool_ids[i]:null);
+        const entity=id>0?"sensor.spoolman_spool_"+id:c["tool"+i+"_weight"];
+        if(!entity||!this._hass?.states?.[entity])return;
+        this.dispatchEvent(new CustomEvent("hass-more-info",{bubbles:true,composed:true,detail:{entityId:entity}}));
+      };
+      el.addEventListener("click",openSpool);
+      el.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openSpool();}});
+      el.style.cursor="pointer";
     }
     const powerButton=this.shadowRoot.querySelector("button.power-toggle");
     powerButton?.addEventListener("click",async()=>{
