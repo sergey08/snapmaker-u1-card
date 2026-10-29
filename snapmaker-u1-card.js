@@ -48,6 +48,9 @@ class SnapmakerU1Card extends HTMLElement {
     if(existingCamera) this._cameraOpen=existingCamera.open;
     if(this._previewOpen===undefined)this._previewOpen=this.config.preview_open_default===true;
     if(this._cameraOpen===undefined)this._cameraOpen=this.config.camera_open_default===true;
+    const existingGui=this.shadowRoot.querySelector("details.gui-screen");
+    if(existingGui)this._guiOpen=existingGui.open;
+    if(this._guiOpen===undefined)this._guiOpen=this.config.gui_open_default===true;
     const c=this.config, lang=cardLanguage(c,this._hass), printer=this.read(c.printer_state), state=this.read(c.print_state);
     // Treat either missing status feed as disconnected; never show stale print controls.
     const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
@@ -573,7 +576,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
-    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"]]){
+    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"]]){
       const row=document.createElement("label");
       row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
       const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=this._config[key]===true;
