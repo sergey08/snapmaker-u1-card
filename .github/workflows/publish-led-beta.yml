@@ -1,0 +1,21 @@
+name: Publish LED beta
+on:
+  push:
+    branches: [beta-led-control]
+    paths: ['.github/workflows/publish-led-beta.yml']
+permissions:
+  contents: write
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish pre-release from beta branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view v0.1.2-beta.1 >/dev/null 2>&1; then
+            echo "Release already exists"
+          else
+            gh release create v0.1.2-beta.1 --target "${{ github.sha }}" --title "Snapmaker U1 Card v0.1.2-beta.1" --notes "Beta: LED light control below the printer illustration, configurable via light entity. Update notice remains hidden when no update is available." --prerelease
+          fi
