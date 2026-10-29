@@ -14,8 +14,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          if gh release view v0.1.2-beta.6 >/dev/null 2>&1; then
+          if gh release view v0.1.2-beta.7 >/dev/null 2>&1; then
             echo "Release already exists"
           else
-            gh release create v0.1.2-beta.6 --target "${{ github.sha }}" --title "Snapmaker U1 Card v0.1.2-beta.6" --notes "Beta: LED on/off state and brightness slider below the printer illustration. Update notice remains hidden when no update is available." --prerelease
+            gh release create v0.1.2-beta.7 --target "${{ github.sha }}" --title "Snapmaker U1 Card v0.1.2-beta.7" --notes "Beta: LED on/off state and brightness slider below the printer illustration. Update notice remains hidden when no update is available." --prerelease
           fi
