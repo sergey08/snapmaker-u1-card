@@ -356,7 +356,7 @@ ${heads}
     if(ledButton)ledButton.addEventListener("click",async()=>{
       if(!ledEntity||ledButton.disabled)return;
       ledButton.disabled=true;
-      try{await this._hass.callService("light",ledOn?"turn_off":"turn_on",{entity_id:ledEntity});}
+      try{const isOn=this._hass?.states?.[ledEntity]?.state==="on";await this._hass.callService("light",isOn?"turn_off":"turn_on",isOn?{entity_id:ledEntity}:{entity_id:ledEntity,brightness_pct:100});}
       catch(error){console.error("Snapmaker LED toggle failed",error);}
       finally{ledButton.disabled=false;}
     });
@@ -367,7 +367,7 @@ ${heads}
         const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
         try{
           if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
-          else await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});
+          else {if(this._hass?.states?.[ledEntity]?.state!=="on")await this._hass.callService("light","turn_on",{entity_id:ledEntity});if(pct!==100)await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
         }catch(error){console.error("Snapmaker LED brightness failed",error);}
       };
       // Handle pointer interactions ourselves. Native range events can reset the
