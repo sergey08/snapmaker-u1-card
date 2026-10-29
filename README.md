@@ -16,7 +16,23 @@
 
 ![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
 
-> **Latest documented version / Última versión documentada:** v0.1.3 (release preparation / preparación de publicación). See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+> **Latest documented version / Última versión documentada:** v0.1.4. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+
+## What's new in v0.1.4 / Novedades de v0.1.4
+
+### English
+
+- When the printer is **off**, only the printer illustration, T0–T3 spools, Spoolman inventory and the power button remain visible.
+- The power button **stays on the left** in both power states.
+- Turning the printer on immediately restores the complete dashboard, including during startup.
+- No configuration changes required.
+
+### Español
+
+- Con la impresora **apagada**, solo se ven la imagen de la impresora, las bobinas T0–T3, el inventario Spoolman y el botón de encendido.
+- El botón de encendido **permanece a la izquierda** en ambos estados.
+- Al encender, se recupera inmediatamente la tarjeta completa, también durante el arranque.
+- No es necesario cambiar la configuración.
 
 ## What's new in v0.1.3 / Novedades de v0.1.3
 
