@@ -16,7 +16,42 @@
 
 ![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
 
-> **Latest documented version / Última versión documentada:** v0.1.2. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+> **Latest documented version / Última versión documentada:** v0.1.3 (release preparation / preparación de publicación). See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+
+## What's new in v0.1.3 / Novedades de v0.1.3
+
+### English
+
+- **Printer power status:** clearer Off, Starting up and Available states; switching the power relay off immediately shows Off.
+- **LED control:** lightbulb toggle and brightness slider reflect the actual Home Assistant light entity; 0% turns the light off. The brightness slider and print progress bar have exchanged positions.
+- **Printer GUI screen:** optional read-only display from a Home Assistant camera entity (`gui_camera`), with a collapsible section and **Show screen on startup** (`gui_open_default`) setting. Touching the screen image does not execute any action.
+- **Spoolman toolheads:** clicking a T0–T3 spool opens the associated Home Assistant spool entity details.
+- **Print and energy information:** improved placement of print progress, power, daily energy consumption, electricity cost and job information.
+- **Conditional update banner:** appears only when the configured update-available binary sensor is on.
+- **No remote-control iframe:** the experimental PAXX12 interactive-screen integration has been removed.
+
+### Español
+
+- **Estado de alimentación:** estados Apagada, Encendiéndose y Disponible más claros; al apagar el relé se muestra Apagada inmediatamente.
+- **Control LED:** la bombilla y la barra de brillo reflejan el estado real de la entidad `light` de Home Assistant; el 0 % apaga la luz. Se han intercambiado las posiciones de las barras de brillo y progreso de impresión.
+- **Pantalla GUI:** visualización opcional de solo lectura desde una entidad `camera` (`gui_camera`), con sección desplegable y opción **Mostrar pantalla al iniciar** (`gui_open_default`). Tocar la imagen no ejecuta ninguna acción.
+- **Bobinas Spoolman:** al tocar una bobina T0–T3 se abre la información de su entidad en Home Assistant.
+- **Información de impresión y energía:** mejoras en la disposición del progreso, potencia, consumo diario, coste y trabajo.
+- **Aviso de actualizaciones:** solo se muestra cuando el sensor binario de actualización configurado está activado.
+- **Sin iframe remoto:** se ha retirado la prueba de pantalla interactiva de PAXX12.
+
+### Configuration example / Ejemplo de configuración
+
+```yaml
+type: custom:snapmaker-u1-card
+gui_camera: camera.gui_snapmaker_u1_despacho_2
+gui_open_default: false
+daily_energy_sensor: sensor.impresora3d_energy_today
+led_light_entity: light.led_cavity_led_snapmaker_u1_despacho
+update_available_sensor: binary_sensor.update_available_lava
+```
+
+All entities are optional and should be replaced with those in your own Home Assistant installation. / Todas las entidades son opcionales y deben sustituirse por las de tu propia instalación.
 
 ## What's new in v0.1.2 / Novedades de v0.1.2
 
