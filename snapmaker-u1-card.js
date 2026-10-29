@@ -33,7 +33,7 @@ class SnapmakerU1Card extends HTMLElement {
     this._lastThemeSignature=themeSignature;
     if(changed)this.render();
   }
-  connectedCallback() {
+  connectedCallback() {\n    if(!this._energyRefreshTimer)this._energyRefreshTimer=setInterval(()=>{if(this.config&&this._hass)this.render();},10000);
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
       const img=this.shadowRoot?.querySelector("details.camera-panel[open] img.camera-image");
       if(img&&img.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
@@ -43,7 +43,7 @@ class SnapmakerU1Card extends HTMLElement {
     },2500);
   }
   disconnectedCallback() {
-    if(this._cameraRefreshTimer){clearInterval(this._cameraRefreshTimer);this._cameraRefreshTimer=null;}
+    if(this._cameraRefreshTimer){clearInterval(this._cameraRefreshTimer);this._cameraRefreshTimer=null;}\n    if(this._energyRefreshTimer){clearInterval(this._energyRefreshTimer);this._energyRefreshTimer=null;}
   }
   getCardSize() { return 5; }
   static getStubConfig() { return {type:"custom:snapmaker-u1-card"}; }
@@ -228,15 +228,34 @@ class SnapmakerU1Card extends HTMLElement {
     const priceMode=c.electricity_price_mode||"sensor";
     const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor);
     const price=priceRaw!==null&&priceRaw!==undefined&&String(priceRaw).trim()!==""&&valid(priceRaw)&&Number.isFinite(Number(priceRaw))&&Number(priceRaw)>=0?Number(priceRaw):null;
-    if(printing&&!this._jobTracking)this._jobTracking={energyStart:energy,lastEnergy:energy,lastPrice:price,cost:0};
-    if(this._jobTracking&&energy!==null){
-      const t=this._jobTracking;
-      if(t.lastEnergy!==null&&energy>=t.lastEnergy&&t.lastPrice!==null)t.cost+=(energy-t.lastEnergy)*t.lastPrice;
-      t.lastEnergy=energy;t.lastPrice=price;
+    // Integrate measured power over elapsed time; retain totals across dashboard reloads.
+    const trackingKey="snapmaker-u1-card-print-energy-v2:"+String(c.power_switch_entity||"printer");
+    if(!this._jobTracking){try{this._jobTracking=JSON.parse(localStorage.getItem(trackingKey)||"null");}catch(e){this._jobTracking=null;}}
+    const now=Date.now();
+    const active=printing||paused;
+    const prior=this._jobTracking;
+    const newJob=active&&prior&&(prior.jobName!==jobName&&Boolean(jobName)||(!prior.wasActive&&printing));
+    if(powerState==="off"||newJob){
+      this._jobTracking=null;
+      try{localStorage.removeItem(trackingKey);}catch(e){}
     }
-    if(!printing&&!paused)this._jobTracking=null;
-    const energyUsed=this._jobTracking&&energy!==null&&this._jobTracking.energyStart!==null?Math.max(0,energy-this._jobTracking.energyStart):null;
-    const jobCost=this._jobTracking&&price!==null?this._jobTracking.cost:null;
+    if(active&&!this._jobTracking)this._jobTracking={jobName,usedKwh:0,cost:0,lastTick:now,lastPower:power,lastPrice:price,wasActive:true};
+    if(this._jobTracking){
+      const t=this._jobTracking;
+      const elapsed=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
+      // Previous power and tariff apply to the elapsed interval, not the incoming reading.
+      if(t.wasPrinting&&Number.isFinite(t.lastPower)&&t.lastPower>=0&&elapsed>0){
+        const delta=t.lastPower*elapsed/1000;
+        t.usedKwh+=delta;
+        if(Number.isFinite(t.lastPrice)&&t.lastPrice>=0)t.cost+=delta*t.lastPrice;
+      }
+      t.lastTick=now;t.lastPower=power;t.lastPrice=price;
+      t.wasPrinting=printing;t.wasActive=active;
+      if(jobName)t.jobName=jobName;
+      try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
+    }
+    const energyUsed=this._jobTracking?.usedKwh??null;
+    const jobCost=this._jobTracking?.cost??null;
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo":"Consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>Coste luz: <b>${jobCost===null?"—":jobCost.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:2})+" €"}</b></span></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
