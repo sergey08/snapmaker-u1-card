@@ -220,7 +220,7 @@ class SnapmakerU1Card extends HTMLElement {
     // The current print thumbnail is already shown in the job summary.
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
-    const cameraHtml=c.show_camera!==false&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="lazy"></details>`:"";
+    const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" style="display:none" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="lazy"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
@@ -284,7 +284,7 @@ class SnapmakerU1Card extends HTMLElement {
       .tool.selected{background:color-mix(in srgb,var(--u1-accent) 12%,var(--u1-surface));border:2px solid var(--u1-accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--u1-accent) 14%,transparent);padding:3px 0}
       .tool-active-label{display:block;color:var(--u1-accent-strong);font-size:10px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap}
       .tool.selected .spool-side{filter:drop-shadow(0 0 5px var(--u1-accent))}
-      .power-toggle{display:inline-flex;align-items:center;justify-content:center;width:27px;height:27px;flex:none;border:1px solid #586879;border-radius:8px;background:#182b3a;color:#8d9ba8;cursor:pointer;padding:3px}.power-toggle.on{color:#40db83;border-color:#36865c;background:#173b2b}.power-toggle:disabled{opacity:.45;cursor:not-allowed}.power-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.update-notice{font-size:11px;font-weight:700;color:#ffe2a0;background:#6b451d;border:1px solid #a87834;border-radius:8px;padding:4px 8px;white-space:nowrap}
+      .power-toggle{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;flex:none;border:1px solid var(--u1-line);border-radius:9px;background:var(--u1-tile);color:var(--u1-muted);cursor:pointer;padding:3px;transition:background .2s,color .2s,border-color .2s}.power-toggle:hover{background:var(--u1-surface)}.power-toggle.on{color:#37c976;border-color:color-mix(in srgb,#37c976 35%,var(--u1-line));background:color-mix(in srgb,#37c976 9%,var(--u1-tile))}.power-toggle:disabled{opacity:.45;cursor:not-allowed}.power-toggle svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.update-notice{font-size:11px;font-weight:700;color:#ffe2a0;background:#6b451d;border:1px solid #a87834;border-radius:8px;padding:4px 8px;white-space:nowrap}
 .led-control{display:flex;flex-direction:column;gap:8px;margin:4px auto 12px;padding:10px 12px;max-width:420px;border:1px solid var(--u1-line);border-radius:12px;background:var(--u1-tile);font-size:12px}.led-control.on{border-color:#b28b3d}.led-control .led-header{display:flex;align-items:center;gap:9px}.led-control .led-toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:var(--u1-muted);font-size:21px;cursor:pointer}.led-control .led-toggle{filter:grayscale(1) brightness(.65);opacity:.55}.led-control.on .led-toggle{filter:none;opacity:1;color:#eab748;background:color-mix(in srgb,#eab748 13%,transparent)}.led-control .led-toggle:disabled,.led-control input:disabled{opacity:.35;cursor:not-allowed}.led-control input[type=range]{width:100%;accent-color:#d7a73a;cursor:pointer}
 
 </style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top">${powerEntity?`<button class="power-toggle ${powerState==="on"?"on":""}" type="button" title="${powerState==="on"?"Apagar impresora":"Encender impresora"}" aria-label="${powerState==="on"?"Apagar impresora":"Encender impresora"}" ${!powerReady?"disabled":""}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v10M5.6 5.6a9 9 0 1 0 12.8 0"/></svg></button>`:""}<div class="title">${this.esc(c.title||"SNAPMAKER U1")}</div>${updateAvailable?`<div class="update-notice" title="Actualización disponible">⬆ ${lang==="es"?"Actualización disponible":"Update available"}</div>`:""}<div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
@@ -399,7 +399,16 @@ ${heads}
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
-    if(cameraDetails)cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
+    if(cameraDetails){
+      cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
+      const image=cameraDetails.querySelector("img.camera-image");
+      if(image){
+        const reveal=()=>{if(image.naturalWidth>0&&image.naturalHeight>0)cameraDetails.style.display="";};
+        image.addEventListener("load",reveal);
+        image.addEventListener("error",()=>{cameraDetails.style.display="none";});
+        if(image.complete)reveal();
+      }
+    }
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
     if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
   }
