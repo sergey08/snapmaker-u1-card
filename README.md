@@ -16,7 +16,25 @@
 
 ![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
 
-> **Latest documented version / Última versión documentada:** v0.1.4. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+> **Latest documented version / Última versión documentada:** v0.1.5. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+
+## What's new in v0.1.5 / Novedades de v0.1.5
+
+### English
+
+- Simplified active spool appearance: no blue border or printing label; filament animation remains.
+- All four filament indicators remain visible during printing; unused tools show `-- / --`.
+- Hide the job energy metric but keep its internal electricity-cost calculation.
+- Electricity cost shown with two decimal places; filament cost is not yet included.
+- Camera panel refreshes still images approximately every 2.5 seconds when expanded (not continuous video).
+
+### Español
+
+- Bobina activa sin recuadro azul ni etiqueta de impresión; se mantiene la animación.
+- Cuatro indicadores de filamento visibles durante la impresión; los no utilizados muestran `-- / --`.
+- Se oculta la energía del trabajo, conservando el cálculo interno del coste eléctrico.
+- Coste de la luz con dos decimales; aún no incluye el coste del filamento.
+- La cámara actualiza imágenes cada 2,5 segundos aproximadamente cuando está desplegada (no es vídeo continuo).
 
 ## What's new in v0.1.4 / Novedades de v0.1.4
 
