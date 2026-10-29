@@ -233,8 +233,7 @@ class SnapmakerU1Card extends HTMLElement {
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
     const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" style="display:none" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager"></details>`:"";
-    const guiScreenUrl=String(c.gui_screen_url||"").trim();
-    const guiHtml=(c.gui_camera||guiScreenUrl)&&powerState==="on"?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary>${guiScreenUrl?`<div style="display:flex;gap:8px;margin-top:10px"><button type="button" class="gui-open-window" style="cursor:pointer;padding:8px;border-radius:7px">${lang==="es"?"Abrir pantalla interactiva":"Open interactive screen"} ↗</button></div><iframe title="Snapmaker U1 Remote Screen" src="${this.esc(guiScreenUrl)}" loading="lazy" style="width:100%;height:370px;border:0;border-radius:8px;margin-top:8px;background:#111" referrerpolicy="no-referrer"></iframe>`:guiCameraUrl?`<img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px;cursor:pointer">`:""}</details>`:"";
+    const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
@@ -351,8 +350,6 @@ ${heads}
     const guiDetails=this.shadowRoot.querySelector("details.gui-screen");
     if(guiDetails){
       guiDetails.addEventListener("toggle",()=>{this._guiOpen=guiDetails.open;});
-      guiDetails.querySelector(".gui-open-window")?.addEventListener("click",()=>{if(c.gui_screen_url)window.open(c.gui_screen_url,"_blank","noopener,noreferrer");});
-      guiDetails.querySelector("img")?.addEventListener("click",()=>this.dispatchEvent(new CustomEvent("hass-more-info",{bubbles:true,composed:true,detail:{entityId:c.gui_camera}})));
     }
     const powerButton=this.shadowRoot.querySelector("button.power-toggle");
     powerButton?.addEventListener("click",async()=>{
@@ -578,12 +575,6 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
-    const guiUrlRow=document.createElement("div");
-    guiUrlRow.innerHTML='<label>URL pantalla interactiva (PAXX12)</label><input data-gui-screen-url type="url" placeholder="http://192.168.1.139/screen/" style="width:100%">';
-    extra.appendChild(guiUrlRow);
-    const guiUrlInput=guiUrlRow.querySelector("[data-gui-screen-url]");
-    guiUrlInput.value=this._config.gui_screen_url||"";
-    guiUrlInput.addEventListener("change",()=>this.change("gui_screen_url",guiUrlInput.value.trim()));
     for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"]]){
       const row=document.createElement("label");
       row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
