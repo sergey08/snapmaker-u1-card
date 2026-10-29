@@ -23,20 +23,6 @@ class SnapmakerU1Card extends HTMLElement {
     this._hass=hass;
     if(!this.config)return;
     const c=this.config;
-    const relayId=c.power_switch_entity||(hass.states["switch.impresora3d"]?"switch.impresora3d":"");
-    const relayState=hass.states[relayId]?.state;
-    const ledId=c.led_light_entity;
-    // Arm on a real OFF -> ON transition, including switches operated outside this card.
-    if(this._lastRelayState==="off"&&relayState==="on")this._ledStartupPending=true;
-    if(relayState==="off")this._ledStartupPending=false;
-    this._lastRelayState=relayState;
-    if(this._ledStartupPending&&relayState==="on"&&ledId&&hass.states[ledId]?.state!=="unavailable"&&hass.states[ledId]?.state!=="unknown"&&hass.states[ledId]?.state!==undefined&&!this._ledStartupBusy){
-      this._ledStartupPending=false;
-      this._ledStartupBusy=true;
-      Promise.resolve(hass.callService("light","turn_on",{entity_id:ledId,brightness_pct:100}))
-        .catch(error=>{console.error("Snapmaker startup LED failed",error);})
-        .finally(()=>{this._ledStartupBusy=false;});
-    }
     const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|light|number|input_boolean)\./.test(v)));
     if(c.show_spoolman_inventory===true)for(const id of Object.keys(hass.states))if(/^sensor\.spoolman_spool_\d+(?:_color_hex|_filament_name|_vendor)?$/.test(id))ids.add(id);
     const language=cardLanguage(c,hass);
@@ -370,7 +356,7 @@ ${heads}
     if(ledButton)ledButton.addEventListener("click",async()=>{
       if(!ledEntity||ledButton.disabled)return;
       ledButton.disabled=true;
-      try{await this._hass.callService("light",ledOn?"turn_off":"turn_on",ledOn?{entity_id:ledEntity}:{entity_id:ledEntity,brightness_pct:100});}
+      try{await this._hass.callService("light",ledOn?"turn_off":"turn_on",{entity_id:ledEntity});}
       catch(error){console.error("Snapmaker LED toggle failed",error);}
       finally{ledButton.disabled=false;}
     });
