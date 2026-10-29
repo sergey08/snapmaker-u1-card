@@ -6,7 +6,7 @@ on:
       version:
         description: 'Stable version tag (e.g. v0.1.1)'
         required: true
-        default: 'v0.1.1'
+        default: 'v0.1.2'
         type: string
 
 permissions:
@@ -51,30 +51,12 @@ jobs:
             echo "::error::Tag $VERSION already exists; refusing to move it"
             exit 1
           fi
-          cat > /tmp/release-notes.md <<'NOTES'
-          ## Español
-          **Snapmaker U1 Card __VERSION__** para Home Assistant.
-
-          - README principal completo en inglés y español, con capturas actualizadas.
-          - Descripción bilingüe en el selector de tarjetas de Home Assistant.
-          - Monitorización de cuatro cabezales, temperaturas, impresión, cámara y Spoolman opcional.
-          - Instalación y actualizaciones mediante HACS.
-
-          **Instalación:** HACS → Repositorios personalizados → `sergey08/snapmaker-u1-card` → Dashboard.
-          Revisa las entidades antes de utilizar los controles de impresión.
-
-          ## English
-          **Snapmaker U1 Card __VERSION__** for Home Assistant.
-
-          - Complete English and Spanish documentation in the same README, with updated screenshots.
-          - Bilingual description in the Home Assistant card picker.
-          - Four toolheads, temperatures, print monitoring, optional camera and Spoolman.
-          - Install and update through HACS.
-
-          **Installation:** HACS → Custom repositories → `sergey08/snapmaker-u1-card` → Dashboard.
-          Verify entity mappings before using printer controls.
-          NOTES
-          sed -i "s/__VERSION__/$VERSION/g" /tmp/release-notes.md
+          if [ "$VERSION" = "v0.1.2" ]; then
+            cp RELEASE_NOTES_v0.1.2.md /tmp/release-notes.md
+          else
+            echo "::error::Add reviewed bilingual release notes before publishing $VERSION"
+            exit 1
+          fi
           gh release create "$VERSION" snapmaker-u1-card.js \
             --target "$GITHUB_SHA" \
             --title "Snapmaker U1 Card $VERSION" \

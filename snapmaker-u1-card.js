@@ -23,7 +23,7 @@ class SnapmakerU1Card extends HTMLElement {
     this._hass=hass;
     if(!this.config)return;
     const c=this.config;
-    const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|number|input_boolean)\./.test(v)));
+    const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|light|number|input_boolean)\./.test(v)));
     if(c.show_spoolman_inventory===true)for(const id of Object.keys(hass.states))if(/^sensor\.spoolman_spool_\d+(?:_color_hex|_filament_name|_vendor)?$/.test(id))ids.add(id);
     const language=cardLanguage(c,hass);
     const themeSignature=JSON.stringify([hass.themes?.darkMode,hass.themes?.theme,hass.themes?.themes?.[hass.themes?.theme]]);
@@ -57,6 +57,7 @@ class SnapmakerU1Card extends HTMLElement {
     const ledState=ledEntity?this._hass?.states?.[ledEntity]?.state:"unavailable";
     const ledOn=ledState==="on";
     const ledUnavailable=!["on","off"].includes(ledState);
+    const ledBrightness=ledOn?Math.round((Number(this._hass?.states?.[ledEntity]?.attributes?.brightness)||255)*100/255):0;
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
     const rawActive=this.read(c.active_tool);
@@ -281,7 +282,8 @@ class SnapmakerU1Card extends HTMLElement {
       .tool-active-label{display:block;color:var(--u1-accent-strong);font-size:10px;font-weight:800;line-height:1.2;text-align:center;white-space:nowrap}
       .tool.selected .spool-side{filter:drop-shadow(0 0 5px var(--u1-accent))}
       .update-notice{font-size:11px;font-weight:700;color:#ffe2a0;background:#6b451d;border:1px solid #a87834;border-radius:8px;padding:4px 8px;white-space:nowrap}
-.led-control{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px auto 12px;padding:8px 12px;max-width:420px;border:1px solid #31485c;border-radius:10px;background:#102030;font-size:12px}.led-control.on{border-color:#b28b3d;background:#30291b}.led-control button{border:1px solid #506579;background:#1c3042;color:#edf5ff;border-radius:16px;padding:5px 14px;cursor:pointer}.led-control.on button{background:#b88a2c;color:#101820}.led-control button:disabled{opacity:.45;cursor:not-allowed}
+.led-control{display:flex;flex-direction:column;gap:8px;margin:4px auto 12px;padding:10px 12px;max-width:420px;border:1px solid var(--u1-line);border-radius:12px;background:var(--u1-tile);font-size:12px}.led-control.on{border-color:#b28b3d}.led-control .led-header{display:flex;align-items:center;gap:9px}.led-control .led-toggle{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border:0;border-radius:50%;background:transparent;color:var(--u1-muted);font-size:21px;cursor:pointer}.led-control .led-toggle{filter:grayscale(1) brightness(.65);opacity:.55}.led-control.on .led-toggle{filter:none;opacity:1;color:#eab748;background:color-mix(in srgb,#eab748 13%,transparent)}.led-control .led-toggle:disabled,.led-control input:disabled{opacity:.35;cursor:not-allowed}.led-control input[type=range]{width:100%;accent-color:#d7a73a;cursor:pointer}
+
 </style><ha-card class="${c.display_mode==="compact"?"compact":""}"><div class="top"><div class="title">${this.esc(c.title||"SNAPMAKER U1")}</div>${updateAvailable?`<div class="update-notice" title="Actualización disponible">⬆ ${lang==="es"?"Actualización disponible":"Update available"}</div>`:""}<div class="status">${offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)}</div></div><div class="scene-layout ${offline?"offline":""}"><svg class="filament-overlay" viewBox="0 0 600 350" preserveAspectRatio="none" aria-hidden="true">${filamentGuides}${filamentPaths}</svg><div class="tools-side">${leftTools}</div><div class="scene ${offline?"offline":""}">
 <svg class="machine" viewBox="0 -20 360 270" role="img" aria-label="Snapmaker U1, vista frontal estilizada">
 <defs><linearGradient id="u1shell" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#6c7984"/><stop offset=".5" stop-color="#303d49"/><stop offset="1" stop-color="#151f29"/></linearGradient><linearGradient id="u1glass" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#29485c" stop-opacity=".8"/><stop offset="1" stop-color="#09141e" stop-opacity=".9"/></linearGradient></defs>
@@ -310,7 +312,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div>${ledEntity?`<div class="led-control ${ledOn?"on":""}"><span>💡 ${lang==="es"?"Luz LED":"LED light"}</span><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Turn off LED":"Turn on LED"}">${ledUnavailable?"—":ledOn?(lang==="es"?"Encendida":"On"):(lang==="es"?"Apagada":"Off")}</button></div>`:""}<div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div>${ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}<div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -337,6 +339,46 @@ ${heads}
       catch(error){console.error("Snapmaker LED toggle failed",error);}
       finally{ledButton.disabled=false;}
     });
+    const ledSlider=this.shadowRoot.querySelector(".led-brightness");
+    if(ledSlider){
+      const setLedLevel=async value=>{
+        if(!ledEntity||ledUnavailable)return;
+        const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
+        try{
+          if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
+          else {if(this._hass?.states?.[ledEntity]?.state!=="on")await this._hass.callService("light","turn_on",{entity_id:ledEntity});await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
+        }catch(error){console.error("Snapmaker LED brightness failed",error);}
+      };
+      // Handle pointer interactions ourselves. Native range events can reset the
+      // thumb to zero while the light state is updating, issuing an unwanted OFF.
+      let dragging=false;
+      const valueAt=event=>{
+        const rect=ledSlider.getBoundingClientRect();
+        return rect.width?Math.round(Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width))*100):Number(ledSlider.value);
+      };
+      ledSlider.addEventListener("pointerdown",event=>{
+        if(ledSlider.disabled)return;
+        event.preventDefault();
+        dragging=true;
+        ledSlider.setPointerCapture?.(event.pointerId);
+        ledSlider.value=String(valueAt(event));
+      });
+      ledSlider.addEventListener("pointermove",event=>{
+        if(dragging)ledSlider.value=String(valueAt(event));
+      });
+      ledSlider.addEventListener("pointerup",event=>{
+        if(!dragging)return;
+        event.preventDefault();
+        dragging=false;
+        const pct=valueAt(event);
+        ledSlider.value=String(pct);
+        void setLedLevel(pct);
+      });
+      ledSlider.addEventListener("pointercancel",()=>{dragging=false;});
+      ledSlider.addEventListener("change",event=>{
+        if(event.detail===0&&!dragging)void setLedLevel(ledSlider.value);
+      });
+    }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
