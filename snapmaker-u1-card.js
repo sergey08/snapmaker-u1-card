@@ -23,7 +23,7 @@ class SnapmakerU1Card extends HTMLElement {
     this._hass=hass;
     if(!this.config)return;
     const c=this.config;
-    const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|number|input_boolean)\./.test(v)));
+    const ids=new Set(Object.values(c).filter(v=>typeof v==="string"&&/^(sensor|binary_sensor|camera|button|switch|light|number|input_boolean)\./.test(v)));
     if(c.show_spoolman_inventory===true)for(const id of Object.keys(hass.states))if(/^sensor\.spoolman_spool_\d+(?:_color_hex|_filament_name|_vendor)?$/.test(id))ids.add(id);
     const language=cardLanguage(c,hass);
     const themeSignature=JSON.stringify([hass.themes?.darkMode,hass.themes?.theme,hass.themes?.themes?.[hass.themes?.theme]]);
