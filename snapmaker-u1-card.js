@@ -312,7 +312,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div>${ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="1" max="100" value="${ledBrightness||1}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}<div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div>${ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}<div class="metrics"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${jobHtml}${filamentHtml}${warningsHtml}${electricityHtml}${controlsHtml}${previewHtml}${cameraHtml}<div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div>${inventoryHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -341,30 +341,30 @@ ${heads}
     });
     const ledSlider=this.shadowRoot.querySelector(".led-brightness");
     if(ledSlider){
-      let pointerHandled=false;
-      const setLedBrightness=async value=>{
+      let lastRequested=null;
+      const setLedLevel=async value=>{
         if(!ledEntity||ledUnavailable)return;
-        const pct=Math.max(1,Math.min(100,Math.round(Number(value)||1)));
-        try{await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
-        catch(error){console.error("Snapmaker LED brightness failed",error);}
+        const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
+        if(pct===lastRequested)return;
+        lastRequested=pct;
+        try{
+          if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
+          else await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});
+        }catch(error){lastRequested=null;console.error("Snapmaker LED brightness failed",error);}
       };
-      // A tap must turn the light on even if the slider value did not change.
+      // Send on initial touch, even if the native range input emits no change.
       ledSlider.addEventListener("pointerdown",event=>{
         if(ledSlider.disabled)return;
         const rect=ledSlider.getBoundingClientRect();
+        if(!rect.width)return;
         const fraction=Math.max(0,Math.min(1,(event.clientX-rect.left)/rect.width));
-        const pct=Math.max(1,Math.round(fraction*100));
+        const pct=Math.round(fraction*100);
         ledSlider.value=String(pct);
-        if(!ledOn){
-          pointerHandled=true;
-          event.preventDefault();
-          void setLedBrightness(pct);
-        }
+        void setLedLevel(pct);
       });
-      ledSlider.addEventListener("change",()=>{
-        if(pointerHandled){pointerHandled=false;return;}
-        void setLedBrightness(ledSlider.value);
-      });
+      ledSlider.addEventListener("pointerup",()=>{void setLedLevel(ledSlider.value);});
+      ledSlider.addEventListener("change",()=>{void setLedLevel(ledSlider.value);});
+      ledSlider.addEventListener("keydown",()=>{lastRequested=null;});
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
