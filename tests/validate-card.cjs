@@ -128,11 +128,11 @@ assert(!source.includes('early preview, read-only'), 'Outdated read-only banner'
 console.log('Release-candidate copy and translation checks passed.');
 
 // Hybrid cost regression: a meter reset must not erase the job's accumulated cost.
-if (fs.existsSync('snapmaker-u1-card-dev.js')) {
-  const devSource = fs.readFileSync('snapmaker-u1-card-dev.js', 'utf8');
+{
+  const devSource = fs.readFileSync('snapmaker-u1-card.js', 'utf8');
   const start = devSource.indexOf('    // Hybrid job meter:');
   const end = devSource.indexOf('    const electricityHtml=', start);
-  assert(start >= 0 && end > start, 'DEV hybrid meter block missing');
+  assert(start >= 0 && end > start, 'Release hybrid meter block missing');
   const meter = new Function('localStorage','Date','printing','paused','normalizedState','c','energy','price','jobName','power',
     devSource.slice(start,end) + 'return {energyUsed,jobCost,tracking:this._jobTracking};');
   const memory = new Map();
@@ -166,5 +166,5 @@ if (fs.existsSync('snapmaker-u1-card-dev.js')) {
   assert.equal(reloaded.tracking.jobName,'part-A', 'Dashboard reload erased last print name');
   const next = tick('printing',0.009,200,'part-B');
   assert.equal(next.jobCost,0, 'New job must reset previous print cost');
-  console.log('DEV hybrid cost completion, meter reset and next-job tests passed.');
+  console.log('Release hybrid cost completion, meter reset, reload and next-job tests passed.');
 }
