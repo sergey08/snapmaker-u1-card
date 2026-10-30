@@ -238,7 +238,7 @@ class SnapmakerU1Card extends HTMLElement {
     }
     const now=Date.now(),trackingActive=printing||paused;
     const prior=this._jobTracking;
-    const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing));
+    const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing&&!prior.jobName));
     if(newJob){this._jobTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
     if(trackingActive&&!this._jobTracking){
       this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0};
@@ -280,7 +280,7 @@ class SnapmakerU1Card extends HTMLElement {
           t.pendingKwh=0;t.pendingCost=0;t.lastEnergy=energy;
         }
       }
-      t.lastTick=now;t.lastPower=power;t.lastPrice=price;t.lastState=normalizedState;t.wasActive=trackingActive;
+      t.lastTick=now;t.lastPower=power;t.lastPrice=price;t.lastState=offline?t.lastState:normalizedState;t.wasActive=offline?t.wasActive:trackingActive;
       if(jobName&&trackingActive)t.jobName=jobName;
       try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
     }
