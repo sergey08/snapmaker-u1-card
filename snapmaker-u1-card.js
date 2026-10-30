@@ -33,7 +33,8 @@ class SnapmakerU1Card extends HTMLElement {
     this._lastThemeSignature=themeSignature;
     if(changed)this.render();
   }
-  connectedCallback() {\n    if(!this._energyRefreshTimer)this._energyRefreshTimer=setInterval(()=>{if(this.config&&this._hass)this.render();},10000);
+  connectedCallback() {
+    if(!this._energyRefreshTimer)this._energyRefreshTimer=setInterval(()=>{if(this.config&&this._hass)this.render();},10000);
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
       const img=this.shadowRoot?.querySelector("details.camera-panel[open] img.camera-image");
       if(img&&img.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
