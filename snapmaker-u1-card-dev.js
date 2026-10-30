@@ -230,31 +230,40 @@ class SnapmakerU1Card extends HTMLElement {
     const priceMode=c.electricity_price_mode||"sensor";
     const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor);
     const price=priceRaw!==null&&priceRaw!==undefined&&String(priceRaw).trim()!==""&&valid(priceRaw)&&Number.isFinite(Number(priceRaw))&&Number(priceRaw)>=0?Number(priceRaw):null;
-    // Integrate measured power over elapsed time; retain totals across dashboard reloads.
-    const trackingKey="snapmaker-u1-card-print-energy-v2:"+String(c.power_switch_entity||"printer");
-    if(!this._jobTracking){try{this._jobTracking=JSON.parse(localStorage.getItem(trackingKey)||"null");}catch(e){this._jobTracking=null;}}
-    const now=Date.now();
+    // Track actual cumulative kWh deltas, independent of browser refresh intervals.
+    // This is a browser-local estimate: missed tariff changes/pauses cannot be reconstructed.
+    const trackingKey="snapmaker-u1-card-print-energy-v3:"+String(c.energy_sensor||c.power_switch_entity||"printer");
+    if(!this._jobTracking||this._jobTrackingKey!==trackingKey){
+      this._jobTrackingKey=trackingKey;
+      try{this._jobTracking=JSON.parse(localStorage.getItem(trackingKey)||"null");}catch(e){this._jobTracking=null;}
+    }
     const trackingActive=printing||paused;
     const prior=this._jobTracking;
-    const newJob=trackingActive&&prior&&(prior.jobName!==jobName&&Boolean(jobName)||(!prior.wasActive&&printing));
-    if(powerState==="off"||newJob){
+    const newJob=trackingActive&&prior&&((Boolean(jobName)&&Boolean(prior.jobName)&&prior.jobName!==jobName)||(!prior.wasActive&&printing));
+    if(newJob){
       this._jobTracking=null;
       try{localStorage.removeItem(trackingKey);}catch(e){}
     }
-    if(trackingActive&&!this._jobTracking)this._jobTracking={jobName,usedKwh:0,cost:0,lastTick:now,lastPower:power,lastPrice:price,wasActive:true};
-    if(this._jobTracking){
+    if(trackingActive&&!this._jobTracking&&energy!==null){
+      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastPrice:price,lastState:normalizedState,wasActive:true};
+    }
+    if(this._jobTracking&&energy!==null){
       const t=this._jobTracking;
-      const elapsed=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
-      // Previous power and tariff apply to the elapsed interval, not the incoming reading.
-      if(t.wasPrinting&&Number.isFinite(t.lastPower)&&t.lastPower>=0&&elapsed>0){
-        const delta=t.lastPower*elapsed/1000;
+      const delta=energy-Number(t.lastEnergy);
+      // Counter resets and unavailable readings must never generate negative costs.
+      if(Number.isFinite(delta)&&delta>=0&&delta<100&&t.lastState==="printing"&&printing){
         t.usedKwh+=delta;
-        if(Number.isFinite(t.lastPrice)&&t.lastPrice>=0)t.cost+=delta*t.lastPrice;
+        if(price!==null)t.cost+=delta*price;
       }
-      t.lastTick=now;t.lastPower=power;t.lastPrice=price;
-      t.wasPrinting=printing;t.wasActive=trackingActive;
+      t.lastEnergy=energy;
+      t.lastPrice=price;
+      t.lastState=normalizedState;
+      t.wasActive=trackingActive;
       if(jobName)t.jobName=jobName;
       try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
+    }else if(this._jobTracking&&!trackingActive){
+      this._jobTracking.wasActive=false;
+      try{localStorage.setItem(trackingKey,JSON.stringify(this._jobTracking));}catch(e){}
     }
     const energyUsed=this._jobTracking?.usedKwh??null;
     const jobCost=this._jobTracking?.cost??null;
