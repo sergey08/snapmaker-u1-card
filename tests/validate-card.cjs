@@ -126,3 +126,40 @@ assert.equal(vm.runInContext('cardTranslate("En este trabajo","en")', context), 
 assert.equal(vm.runInContext('cardTranslate("Finalización estimada","de")', context), 'Voraussichtliches Ende');
 assert(!source.includes('early preview, read-only'), 'Outdated read-only banner');
 console.log('Release-candidate copy and translation checks passed.');
+
+// Hybrid cost regression: a meter reset must not erase the job's accumulated cost.
+if (fs.existsSync('snapmaker-u1-card-dev.js')) {
+  const devSource = fs.readFileSync('snapmaker-u1-card-dev.js', 'utf8');
+  const start = devSource.indexOf('    // Hybrid job meter:');
+  const end = devSource.indexOf('    const electricityHtml=', start);
+  assert(start >= 0 && end > start, 'DEV hybrid meter block missing');
+  const meter = new Function('localStorage','Date','printing','paused','normalizedState','c','energy','price','jobName','power',
+    devSource.slice(start,end) + 'return {energyUsed,jobCost,tracking:this._jobTracking};');
+  const memory = new Map();
+  const storage = {
+    getItem: key => memory.get(key) || null,
+    setItem: (key,value) => memory.set(key,value),
+    removeItem: key => memory.delete(key)
+  };
+  let clock = 1000000;
+  const fakeDate = {now: () => clock};
+  const instance = {};
+  function tick(state,energy,watts,name) {
+    clock += 30000;
+    return meter.call(instance,storage,fakeDate,state==='printing',state==='paused',state,
+      {energy_sensor:'test-meter'},energy,0.2,name,watts);
+  }
+  tick('printing',0.436,200,'part-A');
+  const measured = tick('printing',0.439,200,'part-A');
+  assert(measured.jobCost > 0, 'Print cost must increase');
+  const afterReset = tick('printing',0.008,200,'part-A');
+  assert(afterReset.jobCost >= measured.jobCost, 'Meter reset erased accumulated cost');
+  const idle = tick('standby',0.008,9,'');
+  assert(idle.jobCost >= afterReset.jobCost, 'Print completion erased cost');
+  assert.equal(idle.tracking.jobName,'part-A', 'Completed job name was lost');
+  const stillIdle = tick('standby',0.008,9,'');
+  assert.equal(stillIdle.jobCost,idle.jobCost, 'Idle must not accumulate print cost');
+  const next = tick('printing',0.009,200,'part-B');
+  assert.equal(next.jobCost,0, 'New job must reset previous print cost');
+  console.log('DEV hybrid cost completion, meter reset and next-job tests passed.');
+}
