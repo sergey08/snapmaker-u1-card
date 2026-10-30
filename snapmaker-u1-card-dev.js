@@ -246,7 +246,7 @@ class SnapmakerU1Card extends HTMLElement {
     if(this._jobTracking){
       const t=this._jobTracking;
       // On completion, freeze the last estimate instead of clearing it on idle.
-      if(!trackingActive&&t.wasActive){
+      if(!trackingActive&&!offline&&t.wasActive){
         t.usedKwh+=Number(t.pendingKwh)||0;
         t.cost+=Number(t.pendingCost)||0;
         t.pendingKwh=0;t.pendingCost=0;
