@@ -238,7 +238,7 @@ class SnapmakerU1Card extends HTMLElement {
     }
     const now=Date.now(),trackingActive=printing||paused;
     const prior=this._jobTracking;
-    const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing&&!prior.jobName));
+    const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing&&(!prior.jobName||prior.completedAt)));
     if(newJob){this._jobTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
     if(trackingActive&&!this._jobTracking){
       this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0};
