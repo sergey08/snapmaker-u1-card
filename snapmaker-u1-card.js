@@ -138,7 +138,7 @@ class SnapmakerU1Card extends HTMLElement {
       const selected=!offline && active===i && (printing||paused);
       const feeding=printing && selected;
       const planned=plannedTools[i] || selected;
-      return `<div data-spool-tool="${i}" role="button" tabindex="0" title="${lang==="es"?"Ver propiedades de la bobina":"View spool properties"}" class="tool ${selected?"selected":""} ${feeding?"feeding":""} ${planned?"planned":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span>${selected?"":planned?`<em class="tool-planned">T${i} · En este trabajo</em>`:""}</div>`;
+      return `<div data-spool-tool="${i}" role="button" tabindex="0" title="${lang==="es"?"Ver propiedades de la bobina":"View spool properties"}" class="tool ${selected?"selected":""} ${feeding?"feeding":""} ${planned?"planned":""}" style="--filament:${safeColor}"><div class="spool-side"><div class="spool-rim"></div><div class="spool-winding"></div><div class="spool-rim rear"></div></div><small>${material}</small><span>${grams}</span>${feeding?"":planned?`<em class="tool-planned">${this.esc(cardTranslate("En este trabajo",lang))}</em>`:""}</div>`;
     };
     const leftTools=spool(0)+spool(1),rightTools=spool(2)+spool(3);
     const headColors=[0,1,2,3].map(i=>{
