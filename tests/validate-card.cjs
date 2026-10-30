@@ -182,7 +182,7 @@ if (fs.existsSync('snapmaker-u1-card-dev.js')) {
   const start = devSource.indexOf('    // Hybrid job meter:');
   const end = devSource.indexOf('    const electricityHtml=', start);
   assert(start >= 0 && end > start, 'DEV hybrid meter block missing');
-  const meter = new Function('localStorage','Date','printing','paused','normalizedState','c','energy','price','jobName','power',
+  const meter = new Function('localStorage','Date','printing','paused','normalizedState','c','energy','price','jobName','power','offline',
     devSource.slice(start,end) + 'return {energyUsed,jobCost,tracking:this._jobTracking};');
   const memory = new Map();
   const storage = {
@@ -196,13 +196,17 @@ if (fs.existsSync('snapmaker-u1-card-dev.js')) {
   function tick(state,energy,watts,name) {
     clock += 30000;
     return meter.call(instance,storage,fakeDate,state==='printing',state==='paused',state,
-      {energy_sensor:'test-meter'},energy,0.2,name,watts);
+      {energy_sensor:'test-meter'},energy,0.2,name,watts,state==='unavailable');
   }
   tick('printing',0.436,200,'part-A');
   const measured = tick('printing',0.439,200,'part-A');
   assert(measured.jobCost > 0, 'Print cost must increase');
   const afterReset = tick('printing',0.008,200,'part-A');
   assert(afterReset.jobCost >= measured.jobCost, 'Meter reset erased accumulated cost');
+  const temporaryOffline = tick('unavailable',0.008,0,'');
+  assert(temporaryOffline.jobCost >= afterReset.jobCost, 'Offline erased print cost');
+  const recovered = tick('printing',0.008,200,'part-A');
+  assert(recovered.jobCost >= temporaryOffline.jobCost, 'Reconnect reset active print cost');
   const idle = tick('standby',0.008,9,'');
   assert(idle.jobCost >= afterReset.jobCost, 'Print completion erased cost');
   assert.equal(idle.tracking.jobName,'part-A', 'Completed job name was lost');
