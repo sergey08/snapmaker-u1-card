@@ -160,6 +160,16 @@ if (fs.existsSync('snapmaker-u1-card-dev.js')) {
   devCard.connectedCallback();
   assert([...intervals.values()].some(timer => timer.ms === 10000), 'Energy refresh timer not started');
   assert([...intervals.values()].some(timer => timer.ms === 2500), 'Camera refresh timer not started');
+  let refreshes = 0;
+  devCard.render = () => { refreshes++; };
+  devCard.config = {type:'custom:snapmaker-u1-card-dev'};
+  devCard._hass = {states:{}};
+  const refreshTimer = [...intervals.values()].find(timer => timer.ms === 10000);
+  refreshTimer.fn();
+  assert.equal(refreshes, 1, 'Energy timer must refresh an active DEV card');
+  devCard._hass = null;
+  refreshTimer.fn();
+  assert.equal(refreshes, 1, 'Energy timer must not refresh without Home Assistant');
   devCard.disconnectedCallback();
   assert.equal(intervals.size, 0, 'DEV card timers must be cleared on disconnect');
   console.log('DEV card registration and timer lifecycle tests passed.');
