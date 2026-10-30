@@ -126,3 +126,41 @@ assert.equal(vm.runInContext('cardTranslate("En este trabajo","en")', context), 
 assert.equal(vm.runInContext('cardTranslate("Finalización estimada","de")', context), 'Voraussichtliches Ende');
 assert(!source.includes('early preview, read-only'), 'Outdated read-only banner');
 console.log('Release-candidate copy and translation checks passed.');
+
+
+// DEV bundle smoke test: validate the independent custom element and timer lifecycle.
+if (fs.existsSync('snapmaker-u1-card-dev.js')) {
+  const devSource = fs.readFileSync('snapmaker-u1-card-dev.js', 'utf8');
+  const devRegistered = new Map();
+  const intervals = new Map();
+  let nextInterval = 0;
+  const devContext = vm.createContext({
+    HTMLElement: HTMLElementMock,
+    customElements: {
+      get: name => devRegistered.get(name),
+      define: (name, klass) => {
+        assert(!devRegistered.has(name), 'Duplicate DEV element: ' + name);
+        devRegistered.set(name, klass);
+      }
+    },
+    window: { customCards: [] },
+    navigator: { language: 'en-US' },
+    console,
+    setInterval: (fn, ms) => {
+      const id = ++nextInterval;
+      intervals.set(id, { fn, ms });
+      return id;
+    },
+    clearInterval: id => intervals.delete(id)
+  });
+  vm.runInContext(devSource, devContext, { filename: 'snapmaker-u1-card-dev.js', timeout: 3000 });
+  assert(devRegistered.has('snapmaker-u1-card-dev'), 'DEV card failed to register');
+  assert(devRegistered.has('snapmaker-u1-card-dev-editor'), 'DEV editor failed to register');
+  const devCard = new (devRegistered.get('snapmaker-u1-card-dev'))();
+  devCard.connectedCallback();
+  assert([...intervals.values()].some(timer => timer.ms === 10000), 'Energy refresh timer not started');
+  assert([...intervals.values()].some(timer => timer.ms === 2500), 'Camera refresh timer not started');
+  devCard.disconnectedCallback();
+  assert.equal(intervals.size, 0, 'DEV card timers must be cleared on disconnect');
+  console.log('DEV card registration and timer lifecycle tests passed.');
+}
