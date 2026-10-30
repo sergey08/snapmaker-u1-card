@@ -81,7 +81,7 @@ class SnapmakerU1Card extends HTMLElement {
     const ledBrightness=ledOn?Math.round((Number(this._hass?.states?.[ledEntity]?.attributes?.brightness)||255)*100/255):0;
     const normalizedState=String(state).toLowerCase();
     const printing=!offline && normalizedState==="printing", paused=!offline && normalizedState==="paused";
-    const displayStatus=powerState==="off"?"Apagada":powerState==="on"?(offline||!freshPrinterSignal?"Encendiéndose":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer)):offline?"Apagada":printing?"Imprimiendo":paused?"En pausa":printer==="ready"?"Disponible":this.esc(printer);
+    const displayStatus=powerState==="off"?"Apagada":printing?"Imprimiendo":paused?"En pausa":powerState==="on"?(offline||!freshPrinterSignal?"Encendiéndose":printer==="ready"?"Disponible":this.esc(printer)):offline?"Apagada":printer==="ready"?"Disponible":this.esc(printer);
     const rawActive=this.read(c.active_tool);
     const active=/^[0-3]$/.test(String(rawActive).trim())?Number(rawActive):null;
     const rawProgress=this.read(c.progress);
