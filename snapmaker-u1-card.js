@@ -233,14 +233,14 @@ class SnapmakerU1Card extends HTMLElement {
     const trackingKey="snapmaker-u1-card-print-energy-v2:"+String(c.power_switch_entity||"printer");
     if(!this._jobTracking){try{this._jobTracking=JSON.parse(localStorage.getItem(trackingKey)||"null");}catch(e){this._jobTracking=null;}}
     const now=Date.now();
-    const active=printing||paused;
+    const trackingActive=printing||paused;
     const prior=this._jobTracking;
-    const newJob=active&&prior&&(prior.jobName!==jobName&&Boolean(jobName)||(!prior.wasActive&&printing));
+    const newJob=trackingActive&&prior&&(prior.jobName!==jobName&&Boolean(jobName)||(!prior.wasActive&&printing));
     if(powerState==="off"||newJob){
       this._jobTracking=null;
       try{localStorage.removeItem(trackingKey);}catch(e){}
     }
-    if(active&&!this._jobTracking)this._jobTracking={jobName,usedKwh:0,cost:0,lastTick:now,lastPower:power,lastPrice:price,wasActive:true};
+    if(trackingActive&&!this._jobTracking)this._jobTracking={jobName,usedKwh:0,cost:0,lastTick:now,lastPower:power,lastPrice:price,wasActive:true};
     if(this._jobTracking){
       const t=this._jobTracking;
       const elapsed=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
@@ -251,7 +251,7 @@ class SnapmakerU1Card extends HTMLElement {
         if(Number.isFinite(t.lastPrice)&&t.lastPrice>=0)t.cost+=delta*t.lastPrice;
       }
       t.lastTick=now;t.lastPower=power;t.lastPrice=price;
-      t.wasPrinting=printing;t.wasActive=active;
+      t.wasPrinting=printing;t.wasActive=trackingActive;
       if(jobName)t.jobName=jobName;
       try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
     }
