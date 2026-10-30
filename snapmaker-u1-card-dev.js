@@ -34,6 +34,7 @@ class SnapmakerU1Card extends HTMLElement {
     if(changed)this.render();
   }
   connectedCallback() {
+    if(!this._energyRefreshTimer)this._energyRefreshTimer=setInterval(()=>{if(this.config&&this._hass)this.render();},10000);
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
       const img=this.shadowRoot?.querySelector("details.camera-panel[open] img.camera-image");
       if(img&&img.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
@@ -43,6 +44,7 @@ class SnapmakerU1Card extends HTMLElement {
     },2500);
   }
   disconnectedCallback() {
+    if(this._energyRefreshTimer){clearInterval(this._energyRefreshTimer);this._energyRefreshTimer=null;}
     if(this._cameraRefreshTimer){clearInterval(this._cameraRefreshTimer);this._cameraRefreshTimer=null;}
   }
   getCardSize() { return 5; }
