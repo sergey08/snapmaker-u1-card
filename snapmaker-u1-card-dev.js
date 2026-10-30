@@ -230,43 +230,55 @@ class SnapmakerU1Card extends HTMLElement {
     const priceMode=c.electricity_price_mode||"sensor";
     const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor);
     const price=priceRaw!==null&&priceRaw!==undefined&&String(priceRaw).trim()!==""&&valid(priceRaw)&&Number.isFinite(Number(priceRaw))&&Number(priceRaw)>=0?Number(priceRaw):null;
-    // Track actual cumulative kWh deltas, independent of browser refresh intervals.
-    // This is a browser-local estimate: missed tariff changes/pauses cannot be reconstructed.
-    const trackingKey="snapmaker-u1-card-print-energy-v3:"+String(c.energy_sensor||c.power_switch_entity||"printer");
+    // Hybrid job meter: estimate between sparse meter updates and reconcile on actual kWh changes.
+    const trackingKey="snapmaker-u1-card-print-energy-v4:"+String(c.energy_sensor||c.power_sensor||c.power_switch_entity||"printer");
     if(!this._jobTracking||this._jobTrackingKey!==trackingKey){
       this._jobTrackingKey=trackingKey;
       try{this._jobTracking=JSON.parse(localStorage.getItem(trackingKey)||"null");}catch(e){this._jobTracking=null;}
     }
-    const trackingActive=printing||paused;
+    const now=Date.now(),trackingActive=printing||paused;
     const prior=this._jobTracking;
-    const newJob=trackingActive&&prior&&((Boolean(jobName)&&Boolean(prior.jobName)&&prior.jobName!==jobName)||(!prior.wasActive&&printing));
-    if(newJob){
-      this._jobTracking=null;
-      try{localStorage.removeItem(trackingKey);}catch(e){}
+    const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing));
+    if(newJob){this._jobTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
+    if(trackingActive&&!this._jobTracking){
+      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0};
     }
-    if(trackingActive&&!this._jobTracking&&energy!==null){
-      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastPrice:price,lastState:normalizedState,wasActive:true};
-    }
-    if(this._jobTracking&&energy!==null){
+    if(this._jobTracking){
       const t=this._jobTracking;
-      const delta=energy-Number(t.lastEnergy);
-      // Counter resets and unavailable readings must never generate negative costs.
-      if(Number.isFinite(delta)&&delta>=0&&delta<100&&t.lastState==="printing"&&printing){
-        t.usedKwh+=delta;
-        if(price!==null)t.cost+=delta*price;
+      const hours=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
+      if(t.lastState==="printing"&&printing&&Number.isFinite(t.lastPower)&&t.lastPower>=0){
+        const estimated=t.lastPower*hours/1000;
+        t.pendingKwh=(Number(t.pendingKwh)||0)+estimated;
+        if(Number.isFinite(t.lastPrice)&&t.lastPrice>=0)t.pendingCost=(Number(t.pendingCost)||0)+estimated*t.lastPrice;
       }
-      t.lastEnergy=energy;
-      t.lastPrice=price;
-      t.lastState=normalizedState;
-      t.wasActive=trackingActive;
+      if(energy!==null){
+        if(t.lastEnergy===null||t.lastEnergy===undefined||!Number.isFinite(Number(t.lastEnergy))){
+          t.lastEnergy=energy;
+        }else if(energy!==Number(t.lastEnergy)){
+          const measured=energy-Number(t.lastEnergy);
+          if(measured>=0&&measured<100){
+            // A real reading replaces the provisional estimate for the same interval.
+            if(t.lastState==="printing"&&printing){
+              t.usedKwh+=measured;
+              t.cost+=measured*(price??t.lastPrice??0);
+            }else{
+              // A pause or stop may span an update: do not attribute all its energy.
+              t.usedKwh+=Number(t.pendingKwh)||0;
+              t.cost+=Number(t.pendingCost)||0;
+            }
+          }else{
+            t.usedKwh+=Number(t.pendingKwh)||0;
+            t.cost+=Number(t.pendingCost)||0;
+          }
+          t.pendingKwh=0;t.pendingCost=0;t.lastEnergy=energy;
+        }
+      }
+      t.lastTick=now;t.lastPower=power;t.lastPrice=price;t.lastState=normalizedState;t.wasActive=trackingActive;
       if(jobName)t.jobName=jobName;
       try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
-    }else if(this._jobTracking&&!trackingActive){
-      this._jobTracking.wasActive=false;
-      try{localStorage.setItem(trackingKey,JSON.stringify(this._jobTracking));}catch(e){}
     }
-    const energyUsed=this._jobTracking?.usedKwh??null;
-    const jobCost=this._jobTracking?.cost??null;
+    const energyUsed=this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
+    const jobCost=this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo hoy":"Today's consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>${lang==="es"?"Coste impresión":"Print cost"}: <b>${jobCost===null?"—":jobCost.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €"}</b></span></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
