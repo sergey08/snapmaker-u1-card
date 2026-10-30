@@ -1,0 +1,26 @@
+name: Validate Snapmaker U1 Card
+on:
+  push:
+    branches: [main, 'test/**']
+    paths:
+      - 'snapmaker-u1-card.js'
+      - 'snapmaker-u1-card-dev.js'
+      - 'tests/**'
+      - '.github/workflows/validate-snapmaker-card.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check snapmaker-u1-card.js
+          if [ -f snapmaker-u1-card-dev.js ]; then node --check snapmaker-u1-card-dev.js; fi
+      - name: Run regression tests
+        run: node tests/validate-card.cjs
