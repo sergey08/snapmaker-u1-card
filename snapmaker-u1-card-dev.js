@@ -245,6 +245,13 @@ class SnapmakerU1Card extends HTMLElement {
     }
     if(this._jobTracking){
       const t=this._jobTracking;
+      // On completion, freeze the last estimate instead of clearing it on idle.
+      if(!trackingActive&&t.wasActive){
+        t.usedKwh+=Number(t.pendingKwh)||0;
+        t.cost+=Number(t.pendingCost)||0;
+        t.pendingKwh=0;t.pendingCost=0;
+        t.completedAt=now;
+      }
       const hours=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
       if(t.lastState==="printing"&&printing&&Number.isFinite(t.lastPower)&&t.lastPower>=0){
         const estimated=t.lastPower*hours/1000;
@@ -274,7 +281,7 @@ class SnapmakerU1Card extends HTMLElement {
         }
       }
       t.lastTick=now;t.lastPower=power;t.lastPrice=price;t.lastState=normalizedState;t.wasActive=trackingActive;
-      if(jobName)t.jobName=jobName;
+      if(jobName&&trackingActive)t.jobName=jobName;
       try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
     }
     const energyUsed=this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
