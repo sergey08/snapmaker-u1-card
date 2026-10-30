@@ -1,7 +1,7 @@
 name: Validate Snapmaker U1 Card
 on:
   push:
-    branches: [main, 'test/**']
+    branches: [main, 'test/**', 'release/**']
     paths:
       - 'snapmaker-u1-card.js'
       - 'snapmaker-u1-card-dev.js'
