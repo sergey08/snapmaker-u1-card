@@ -159,6 +159,11 @@ if (fs.existsSync('snapmaker-u1-card-dev.js')) {
   assert.equal(idle.tracking.jobName,'part-A', 'Completed job name was lost');
   const stillIdle = tick('standby',0.008,9,'');
   assert.equal(stillIdle.jobCost,idle.jobCost, 'Idle must not accumulate print cost');
+  // A new card instance must restore the last completed print from localStorage.
+  const reloaded = meter.call({},storage,fakeDate,false,false,'standby',
+    {energy_sensor:'test-meter'},0.008,0.2,'',9);
+  assert.equal(reloaded.jobCost,idle.jobCost, 'Dashboard reload erased last print cost');
+  assert.equal(reloaded.tracking.jobName,'part-A', 'Dashboard reload erased last print name');
   const next = tick('printing',0.009,200,'part-B');
   assert.equal(next.jobCost,0, 'New job must reset previous print cost');
   console.log('DEV hybrid cost completion, meter reset and next-job tests passed.');
