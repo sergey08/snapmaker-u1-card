@@ -12,6 +12,8 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.components.http import HomeAssistantView
+from aiohttp import web
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers import config_validation as cv
 
@@ -63,5 +65,18 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         del history[limit:]
         await store.async_save({"prints": entries})
 
+    class PrintHistoryView(HomeAssistantView):
+        """Authenticated read-only endpoint for the Lovelace card."""
+
+        url = "/api/snapmaker_u1_history/{printer_id}"
+        name = "api:snapmaker_u1_history"
+        requires_auth = True
+
+        async def get(self, request: web.Request, printer_id: str) -> web.Response:
+            if not printer_id or len(printer_id) > 128:
+                return self.json_message("Invalid printer ID", status_code=400)
+            return self.json({"prints": entries.get(printer_id, [])})
+
+    hass.http.register_view(PrintHistoryView())
     hass.services.async_register(DOMAIN, "save_print", save_print, schema=SAVE_SCHEMA)
     return True
