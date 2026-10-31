@@ -336,8 +336,8 @@ class SnapmakerU1Card extends HTMLElement {
     const historyLimit=Math.max(1,Math.min(200,Math.round(Number(c.history_limit)||20)));
     if(c.show_print_history===true&&this._hass?.callService){
       const t=this._jobTracking;
-      if(t&&trackingActive&&!t.historyStartedAt)t.historyStartedAt=now;
-      if(t&&t.completedAt&&t.jobName&&Number(t.lastProgress)>=99&&!t.historySaved&&!this._historySaving){
+      if(t&&trackingActive&&!t.historyStartedAt){t.historyStartedAt=now;try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}}
+      if(t&&t.completedAt&&t.jobName&&!offline&&normalizedState==="complete"&&!t.historySaved&&!this._historySaving){
         const printId=String(t.historyStartedAt||t.completedAt)+"-"+t.jobName;
         const record={printer_id:historyPrinter,print_id:printId,name:t.jobName,status:"completed",max_entries:historyLimit};
         const kwhCost=Number(t.cost)+(Number(t.pendingCost)||0);
