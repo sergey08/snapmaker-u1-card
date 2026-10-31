@@ -284,9 +284,40 @@ class SnapmakerU1Card extends HTMLElement {
       if(jobName&&trackingActive)t.jobName=jobName;
       try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
     }
+    // Material estimate: slicer grams per tool × Spoolman filament price / spool filament weight.
+    // Snapshot per job so subsequent spool changes do not alter a finished print.
+    const materialRows=[0,1,2,3].map(i=>{
+      const spoolId=Number(Array.isArray(c.spoolman_spool_ids)?c.spoolman_spool_ids[i]:null);
+      const attrs=spoolId>0?this._hass?.states?.["sensor.spoolman_spool_"+spoolId]?.attributes:null;
+      const grams=required[i];
+      const filamentPrice=Number(attrs?.filament_price);
+      const filamentWeight=Number(attrs?.filament_weight);
+      const validPrice=attrs?.filament_price!==null&&attrs?.filament_price!==undefined&&Number.isFinite(filamentPrice)&&filamentPrice>=0;
+      const validWeight=Number.isFinite(filamentWeight)&&filamentWeight>0;
+      return {tool:i,spoolId,grams,unitCost:validPrice&&validWeight?filamentPrice/filamentWeight:null};
+    });
+    if(this._jobTracking){
+      const t=this._jobTracking;
+      if(trackingActive&&!offline){
+        if(!Array.isArray(t.materialRows))t.materialRows=[null,null,null,null];
+        for(const row of materialRows){
+          if(row.grams!==null&&row.grams>0&&row.unitCost!==null&&(!t.materialRows[row.tool]||t.materialRows[row.tool].grams!==row.grams))
+            t.materialRows[row.tool]=row;
+        }
+        t.lastProgress=Math.max(Number(t.lastProgress)||0,progressValid?progress:0);
+      }
+      if(!trackingActive&&!offline&&t.completedAt&&Number(t.lastProgress)>=99)t.lastProgress=100;
+      try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
+    }
+    const materialTracked=this._jobTracking?.materialRows||[];
+    const materialRequired=materialTracked.filter(row=>row&&row.grams>0);
+    const materialKnown=materialRequired.length>0&&materialRequired.every(row=>row.unitCost!==null)&&materialRows.filter(row=>row.grams!==null&&row.grams>0).every(row=>row.unitCost!==null);
+    const materialCost=materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0):null;
     const energyUsed=this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
     const jobCost=this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
-    const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo":"Consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>Coste luz: <b>${jobCost===null?"—":jobCost.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €"}</b></span></div>`:"";
+    const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
+    const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
+    const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo":"Consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>${lang==="es"?"Coste luz":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Coste material":"Material cost"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Coste total":"Total cost"}: <b>${money(combinedCost)}</b></span></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
     const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
@@ -343,7 +374,11 @@ class SnapmakerU1Card extends HTMLElement {
       .bar>div{background:var(--u1-accent)!important;border-radius:999px}
       .foot{color:var(--u1-accent-strong)}.foot span{color:var(--u1-accent-strong)}
       .electricity span{color:var(--u1-accent-strong)}.electricity span b{color:var(--u1-accent-strong)}
-      .inventory-info small{color:var(--u1-accent-strong)}
+      /* Inventory readability: maintain contrast on light and dark themes. */
+      .inventory-info{min-width:0}
+      .inventory-info b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere;line-height:1.25;color:var(--u1-text)}
+      .inventory-info small{color:var(--u1-muted);opacity:1}
+      .inventory-info strong{display:block;color:var(--u1-text);font-weight:800;font-size:13px;opacity:1}
       .metric label{color:var(--u1-accent-strong)}
       .printer-action:not(:disabled):not(.emergency){color:var(--u1-accent-strong)}
 
