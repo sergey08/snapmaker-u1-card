@@ -722,6 +722,18 @@ class SnapmakerU1CardEditor extends HTMLElement {
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
+    const historyToggle=document.createElement("label");
+    historyToggle.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
+    const historyCheckbox=document.createElement("input");historyCheckbox.type="checkbox";historyCheckbox.checked=this._config.show_print_history===true;
+    historyCheckbox.addEventListener("change",()=>this.change("show_print_history",historyCheckbox.checked));
+    historyToggle.append(historyCheckbox,document.createTextNode("Historial de impresiones (requiere integración de almacenamiento)"));
+    this.shadowRoot.appendChild(historyToggle);
+    const historyLimitLabel=document.createElement("label");
+    historyLimitLabel.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0";
+    historyLimitLabel.append(document.createTextNode("Máximo de impresiones"));
+    const historyLimitInput=document.createElement("input");historyLimitInput.type="number";historyLimitInput.min="1";historyLimitInput.max="200";historyLimitInput.value=this._config.history_limit??20;historyLimitInput.style.width="80px";
+    historyLimitInput.addEventListener("change",()=>this.change("history_limit",Math.max(1,Math.min(200,Math.round(Number(historyLimitInput.value)||20)))));
+    historyLimitLabel.append(historyLimitInput);this.shadowRoot.appendChild(historyLimitLabel);
     translateEditor(this.shadowRoot,cardLanguage(this._config,this._hass));
     this.shadowRoot.querySelector("#snapmaker-card-title")?.addEventListener("input",e=>this.change("title",e.target.value));
     for(const section of this.shadowRoot.querySelectorAll("details[data-editor-group]"))section.addEventListener("toggle",()=>{
