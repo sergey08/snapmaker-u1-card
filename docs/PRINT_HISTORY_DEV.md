@@ -46,10 +46,17 @@ GET autenticado `/api/snapmaker_u1_history/{printer_id}` devuelve `{"prints":[..
 
 ## Safety gate / Protección contra falsos positivos
 
-- Only a stopped job whose last observed progress was at least 99% is currently eligible for automatic archival. A pause, temporary disconnection, cancellation or interruption with lower progress must **not** be stored as a completed print.
+- Only a stopped job whose printer's actual print state is `complete` is currently eligible for automatic archival. A pause, temporary disconnection, cancellation or interruption with lower progress must **not** be stored as a completed print.
 - Dynamic camera proxy URLs are **not** persisted as if they were permanent images.
 - Completion detection still needs validation against real Lava/Moonraker status transitions, especially prints that finish without a 99% progress update.
 
-- Solo se archiva automáticamente un trabajo detenido cuyo último progreso observado sea al menos del 99 %. Una pausa, desconexión temporal o cancelación anterior a ese umbral **no** se registra como completada.
+- Solo se archiva automáticamente un trabajo detenido cuyo estado real de impresión sea `complete`. Una pausa, desconexión temporal o cancelación anterior a su finalización **no** se registra como completada.
 - No se guardan URLs temporales de cámara como si fueran imágenes permanentes.
 - Pendiente validar las transiciones reales de Lava/Moonraker y los trabajos que finalicen sin recibir una actualización del 99 %.
+
+## Live HA entity check / Comprobación real de entidades (31/10/2026)
+
+- `sensor.current_print_state_snapmaker_u1_despacho` and `sensor.print_state_lava` expose enum options `standby`, `printing`, `paused`, `complete`, `cancelled`, `error`; both were `complete` during inspection.
+- Automatic archival in the experimental card now requires the actual configured `print_state` entity to equal `complete`, in addition to an existing tracked print and its stopped timestamp. It no longer infers completion from progress percentage.
+- La tarjeta experimental exige el estado `complete` de la entidad configurada, además de una impresión rastreada que haya terminado. No infiere el éxito a partir del porcentaje.
+- Not deployed or end-to-end tested yet / Todavía no desplegado ni probado de extremo a extremo.
