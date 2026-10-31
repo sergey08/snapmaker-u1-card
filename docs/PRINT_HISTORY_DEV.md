@@ -29,3 +29,17 @@ Integración experimental de Home Assistant, **todavía no incluida** en la inst
 Authenticated GET `/api/snapmaker_u1_history/{printer_id}` returns `{"prints":[...]}`. Requires installation and loading of the integration; it is not yet installed on the user's Home Assistant. A Lovelace card must call this endpoint through Home Assistant's authenticated API rather than fetching it anonymously. The current implementation is an infrastructure milestone, **not** an end-to-end working history.
 
 GET autenticado `/api/snapmaker_u1_history/{printer_id}` devuelve `{"prints":[...]}`. Requiere instalar y cargar la integración. Todavía no se ha instalado en el Home Assistant del usuario. La tarjeta debe utilizar la API autenticada de HA. Este avance es infraestructura, **no** un historial funcional de extremo a extremo.
+
+## Current implementation / Implementación actual
+
+- The development card can optionally read history through the authenticated endpoint and send completed jobs to `snapmaker_u1_history.save_print`.
+- Editor options: `show_print_history` (disabled by default) and `history_limit` (default 20, maximum 200).
+- Saving requires the custom integration to be installed and loaded. Without it, the UI shows a history-unavailable message.
+- **Not yet end-to-end tested or deployed**. Current job thumbnail URL is only a reference and does not survive changes to the camera image; real thumbnail archival remains pending.
+- Completion classification is provisional, based on last known progress (99% threshold); final status needs validation with real printer events.
+
+- La tarjeta de desarrollo permite consultar el historial y enviar impresiones terminadas al servicio de almacenamiento.
+- Opciones del editor: `show_print_history` (desactivado por defecto) y `history_limit` (20 por defecto, máximo 200).
+- Para guardar es imprescindible instalar y cargar la integración personalizada. Sin ella se muestra un aviso.
+- **Aún no probado de extremo a extremo ni desplegado**. La URL de la miniatura no conserva la imagen; pendiente archivar la miniatura real.
+- La clasificación de finalización es provisional, basada en el último progreso (umbral 99 %); requiere pruebas con la impresora.
