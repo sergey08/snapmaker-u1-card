@@ -43,3 +43,13 @@ GET autenticado `/api/snapmaker_u1_history/{printer_id}` devuelve `{"prints":[..
 - Para guardar es imprescindible instalar y cargar la integración personalizada. Sin ella se muestra un aviso.
 - **Aún no probado de extremo a extremo ni desplegado**. La URL de la miniatura no conserva la imagen; pendiente archivar la miniatura real.
 - La clasificación de finalización es provisional, basada en el último progreso (umbral 99 %); requiere pruebas con la impresora.
+
+## Safety gate / Protección contra falsos positivos
+
+- Only a stopped job whose last observed progress was at least 99% is currently eligible for automatic archival. A pause, temporary disconnection, cancellation or interruption with lower progress must **not** be stored as a completed print.
+- Dynamic camera proxy URLs are **not** persisted as if they were permanent images.
+- Completion detection still needs validation against real Lava/Moonraker status transitions, especially prints that finish without a 99% progress update.
+
+- Solo se archiva automáticamente un trabajo detenido cuyo último progreso observado sea al menos del 99 %. Una pausa, desconexión temporal o cancelación anterior a ese umbral **no** se registra como completada.
+- No se guardan URLs temporales de cámara como si fueran imágenes permanentes.
+- Pendiente validar las transiciones reales de Lava/Moonraker y los trabajos que finalicen sin recibir una actualización del 99 %.
