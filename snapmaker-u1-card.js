@@ -301,7 +301,7 @@ class SnapmakerU1Card extends HTMLElement {
       if(trackingActive&&!offline){
         if(!Array.isArray(t.materialRows))t.materialRows=[null,null,null,null];
         for(const row of materialRows){
-          if(row.grams!==null&&row.grams>0&&row.unitCost!==null&&(!t.materialRows[row.tool]||t.materialRows[row.tool].grams!==row.grams||t.materialRows[row.tool].spoolId!==row.spoolId))
+          if(row.grams!==null&&row.grams>0&&row.unitCost!==null&&(!t.materialRows[row.tool]||t.materialRows[row.tool].grams!==row.grams))
             t.materialRows[row.tool]=row;
         }
         t.lastProgress=Math.max(Number(t.lastProgress)||0,progressValid?progress:0);
