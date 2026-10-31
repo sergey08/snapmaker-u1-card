@@ -337,13 +337,13 @@ class SnapmakerU1Card extends HTMLElement {
     if(c.show_print_history===true&&this._hass?.callService){
       const t=this._jobTracking;
       if(t&&trackingActive&&!t.historyStartedAt)t.historyStartedAt=now;
-      if(t&&t.completedAt&&t.jobName&&!t.historySaved&&!this._historySaving){
+      if(t&&t.completedAt&&t.jobName&&Number(t.lastProgress)>=99&&!t.historySaved&&!this._historySaving){
         const printId=String(t.historyStartedAt||t.completedAt)+"-"+t.jobName;
-        const record={printer_id:historyPrinter,print_id:printId,name:t.jobName,status:Number(t.lastProgress)>=99?"completed":"cancelled",max_entries:historyLimit};
+        const record={printer_id:historyPrinter,print_id:printId,name:t.jobName,status:"completed",max_entries:historyLimit};
         const kwhCost=Number(t.cost)+(Number(t.pendingCost)||0);
         if(Number.isFinite(kwhCost)&&kwhCost>=0)record.electricity_cost=kwhCost;
         if(materialCost!==null)record.material_cost=materialCost;
-        if(thumbUrl)record.image_url=thumbUrl;
+        // Camera proxy URLs change with the next print; do not archive them as permanent thumbnails.
         if(t.historyStartedAt)record.duration_seconds=Math.max(0,Math.round((t.completedAt-t.historyStartedAt)/1000));
         this._historySaving=true;
         this._hass.callService("snapmaker_u1_history","save_print",record).then(()=>{
