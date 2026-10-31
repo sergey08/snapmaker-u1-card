@@ -33,6 +33,20 @@ class SnapmakerU1Card extends HTMLElement {
     this._lastThemeSignature=themeSignature;
     if(changed)this.render();
   }
+  async _loadPrintHistory(printerId) {
+    if(this._historyFetching||!this._hass?.callApi)return;
+    this._historyFetching=true;
+    try {
+      const response=await this._hass.callApi("GET","snapmaker_u1_history/"+encodeURIComponent(printerId));
+      this._historyItems=Array.isArray(response?.prints)?response.prints:[];
+      this._historyError="";
+      this._historyLastFetch=Date.now();
+      if(this.isConnected)this.render();
+    } catch(e) {
+      this._historyError="Historial no disponible: instala la integración Snapmaker U1 History";
+      this._historyLastFetch=Date.now();
+    } finally {this._historyFetching=false;}
+  }
   connectedCallback() {
     if(!this._energyRefreshTimer)this._energyRefreshTimer=setInterval(()=>{if(this.config&&this._hass)this.render();},10000);
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
@@ -317,6 +331,32 @@ class SnapmakerU1Card extends HTMLElement {
     const jobCost=this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
     const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
+    // Optional history backend: save each completed job once, then refresh its shared history.
+    const historyPrinter=String(c.history_printer_id||c.filename||"snapmaker-u1").replace(/[^a-zA-Z0-9_.-]/g,"_").slice(0,128);
+    const historyLimit=Math.max(1,Math.min(200,Math.round(Number(c.history_limit)||20)));
+    if(c.show_print_history===true&&this._hass?.callService){
+      const t=this._jobTracking;
+      if(t&&trackingActive&&!t.historyStartedAt)t.historyStartedAt=now;
+      if(t&&t.completedAt&&t.jobName&&!t.historySaved&&!this._historySaving){
+        const printId=String(t.historyStartedAt||t.completedAt)+"-"+t.jobName;
+        const record={printer_id:historyPrinter,print_id:printId,name:t.jobName,status:Number(t.lastProgress)>=99?"completed":"cancelled",max_entries:historyLimit};
+        const kwhCost=Number(t.cost)+(Number(t.pendingCost)||0);
+        if(Number.isFinite(kwhCost)&&kwhCost>=0)record.electricity_cost=kwhCost;
+        if(materialCost!==null)record.material_cost=materialCost;
+        if(thumbUrl)record.image_url=thumbUrl;
+        if(t.historyStartedAt)record.duration_seconds=Math.max(0,Math.round((t.completedAt-t.historyStartedAt)/1000));
+        this._historySaving=true;
+        this._hass.callService("snapmaker_u1_history","save_print",record).then(()=>{
+          t.historySaved=true;
+          try{localStorage.setItem(trackingKey,JSON.stringify(t));}catch(e){}
+          this._historyLastFetch=0;
+          this._loadPrintHistory(historyPrinter);
+        }).catch(e=>{this._historyError=String(e?.message||e);}).finally(()=>{this._historySaving=false;});
+      }
+      if(this._historyPrinter!==historyPrinter){this._historyPrinter=historyPrinter;this._historyLastFetch=0;this._historyItems=[];}
+      if(!this._historyFetching&&(!this._historyLastFetch||now-this._historyLastFetch>60000))this._loadPrintHistory(historyPrinter);
+    }
+    const historyHtml=c.show_print_history===true?`<details class="inventory print-history" ${this._historyOpen?"open":""}><summary>${lang==="es"?"Historial de impresiones":"Print history"} <span>${this._historyItems?.length||0} / ${historyLimit}</span></summary>${this._historyError?`<small>${this.esc(this._historyError)}</small>`:""}<div class="history-items">${(this._historyItems||[]).slice(0,historyLimit).map(item=>`<div class="history-item"><div><b>${this.esc(item.name||"—")}</b><small>${this.esc(item.saved_at||"")}</small><small>${this.esc(item.status||"")}</small></div><strong>${Number.isFinite(Number(item.total_cost))&&item.total_cost!==undefined?Number(item.total_cost).toFixed(3)+" €":"--"}</strong></div>`).join("")||`<small>${lang==="es"?"Sin impresiones guardadas":"No saved prints"}</small>`}</div></details>`:"";
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo":"Consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>${lang==="es"?"Coste luz":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Coste material":"Material cost"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Coste total":"Total cost"}: <b>${money(combinedCost)}</b></span></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
@@ -327,7 +367,7 @@ class SnapmakerU1Card extends HTMLElement {
     const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager"></details>`:"";
     const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
-    this.shadowRoot.innerHTML=`<style>
+    this.shadowRoot.innerHTML=`<style>\n      .history-items{margin-top:10px;display:grid;gap:8px}.history-item{display:flex;justify-content:space-between;gap:10px;padding:8px;background:#152536;border-radius:8px}.history-item div{min-width:0;display:grid;gap:2px}.history-item b{overflow-wrap:anywhere}.history-item small{color:#a9c2d3;font-size:11px}.history-item strong{white-space:nowrap}
       :host{display:block;color:#edf5ff;font-family:system-ui,sans-serif}
       ha-card{background:linear-gradient(145deg,#152536,#09111b);color:inherit;border:1px solid #31485c;border-radius:20px;padding:20px;overflow:hidden}
       /* Powered-off minimalist view: keep only the power control, printer illustration, spools and Spoolman inventory. */
@@ -428,7 +468,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}${historyHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
