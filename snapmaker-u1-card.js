@@ -343,7 +343,11 @@ class SnapmakerU1Card extends HTMLElement {
       .bar>div{background:var(--u1-accent)!important;border-radius:999px}
       .foot{color:var(--u1-accent-strong)}.foot span{color:var(--u1-accent-strong)}
       .electricity span{color:var(--u1-accent-strong)}.electricity span b{color:var(--u1-accent-strong)}
-      .inventory-info small{color:var(--u1-accent-strong)}
+      /* Inventory readability: maintain contrast on light and dark themes. */
+      .inventory-info{min-width:0}
+      .inventory-info b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;white-space:normal;overflow-wrap:anywhere;line-height:1.25;color:var(--u1-text)}
+      .inventory-info small{color:var(--u1-muted);opacity:1}
+      .inventory-info strong{display:block;color:var(--u1-text);font-weight:800;font-size:13px;opacity:1}
       .metric label{color:var(--u1-accent-strong)}
       .printer-action:not(:disabled):not(.emergency){color:var(--u1-accent-strong)}
 
