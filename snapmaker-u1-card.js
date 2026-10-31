@@ -311,14 +311,13 @@ class SnapmakerU1Card extends HTMLElement {
     }
     const materialTracked=this._jobTracking?.materialRows||[];
     const materialRequired=materialTracked.filter(row=>row&&row.grams>0);
-    const materialKnown=materialRequired.length>0&&materialRequired.every(row=>row.unitCost!==null);
-    const materialFraction=Math.max(0,Math.min(1,Number(this._jobTracking?.lastProgress||0)/100));
-    const materialCost=materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0)*materialFraction:null;
+    const materialKnown=materialRequired.length>0&&materialRequired.every(row=>row.unitCost!==null)&&materialRows.filter(row=>row.grams!==null&&row.grams>0).every(row=>row.unitCost!==null);
+    const materialCost=materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0):null;
     const energyUsed=this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
     const jobCost=this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
-    const money=v=>v===null?"—":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
+    const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
-    const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo":"Consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>${lang==="es"?"Coste luz":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material estimado":"Estimated material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total estimado":"Estimated total"}: <b>${money(combinedCost)}</b></span></div>`:"";
+    const electricityHtml=c.show_energy!==false?`<div class="electricity"><span>⚡ Potencia: <b>${power===null?"—":Math.round(power)+" W"}</b></span>${c.daily_energy_sensor?`<span>${lang==="es"?"Consumo":"Consumption"}: <b>${dailyEnergy===null?"—":dailyEnergy.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:2,maximumFractionDigits:3})+" kWh"}</b></span>`:""}<span>${lang==="es"?"Coste luz":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Coste material":"Material cost"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Coste total":"Total cost"}: <b>${money(combinedCost)}</b></span></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
     const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
