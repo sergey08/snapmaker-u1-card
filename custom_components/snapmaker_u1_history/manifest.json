@@ -1,0 +1,9 @@
+{
+  "domain": "snapmaker_u1_history",
+  "name": "Snapmaker U1 Print History",
+  "version": "0.1.0",
+  "documentation": "https://github.com/sergey08/snapmaker-u1-card",
+  "dependencies": [],
+  "codeowners": [],
+  "iot_class": "local_push"
+}
