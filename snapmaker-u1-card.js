@@ -230,7 +230,7 @@ class SnapmakerU1Card extends HTMLElement {
     const guiCameraUrl=picture(c.gui_camera);
     const rawEta=this.read(c.print_eta);
     let eta="—";
-    if(printing||paused){const date=valid(rawEta)?Date.parse(rawEta):NaN;if(Number.isFinite(date))eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
+    if(printing||paused){const date=valid(rawEta)?Date.parse(rawEta):NaN;if(Number.isFinite(date))eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&valid(rawRemaining)&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
     // Prefer the firmware timestamp; use its remaining-time sensor only as fallback.
     const etaConfidence="";
     const exception=this._hass?.states?.[c.exception_sensor];
