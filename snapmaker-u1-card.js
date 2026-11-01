@@ -213,7 +213,7 @@ class SnapmakerU1Card extends HTMLElement {
     const guiCameraUrl=picture(c.gui_camera);
     const rawEta=this.read(c.print_eta);
     let eta="—";
-    if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
+    if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
     // ETA refinement: use recent actual progress speed, blend conservatively with printer ETA.
     let etaConfidence="";
     if(printing&&progressValid&&progress>=3&&progress<99.5){
