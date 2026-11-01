@@ -568,7 +568,7 @@ ${heads}
     }
     const zoom=this.shadowRoot.querySelector(".camera-zoom");
     if(zoom){
-      const closeZoom=()=>{this._cameraZoomOpen=false;zoom.hidden=true;if(this.shadowRoot.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});};
+      const closeZoom=()=>{this._cameraZoomOpen=false;zoom.hidden=true;if(document.fullscreenElement===zoom&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});};
       const openZoom=()=>{this._cameraZoomOpen=true;zoom.hidden=false;zoom.querySelector(".camera-zoom-close")?.focus();};
       const cameraImage=this.shadowRoot.querySelector("img.camera-image");
       cameraImage?.addEventListener("click",openZoom);
