@@ -286,7 +286,10 @@ class SnapmakerU1Card extends HTMLElement {
         t.pendingKwh=0;t.pendingCost=0;
         t.completedAt=now;
       }
-      const hours=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
+      // Integrate only while both adjacent observations belong to an active print.
+      // Never bill a long browser-closed interval as if the last power reading stayed constant.
+      const elapsedMs=now-(Number(t.lastTick)||now);
+      const hours=elapsedMs>0&&elapsedMs<=60000?elapsedMs/3600000:0;
       if(t.lastState==="printing"&&printing&&Number.isFinite(t.lastPower)&&t.lastPower>=0){
         const estimated=t.lastPower*hours/1000;
         t.pendingKwh=(Number(t.pendingKwh)||0)+estimated;
