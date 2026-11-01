@@ -290,9 +290,10 @@ class SnapmakerU1Card extends HTMLElement {
     const materialTracked=this._jobTracking?.materialRows||[];
     const materialRequired=materialTracked.filter(row=>row&&row.grams>0);
     const materialKnown=materialRequired.length>0&&materialRequired.every(row=>row.unitCost!==null)&&materialRows.filter(row=>row.grams!==null&&row.grams>0).every(row=>row.unitCost!==null);
-    const materialCost=(printing||paused)&&materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0):null;
-    const energyUsed=(printing||paused)&&this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
-    const jobCost=(printing||paused)&&this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
+    const showLastJob=trackingActive||(!offline&&["complete","cancelled","error"].includes(normalizedState)&&Boolean(this._jobTracking?.completedAt));
+    const materialCost=showLastJob&&materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0):null;
+    const energyUsed=showLastJob&&this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
+    const jobCost=showLastJob&&this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
     const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
