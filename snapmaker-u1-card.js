@@ -49,6 +49,7 @@ class SnapmakerU1Card extends HTMLElement {
     },2500);
   }
   disconnectedCallback() {
+    if(this._fullscreenRenderListener){document.removeEventListener("fullscreenchange",this._fullscreenRenderListener);this._fullscreenRenderListener=null;}
     if(this._cameraRefreshTimer){clearInterval(this._cameraRefreshTimer);this._cameraRefreshTimer=null;}
     if(this._energyRefreshTimer){clearInterval(this._energyRefreshTimer);this._energyRefreshTimer=null;}
   }
@@ -59,6 +60,22 @@ class SnapmakerU1Card extends HTMLElement {
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
     if (!this.shadowRoot || !this.config) return;
+    // Replacing the fullscreen element via innerHTML exits fullscreen in browsers.
+    // Defer DOM reconstruction until the camera leaves fullscreen; image refresh
+    // remains active independently and the latest HA state is retained in _hass.
+    const fullscreenCamera=this.shadowRoot.querySelector(".camera-zoom");
+    if(fullscreenCamera&&document.fullscreenElement===fullscreenCamera){
+      if(!this._fullscreenRenderListener){
+        this._fullscreenRenderListener=()=>{
+          if(document.fullscreenElement===fullscreenCamera)return;
+          document.removeEventListener("fullscreenchange",this._fullscreenRenderListener);
+          this._fullscreenRenderListener=null;
+          if(this.isConnected)this.render();
+        };
+        document.addEventListener("fullscreenchange",this._fullscreenRenderListener);
+      }
+      return;
+    }
     const existingInventory=this.shadowRoot.querySelector("details.inventory");
     if(existingInventory) this._inventoryOpen=existingInventory.open;
     const existingPreview=this.shadowRoot.querySelector("details.preview-panel");
