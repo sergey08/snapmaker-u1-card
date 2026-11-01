@@ -230,8 +230,8 @@ class SnapmakerU1Card extends HTMLElement {
     const priceMode=c.electricity_price_mode||"sensor";
     const priceRaw=priceMode==="fixed"?c.electricity_price:this.read(c.electricity_price_sensor);
     const price=priceRaw!==null&&priceRaw!==undefined&&String(priceRaw).trim()!==""&&valid(priceRaw)&&Number.isFinite(Number(priceRaw))&&Number(priceRaw)>=0?Number(priceRaw):null;
-    // Hybrid job meter: estimate between sparse meter updates and reconcile on actual kWh changes.
-    const trackingKey="snapmaker-u1-card-print-energy-v4:"+String(c.energy_sensor||c.power_sensor||c.power_switch_entity||"printer");
+    // Estimate job energy from observed power samples; cumulative meters may reset.
+    const trackingKey="snapmaker-u1-card-print-energy-v5:"+String(c.energy_sensor||c.power_sensor||c.power_switch_entity||"printer");
     if(!this._jobTracking||this._jobTrackingKey!==trackingKey){
       this._jobTrackingKey=trackingKey;
       try{this._jobTracking=JSON.parse(localStorage.getItem(trackingKey)||"null");}catch(e){this._jobTracking=null;}
@@ -257,28 +257,6 @@ class SnapmakerU1Card extends HTMLElement {
         const estimated=t.lastPower*hours/1000;
         t.pendingKwh=(Number(t.pendingKwh)||0)+estimated;
         if(Number.isFinite(t.lastPrice)&&t.lastPrice>=0)t.pendingCost=(Number(t.pendingCost)||0)+estimated*t.lastPrice;
-      }
-      if(energy!==null){
-        if(t.lastEnergy===null||t.lastEnergy===undefined||!Number.isFinite(Number(t.lastEnergy))){
-          t.lastEnergy=energy;
-        }else if(energy!==Number(t.lastEnergy)){
-          const measured=energy-Number(t.lastEnergy);
-          if(measured>=0&&measured<100){
-            // A real reading replaces the provisional estimate for the same interval.
-            if(t.lastState==="printing"&&printing){
-              t.usedKwh+=measured;
-              t.cost+=measured*(price??t.lastPrice??0);
-            }else{
-              // A pause or stop may span an update: do not attribute all its energy.
-              t.usedKwh+=Number(t.pendingKwh)||0;
-              t.cost+=Number(t.pendingCost)||0;
-            }
-          }else{
-            t.usedKwh+=Number(t.pendingKwh)||0;
-            t.cost+=Number(t.pendingCost)||0;
-          }
-          t.pendingKwh=0;t.pendingCost=0;t.lastEnergy=energy;
-        }
       }
       t.lastTick=now;t.lastPower=power;t.lastPrice=price;t.lastState=offline?t.lastState:normalizedState;t.wasActive=offline?t.wasActive:trackingActive;
       if(jobName&&trackingActive)t.jobName=jobName;
@@ -312,9 +290,9 @@ class SnapmakerU1Card extends HTMLElement {
     const materialTracked=this._jobTracking?.materialRows||[];
     const materialRequired=materialTracked.filter(row=>row&&row.grams>0);
     const materialKnown=materialRequired.length>0&&materialRequired.every(row=>row.unitCost!==null)&&materialRows.filter(row=>row.grams!==null&&row.grams>0).every(row=>row.unitCost!==null);
-    const materialCost=materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0):null;
-    const energyUsed=this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
-    const jobCost=this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
+    const materialCost=(printing||paused)&&materialKnown?materialRequired.reduce((sum,row)=>sum+row.grams*row.unitCost,0):null;
+    const energyUsed=(printing||paused)&&this._jobTracking?this._jobTracking.usedKwh+(Number(this._jobTracking.pendingKwh)||0):null;
+    const jobCost=(printing||paused)&&this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
     const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
@@ -337,7 +315,7 @@ class SnapmakerU1Card extends HTMLElement {
       ha-card.power-off .top{justify-content:flex-start}
       ha-card.power-off .progress-top,ha-card.power-off .metrics,ha-card.power-off .job,ha-card.power-off .filament,ha-card.power-off .warnings,ha-card.power-off .electricity,ha-card.power-off .controls,ha-card.power-off .preview,ha-card.power-off .camera-panel,ha-card.power-off .gui-screen,ha-card.power-off .led-control{display:none!important}
       .inventory{margin-top:16px;border:1px solid #334a5b;border-radius:12px;padding:10px 12px;background:#0c1a27}.inventory summary{cursor:pointer;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}.inventory summary span{color:#91afc1;font-size:11px}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-top:12px}.inventory-item{display:flex;align-items:center;gap:10px;padding:9px;background:#172a3a;border-radius:10px;min-width:0}.inventory-reel{width:34px;height:34px;flex:none;border-radius:50%;background:radial-gradient(circle at center,#152535 0 20%,#7c8790 22% 29%,var(--filament) 31% 70%,#647584 72% 78%,#1b2b38 80%);box-shadow:0 2px 8px #0007}.inventory-info{display:flex;flex-direction:column;min-width:0;gap:2px}.inventory-info b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info small{font-size:10px;color:#9cb2c2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info strong{font-size:11px;color:#d7e8f3}
-      .electricity{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px}.electricity-usage,.electricity-costs{display:flex;flex-wrap:wrap;gap:8px;width:100%}.electricity-costs span{flex:1 1 90px}.electricity span{background:#162c3e;border:1px solid #33495c;border-radius:8px;padding:8px}.filament-check{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px}.filament-check span{padding:6px 8px;border-radius:7px;background:#193b30}.filament-check .low{background:#603223;color:#ffe3bf}.compact{padding:11px!important}.compact .top{margin-bottom:2px}.compact .title{font-size:14px;letter-spacing:.055em}.compact .status{font-size:11px}.compact .scene-layout{grid-template-columns:minmax(44px,1fr) minmax(0,2.8fr) minmax(44px,1fr);gap:2px;max-width:320px;margin:0 auto}.compact .scene{max-width:205px;margin:1px auto 0}.compact .tool{transform:scale(.82);transform-origin:center center}.compact .tools-side{gap:2px}.compact .filament-overlay{opacity:.8}.compact .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px}.compact .metric{padding:5px 4px;border-radius:7px}.compact .metric label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compact .metric b{font-size:11px;white-space:nowrap}.compact .electricity{gap:4px;margin-top:5px;font-size:10px}.compact .electricity span{padding:5px}.compact .printer-controls{gap:4px;margin-top:6px}.compact .printer-action{padding:6px 2px;font-size:10px;gap:2px;border-radius:7px}.compact .printer-action span{font-size:16px}.compact .preview-panel,.compact .camera-panel,.compact .inventory{margin-top:5px;padding:7px;border-radius:8px}.compact .filament-check{margin-top:4px;gap:4px}.compact .bar{margin-top:7px}.compact .foot{font-size:10px}.compact .inventory[open]{padding:8px}@media(max-width:350px){.compact .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.compact .scene{max-width:180px}.compact .tool{transform:scale(.74)}}
+      .electricity{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px}.electricity-usage,.electricity-costs{display:flex;flex-wrap:wrap;gap:8px;width:100%}.electricity-costs span{flex:1 1 80px;min-width:0}@media(max-width:550px){.electricity-costs{flex-wrap:nowrap;gap:5px}.electricity-costs span{font-size:10px;padding:7px 5px;white-space:nowrap;text-align:center}}.electricity span{background:#162c3e;border:1px solid #33495c;border-radius:8px;padding:8px}.filament-check{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px}.filament-check span{padding:6px 8px;border-radius:7px;background:#193b30}.filament-check .low{background:#603223;color:#ffe3bf}.compact{padding:11px!important}.compact .top{margin-bottom:2px}.compact .title{font-size:14px;letter-spacing:.055em}.compact .status{font-size:11px}.compact .scene-layout{grid-template-columns:minmax(44px,1fr) minmax(0,2.8fr) minmax(44px,1fr);gap:2px;max-width:320px;margin:0 auto}.compact .scene{max-width:205px;margin:1px auto 0}.compact .tool{transform:scale(.82);transform-origin:center center}.compact .tools-side{gap:2px}.compact .filament-overlay{opacity:.8}.compact .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px}.compact .metric{padding:5px 4px;border-radius:7px}.compact .metric label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compact .metric b{font-size:11px;white-space:nowrap}.compact .electricity{gap:4px;margin-top:5px;font-size:10px}.compact .electricity span{padding:5px}.compact .printer-controls{gap:4px;margin-top:6px}.compact .printer-action{padding:6px 2px;font-size:10px;gap:2px;border-radius:7px}.compact .printer-action span{font-size:16px}.compact .preview-panel,.compact .camera-panel,.compact .inventory{margin-top:5px;padding:7px;border-radius:8px}.compact .filament-check{margin-top:4px;gap:4px}.compact .bar{margin-top:7px}.compact .foot{font-size:10px}.compact .inventory[open]{padding:8px}@media(max-width:350px){.compact .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.compact .scene{max-width:180px}.compact .tool{transform:scale(.74)}}
       .preview-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.preview-panel summary{cursor:pointer;font-size:12px;font-weight:650}.preview-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;color:#b5c7d8;font-size:12px}.preview-body img{width:100%;max-height:260px;object-fit:contain;border-radius:8px;background:#06121b}.preview-body strong{max-width:100%;overflow-wrap:anywhere}.preview-body small{color:#a7bece}
       .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
@@ -494,7 +472,7 @@ ${heads}
         if(!ledEntity||ledUnavailable)return;
         const pct=Math.max(0,Math.min(100,Math.round(Number(value)||0)));
         try{
-          if(pct===0)await this._hass.callService("light","turn_off",{entity_id:ledEntity});
+          if(pct===0)return; // Zero on the slider is never an implicit OFF; use the LED button.
           else {if(this._hass?.states?.[ledEntity]?.state!=="on")await this._hass.callService("light","turn_on",{entity_id:ledEntity});if(pct!==100)await this._hass.callService("light","turn_on",{entity_id:ledEntity,brightness_pct:pct});}
         }catch(error){console.error("Snapmaker LED brightness failed",error);}
       };
@@ -525,7 +503,7 @@ ${heads}
       });
       ledSlider.addEventListener("pointercancel",()=>{dragging=false;});
       ledSlider.addEventListener("change",event=>{
-        if(event.detail===0&&!dragging)void setLedLevel(ledSlider.value);
+        if(event.isTrusted&&event.detail===0&&!dragging&&Number(ledSlider.value)>0)void setLedLevel(ledSlider.value);
       });
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
