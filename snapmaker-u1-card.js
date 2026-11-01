@@ -39,10 +39,12 @@ class SnapmakerU1Card extends HTMLElement {
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
       const img=this.shadowRoot?.querySelector("details.camera-panel[open] img.camera-image");
       const zoomImg=this.shadowRoot?.querySelector(".camera-zoom:not([hidden]) img.camera-zoom-image");
-      if(img&&img.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
-        const separator=img.dataset.cameraBase.includes("?")?"&":"?";
-        img.src=img.dataset.cameraBase+separator+"_refresh="+Date.now();
-        if(zoomImg)zoomImg.src=img.src;
+      const activeImg=zoomImg||img;
+      if(activeImg&&activeImg.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
+        const separator=activeImg.dataset.cameraBase.includes("?")?"&":"?";
+        const refreshed=activeImg.dataset.cameraBase+separator+"_refresh="+Date.now();
+        if(img)img.src=refreshed;
+        if(zoomImg)zoomImg.src=refreshed;
       }
     },2500);
   }
