@@ -39,14 +39,17 @@ class SnapmakerU1Card extends HTMLElement {
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
       const img=this.shadowRoot?.querySelector("details.camera-panel[open] img.camera-image");
       const zoomImg=this.shadowRoot?.querySelector(".camera-zoom:not([hidden]) img.camera-zoom-image");
-      if(img&&img.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
-        const separator=img.dataset.cameraBase.includes("?")?"&":"?";
-        img.src=img.dataset.cameraBase+separator+"_refresh="+Date.now();
-        if(zoomImg)zoomImg.src=img.src;
+      const activeImg=zoomImg||img;
+      if(activeImg&&activeImg.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
+        const separator=activeImg.dataset.cameraBase.includes("?")?"&":"?";
+        const refreshed=activeImg.dataset.cameraBase+separator+"_refresh="+Date.now();
+        if(img)img.src=refreshed;
+        if(zoomImg)zoomImg.src=refreshed;
       }
     },2500);
   }
   disconnectedCallback() {
+    if(this._fullscreenRenderListener){document.removeEventListener("fullscreenchange",this._fullscreenRenderListener);this._fullscreenRenderListener=null;}
     if(this._cameraRefreshTimer){clearInterval(this._cameraRefreshTimer);this._cameraRefreshTimer=null;}
     if(this._energyRefreshTimer){clearInterval(this._energyRefreshTimer);this._energyRefreshTimer=null;}
   }
@@ -57,6 +60,22 @@ class SnapmakerU1Card extends HTMLElement {
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
     if (!this.shadowRoot || !this.config) return;
+    // Replacing the fullscreen element via innerHTML exits fullscreen in browsers.
+    // Defer DOM reconstruction until the camera leaves fullscreen; image refresh
+    // remains active independently and the latest HA state is retained in _hass.
+    const fullscreenCamera=this.shadowRoot.querySelector(".camera-zoom");
+    if(fullscreenCamera&&document.fullscreenElement===fullscreenCamera){
+      if(!this._fullscreenRenderListener){
+        this._fullscreenRenderListener=()=>{
+          if(document.fullscreenElement===fullscreenCamera)return;
+          document.removeEventListener("fullscreenchange",this._fullscreenRenderListener);
+          this._fullscreenRenderListener=null;
+          if(this.isConnected)this.render();
+        };
+        document.addEventListener("fullscreenchange",this._fullscreenRenderListener);
+      }
+      return;
+    }
     const existingInventory=this.shadowRoot.querySelector("details.inventory");
     if(existingInventory) this._inventoryOpen=existingInventory.open;
     const existingPreview=this.shadowRoot.querySelector("details.preview-panel");
@@ -211,36 +230,9 @@ class SnapmakerU1Card extends HTMLElement {
     const guiCameraUrl=picture(c.gui_camera);
     const rawEta=this.read(c.print_eta);
     let eta="—";
-    if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
-    // ETA refinement: use recent actual progress speed, blend conservatively with printer ETA.
-    let etaConfidence="";
-    if(printing&&progressValid&&progress>=3&&progress<99.5){
-      const stamp=Date.now();
-      const key=String(jobName||"print");
-      if(!this._etaTracking||this._etaTracking.key!==key||progress+1<this._etaTracking.lastProgress)
-        this._etaTracking={key,lastProgress:progress,samples:[]};
-      const tr=this._etaTracking;
-      if(!tr.samples.length||stamp-tr.samples[tr.samples.length-1].t>=30000){
-        tr.samples.push({t:stamp,p:progress});
-        if(tr.samples.length>16)tr.samples.shift();
-      }
-      tr.lastProgress=progress;
-      const first=tr.samples[0],last=tr.samples[tr.samples.length-1];
-      const elapsed=last.t-first.t;
-      const gained=last.p-first.p;
-      if(elapsed>=180000&&gained>=1&&gained<=60){
-        const rate=gained/(elapsed/60000);
-        const observedMins=(100-progress)/rate;
-        if(observedMins>0&&observedMins<1440){
-          const rawUnit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;
-          const rawNum=Number(rawRemaining);
-          const deviceMins=valid(rawRemaining)&&Number.isFinite(rawNum)&&rawNum>0?(rawUnit==="s"?rawNum/60:rawUnit==="h"?rawNum*60:rawNum):null;
-          const blended=deviceMins!==null?deviceMins*0.75+observedMins*0.25:observedMins;
-          eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(stamp+blended*60000));
-          etaConfidence=elapsed>=600000&&gained>=5?(lang==="es"?" · confianza media":" · medium confidence"):(lang==="es"?" · confianza baja":" · low confidence");
-        }
-      }
-    }else if(!printing&&this._etaTracking){this._etaTracking=null;}
+    if(printing||paused){const date=valid(rawEta)?Date.parse(rawEta):NaN;if(Number.isFinite(date))eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&valid(rawRemaining)&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
+    // Prefer the firmware timestamp; use its remaining-time sensor only as fallback.
+    const etaConfidence="";
     const exception=this._hass?.states?.[c.exception_sensor];
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
@@ -270,7 +262,11 @@ class SnapmakerU1Card extends HTMLElement {
     }
     const now=Date.now(),trackingActive=printing||paused;
     const prior=this._jobTracking;
-    const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing&&(!prior.jobName||prior.completedAt)));
+    const newJob=trackingActive&&prior&&(
+      (jobName&&prior.jobName&&prior.jobName!==jobName)||
+      (!prior.wasActive&&printing&&Boolean(prior.completedAt))||
+      (printing&&Number.isFinite(Number(prior.lastProgress))&&Number(prior.lastProgress)>5&&progressValid&&progress+2<Number(prior.lastProgress))
+    );
     if(newJob){this._jobTracking=null;this._etaTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
     if(trackingActive&&!this._jobTracking){
       this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0,powerSamples:[],startedAt:now};
@@ -284,7 +280,10 @@ class SnapmakerU1Card extends HTMLElement {
         t.pendingKwh=0;t.pendingCost=0;
         t.completedAt=now;
       }
-      const hours=Math.max(0,Math.min((now-(Number(t.lastTick)||now))/3600000,1/60));
+      // Integrate only while both adjacent observations belong to an active print.
+      // Never bill a long browser-closed interval as if the last power reading stayed constant.
+      const elapsedMs=now-(Number(t.lastTick)||now);
+      const hours=elapsedMs>0&&elapsedMs<=60000?elapsedMs/3600000:0;
       if(t.lastState==="printing"&&printing&&Number.isFinite(t.lastPower)&&t.lastPower>=0){
         const estimated=t.lastPower*hours/1000;
         t.pendingKwh=(Number(t.pendingKwh)||0)+estimated;
@@ -568,14 +567,14 @@ ${heads}
     }
     const zoom=this.shadowRoot.querySelector(".camera-zoom");
     if(zoom){
-      const closeZoom=()=>{this._cameraZoomOpen=false;zoom.hidden=true;if(this.shadowRoot.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});};
+      const closeZoom=()=>{this._cameraZoomOpen=false;if(document.fullscreenElement===zoom&&document.exitFullscreen){document.exitFullscreen().catch(()=>{}).finally(()=>{zoom.hidden=true;});}else{zoom.hidden=true;}};
       const openZoom=()=>{this._cameraZoomOpen=true;zoom.hidden=false;zoom.querySelector(".camera-zoom-close")?.focus();};
       const cameraImage=this.shadowRoot.querySelector("img.camera-image");
       cameraImage?.addEventListener("click",openZoom);
       cameraImage?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openZoom();}});
       zoom.querySelector(".camera-zoom-close")?.addEventListener("click",closeZoom);
       zoom.addEventListener("click",e=>{if(e.target===zoom)closeZoom();});
-      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(!document.fullscreenElement&&zoom.requestFullscreen)zoom.requestFullscreen().catch(()=>{});else if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});});
+      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(document.fullscreenElement===zoom){document.exitFullscreen?.().catch(()=>{});}else if(!document.fullscreenElement){zoom.requestFullscreen?.().catch(()=>{});}});
       zoom.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();closeZoom();}});
     }
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
