@@ -584,7 +584,7 @@ ${heads}
       cameraImage?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openZoom();}});
       zoom.querySelector(".camera-zoom-close")?.addEventListener("click",closeZoom);
       zoom.addEventListener("click",e=>{if(e.target===zoom)closeZoom();});
-      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(!document.fullscreenElement&&zoom.requestFullscreen)zoom.requestFullscreen().catch(()=>{});else if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});});
+      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(document.fullscreenElement===zoom){document.exitFullscreen?.().catch(()=>{});}else if(!document.fullscreenElement){zoom.requestFullscreen?.().catch(()=>{});}});
       zoom.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();closeZoom();}});
     }
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
