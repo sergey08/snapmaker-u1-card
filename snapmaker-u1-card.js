@@ -15,6 +15,7 @@ class SnapmakerU1Card extends HTMLElement {
     this.config = { ...DEFAULTS, ...config };
     this._previewOpen=undefined;
     this._cameraOpen=undefined;
+    this._cameraZoomOpen=false;
     this.attachShadowOnce();
     this.render();
   }
@@ -37,9 +38,11 @@ class SnapmakerU1Card extends HTMLElement {
     if(!this._energyRefreshTimer)this._energyRefreshTimer=setInterval(()=>{if(this.config&&this._hass)this.render();},10000);
     if(!this._cameraRefreshTimer)this._cameraRefreshTimer=setInterval(()=>{
       const img=this.shadowRoot?.querySelector("details.camera-panel[open] img.camera-image");
+      const zoomImg=this.shadowRoot?.querySelector(".camera-zoom:not([hidden]) img.camera-zoom-image");
       if(img&&img.dataset.cameraBase&&this._hass?.states?.[this.config?.live_camera]?.state!=="unavailable"){
         const separator=img.dataset.cameraBase.includes("?")?"&":"?";
         img.src=img.dataset.cameraBase+separator+"_refresh="+Date.now();
+        if(zoomImg)zoomImg.src=img.src;
       }
     },2500);
   }
@@ -209,6 +212,35 @@ class SnapmakerU1Card extends HTMLElement {
     const rawEta=this.read(c.print_eta);
     let eta="—";
     if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat("es-ES",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
+    // ETA refinement: use recent actual progress speed, blend conservatively with printer ETA.
+    let etaConfidence="";
+    if(printing&&progressValid&&progress>=3&&progress<99.5){
+      const stamp=Date.now();
+      const key=String(jobName||"print");
+      if(!this._etaTracking||this._etaTracking.key!==key||progress+1<this._etaTracking.lastProgress)
+        this._etaTracking={key,lastProgress:progress,samples:[]};
+      const tr=this._etaTracking;
+      if(!tr.samples.length||stamp-tr.samples[tr.samples.length-1].t>=30000){
+        tr.samples.push({t:stamp,p:progress});
+        if(tr.samples.length>16)tr.samples.shift();
+      }
+      tr.lastProgress=progress;
+      const first=tr.samples[0],last=tr.samples[tr.samples.length-1];
+      const elapsed=last.t-first.t;
+      const gained=last.p-first.p;
+      if(elapsed>=180000&&gained>=1&&gained<=60){
+        const rate=gained/(elapsed/60000);
+        const observedMins=(100-progress)/rate;
+        if(observedMins>0&&observedMins<1440){
+          const rawUnit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;
+          const rawNum=Number(rawRemaining);
+          const deviceMins=valid(rawRemaining)&&Number.isFinite(rawNum)&&rawNum>0?(rawUnit==="s"?rawNum/60:rawUnit==="h"?rawNum*60:rawNum):null;
+          const blended=deviceMins!==null?deviceMins*0.75+observedMins*0.25:observedMins;
+          eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(stamp+blended*60000));
+          etaConfidence=elapsed>=600000&&gained>=5?(lang==="es"?" · confianza media":" · medium confidence"):(lang==="es"?" · confianza baja":" · low confidence");
+        }
+      }
+    }else if(!printing&&this._etaTracking){this._etaTracking=null;}
     const exception=this._hass?.states?.[c.exception_sensor];
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
@@ -239,9 +271,9 @@ class SnapmakerU1Card extends HTMLElement {
     const now=Date.now(),trackingActive=printing||paused;
     const prior=this._jobTracking;
     const newJob=trackingActive&&prior&&((jobName&&prior.jobName&&prior.jobName!==jobName)||(!prior.wasActive&&printing&&(!prior.jobName||prior.completedAt)));
-    if(newJob){this._jobTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
+    if(newJob){this._jobTracking=null;this._etaTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
     if(trackingActive&&!this._jobTracking){
-      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0};
+      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0,powerSamples:[],startedAt:now};
     }
     if(this._jobTracking){
       const t=this._jobTracking;
@@ -257,6 +289,13 @@ class SnapmakerU1Card extends HTMLElement {
         const estimated=t.lastPower*hours/1000;
         t.pendingKwh=(Number(t.pendingKwh)||0)+estimated;
         if(Number.isFinite(t.lastPrice)&&t.lastPrice>=0)t.pendingCost=(Number(t.pendingCost)||0)+estimated*t.lastPrice;
+      }
+      if(trackingActive&&printing&&power!==null){
+        if(!Array.isArray(t.powerSamples))t.powerSamples=[];
+        if(!t.powerSamples.length||now-t.powerSamples[t.powerSamples.length-1].t>=15000){
+          t.powerSamples.push({t:now,w:power,kwh:t.usedKwh+(Number(t.pendingKwh)||0),eur:t.cost+(Number(t.pendingCost)||0)});
+          if(t.powerSamples.length>240)t.powerSamples=t.powerSamples.filter((_,i)=>i%2===0).slice(-240);
+        }
       }
       t.lastTick=now;t.lastPower=power;t.lastPrice=price;t.lastState=offline?t.lastState:normalizedState;t.wasActive=offline?t.wasActive:trackingActive;
       if(jobName&&trackingActive)t.jobName=jobName;
@@ -296,16 +335,19 @@ class SnapmakerU1Card extends HTMLElement {
     const jobCost=showLastJob&&this._jobTracking?this._jobTracking.cost+(Number(this._jobTracking.pendingCost)||0):null;
     const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
+    const samples=Array.isArray(this._jobTracking?.powerSamples)?this._jobTracking.powerSamples:[];
+    const spark=(key,color)=>{if(samples.length<2)return '<span class="chart-empty">—</span>';const vals=samples.map(p=>Number(p[key])||0);const max=Math.max(0.001,...vals),min=Math.min(0,...vals);const pts=vals.map((v,i)=>((i/(vals.length-1))*100).toFixed(2)+","+((1-(v-min)/(max-min||1))*42+3).toFixed(2)).join(" ");return '<svg viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Trend"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>';};
+    const chartsHtml=samples.length>1?`<details class="energy-charts"><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid"><div><small>${lang==="es"?"Potencia (W)":"Power (W)"}</small>${spark("w","#65c9ff")}</div><div><small>${lang==="es"?"Energía (kWh)":"Energy (kWh)"}</small>${spark("kwh","#a5e6b0")}</div><div><small>${lang==="es"?"Coste eléctrico (€)":"Electricity cost (€)"}</small>${spark("eur","#ffc88a")}</div></div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:"";
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:"";
     const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
-    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}</span></div></div>`:"";
+    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}${etaConfidence}</span></div></div>`:"";
     // The current print thumbnail is already shown in the job summary.
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
-    const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager"></details>`:"";
+    const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager" role="button" tabindex="0" title="${lang==="es"?"Ampliar cámara":"Enlarge camera"}"></details><div class="camera-zoom" ${this._cameraZoomOpen?"":"hidden"} role="dialog" aria-modal="true" aria-label="${lang==="es"?"Cámara ampliada":"Enlarged camera"}"><div class="camera-zoom-toolbar"><button class="camera-fullscreen" type="button">${lang==="es"?"Pantalla completa":"Fullscreen"}</button><button class="camera-zoom-close" type="button" aria-label="${lang==="es"?"Cerrar":"Close"}">✕</button></div><img class="camera-zoom-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Snapmaker U1"></div>`:"";
     const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
@@ -318,7 +360,11 @@ class SnapmakerU1Card extends HTMLElement {
       .inventory{margin-top:16px;border:1px solid #334a5b;border-radius:12px;padding:10px 12px;background:#0c1a27}.inventory summary{cursor:pointer;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}.inventory summary span{color:#91afc1;font-size:11px}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-top:12px}.inventory-item{display:flex;align-items:center;gap:10px;padding:9px;background:#172a3a;border-radius:10px;min-width:0}.inventory-reel{width:34px;height:34px;flex:none;border-radius:50%;background:radial-gradient(circle at center,#152535 0 20%,#7c8790 22% 29%,var(--filament) 31% 70%,#647584 72% 78%,#1b2b38 80%);box-shadow:0 2px 8px #0007}.inventory-info{display:flex;flex-direction:column;min-width:0;gap:2px}.inventory-info b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info small{font-size:10px;color:#9cb2c2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info strong{font-size:11px;color:#d7e8f3}
       .electricity{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px}.electricity-usage,.electricity-costs{display:flex;flex-wrap:wrap;gap:8px;width:100%}.electricity-costs span{flex:1 1 80px;min-width:0}@media(max-width:550px){.electricity-costs{flex-wrap:nowrap;gap:5px}.electricity-costs span{font-size:10px;padding:7px 5px;white-space:nowrap;text-align:center}}.electricity span{background:#162c3e;border:1px solid #33495c;border-radius:8px;padding:8px}.filament-check{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px}.filament-check span{padding:6px 8px;border-radius:7px;background:#193b30}.filament-check .low{background:#603223;color:#ffe3bf}.compact{padding:11px!important}.compact .top{margin-bottom:2px}.compact .title{font-size:14px;letter-spacing:.055em}.compact .status{font-size:11px}.compact .scene-layout{grid-template-columns:minmax(44px,1fr) minmax(0,2.8fr) minmax(44px,1fr);gap:2px;max-width:320px;margin:0 auto}.compact .scene{max-width:205px;margin:1px auto 0}.compact .tool{transform:scale(.82);transform-origin:center center}.compact .tools-side{gap:2px}.compact .filament-overlay{opacity:.8}.compact .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px}.compact .metric{padding:5px 4px;border-radius:7px}.compact .metric label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compact .metric b{font-size:11px;white-space:nowrap}.compact .electricity{gap:4px;margin-top:5px;font-size:10px}.compact .electricity span{padding:5px}.compact .printer-controls{gap:4px;margin-top:6px}.compact .printer-action{padding:6px 2px;font-size:10px;gap:2px;border-radius:7px}.compact .printer-action span{font-size:16px}.compact .preview-panel,.compact .camera-panel,.compact .inventory{margin-top:5px;padding:7px;border-radius:8px}.compact .filament-check{margin-top:4px;gap:4px}.compact .bar{margin-top:7px}.compact .foot{font-size:10px}.compact .inventory[open]{padding:8px}@media(max-width:350px){.compact .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.compact .scene{max-width:180px}.compact .tool{transform:scale(.74)}}
       .preview-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.preview-panel summary{cursor:pointer;font-size:12px;font-weight:650}.preview-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;color:#b5c7d8;font-size:12px}.preview-body img{width:100%;max-height:260px;object-fit:contain;border-radius:8px;background:#06121b}.preview-body strong{max-width:100%;overflow-wrap:anywhere}.preview-body small{color:#a7bece}
-      .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b}
+      .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.energy-charts{margin:10px 0;padding:10px;border:1px solid #344b5e;border-radius:10px;background:#102131}.energy-charts summary{cursor:pointer;font-weight:650}.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}.chart-grid>div{min-width:0}.chart-grid small{display:block;color:#b5cbd9}.chart-grid svg{width:100%;height:75px;display:block;margin-top:4px;background:#071723;border-radius:6px}.chart-note{color:#93a8b8;display:block;margin-top:8px}
+      .camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b;cursor:zoom-in}
+      .camera-zoom[hidden]{display:none!important}.camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
+      .camera-zoom-image{max-width:100%;max-height:100%;object-fit:contain}.camera-zoom-toolbar{position:absolute;top:10px;right:14px;display:flex;gap:8px}
+      .camera-zoom-toolbar button{background:#203c53;color:#fff;border:1px solid #64809a;border-radius:8px;padding:8px 12px;cursor:pointer}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
       .scene{margin:12px auto 8px;width:min(360px,100%);height:auto;position:relative;transition:filter .5s,opacity .5s}.machine{display:block;width:100%;height:auto;filter:drop-shadow(0 8px 16px #0007)}
       .print-carriage{transform-origin:center;will-change:transform}.print-carriage.moving{animation:carriage-sweep 3.2s ease-in-out infinite}@keyframes carriage-sweep{0%,100%{transform:translateX(0)}25%{transform:translateX(73px)}50%{transform:translateX(0)}75%{transform:translateX(-73px)}}.filament-track{stroke-dasharray:7 8;animation:filament-move 1.1s linear infinite;opacity:.9;filter:drop-shadow(0 0 3px #d1e8ff)}@keyframes filament-move{to{stroke-dashoffset:-30}}.head-planned:not(.head-printing){filter:drop-shadow(0 0 2px var(--head-color))}.head-printing{filter:drop-shadow(0 0 6px var(--head-color))}.scene.offline{opacity:.55}.scene-layout.offline .tool{opacity:.55}.scene-layout.offline .filament-overlay{opacity:.5}.printer{height:100%;border:9px solid #506779;border-radius:13px 13px 5px 5px;background:linear-gradient(140deg,#23394c,#0b1722);box-shadow:inset 0 0 0 4px #101b28,0 8px 24px #0008;position:relative}
@@ -409,7 +455,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -519,6 +565,18 @@ ${heads}
         image.addEventListener("error",()=>{cameraDetails.style.display="none";});
         if(image.complete)reveal();
       }
+    }
+    const zoom=this.shadowRoot.querySelector(".camera-zoom");
+    if(zoom){
+      const closeZoom=()=>{this._cameraZoomOpen=false;zoom.hidden=true;if(this.shadowRoot.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});};
+      const openZoom=()=>{this._cameraZoomOpen=true;zoom.hidden=false;zoom.querySelector(".camera-zoom-close")?.focus();};
+      const cameraImage=this.shadowRoot.querySelector("img.camera-image");
+      cameraImage?.addEventListener("click",openZoom);
+      cameraImage?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openZoom();}});
+      zoom.querySelector(".camera-zoom-close")?.addEventListener("click",closeZoom);
+      zoom.addEventListener("click",e=>{if(e.target===zoom)closeZoom();});
+      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(!document.fullscreenElement&&zoom.requestFullscreen)zoom.requestFullscreen().catch(()=>{});else if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen().catch(()=>{});});
+      zoom.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();closeZoom();}});
     }
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
     if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
