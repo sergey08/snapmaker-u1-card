@@ -274,7 +274,7 @@ class SnapmakerU1Card extends HTMLElement {
     const prior=this._jobTracking;
     const newJob=trackingActive&&prior&&(
       (jobName&&prior.jobName&&prior.jobName!==jobName)||
-      (!prior.wasActive&&printing)||
+      (!prior.wasActive&&printing&&Boolean(prior.completedAt))||
       (printing&&Number.isFinite(Number(prior.lastProgress))&&Number(prior.lastProgress)>5&&progressValid&&progress+2<Number(prior.lastProgress))
     );
     if(newJob){this._jobTracking=null;this._etaTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
