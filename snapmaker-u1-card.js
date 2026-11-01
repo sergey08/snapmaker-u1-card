@@ -231,35 +231,8 @@ class SnapmakerU1Card extends HTMLElement {
     const rawEta=this.read(c.print_eta);
     let eta="—";
     if(printing||paused){const date=Date.parse(rawEta);if(valid(rawEta)&&Number.isFinite(date))eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(date));else if(printing&&Number.isFinite(Number(rawRemaining))&&Number(rawRemaining)>0){const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const mins=unit==="s"?Number(rawRemaining)/60:unit==="h"?Number(rawRemaining)*60:Number(rawRemaining);eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(Date.now()+mins*60000));}}
-    // ETA refinement: use recent actual progress speed, blend conservatively with printer ETA.
-    let etaConfidence="";
-    if(printing&&progressValid&&progress>=3&&progress<99.5){
-      const stamp=Date.now();
-      const key=String(jobName||"print");
-      if(!this._etaTracking||this._etaTracking.key!==key||progress+1<this._etaTracking.lastProgress)
-        this._etaTracking={key,lastProgress:progress,samples:[]};
-      const tr=this._etaTracking;
-      if(!tr.samples.length||stamp-tr.samples[tr.samples.length-1].t>=30000){
-        tr.samples.push({t:stamp,p:progress});
-        if(tr.samples.length>16)tr.samples.shift();
-      }
-      tr.lastProgress=progress;
-      const first=tr.samples[0],last=tr.samples[tr.samples.length-1];
-      const elapsed=last.t-first.t;
-      const gained=last.p-first.p;
-      if(elapsed>=180000&&gained>=1&&gained<=60){
-        const rate=gained/(elapsed/60000);
-        const observedMins=(100-progress)/rate;
-        if(observedMins>0&&observedMins<1440){
-          const rawUnit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;
-          const rawNum=Number(rawRemaining);
-          const deviceMins=valid(rawRemaining)&&Number.isFinite(rawNum)&&rawNum>0?(rawUnit==="s"?rawNum/60:rawUnit==="h"?rawNum*60:rawNum):null;
-          const blended=deviceMins!==null?deviceMins*0.75+observedMins*0.25:observedMins;
-          eta=new Intl.DateTimeFormat(lang==="es"?"es-ES":"en-US",{hour:"2-digit",minute:"2-digit"}).format(new Date(stamp+blended*60000));
-          etaConfidence=elapsed>=600000&&gained>=5?(lang==="es"?" · confianza media":" · medium confidence"):(lang==="es"?" · confianza baja":" · low confidence");
-        }
-      }
-    }else if(!printing&&this._etaTracking){this._etaTracking=null;}
+    // Prefer the firmware timestamp; use its remaining-time sensor only as fallback.
+    const etaConfidence="";
     const exception=this._hass?.states?.[c.exception_sensor];
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
