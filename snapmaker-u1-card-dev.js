@@ -114,7 +114,17 @@ class SnapmakerU1Card extends HTMLElement {
     const metric=(id,suffix="")=>{const v=this.read(id);return ["unknown","unavailable","none",""].includes(String(v).toLowerCase())?"—":this.esc(v)+suffix;};
     const layer=(printing||paused)?metric(c.current_layer):"—", total=(printing||paused)?metric(c.total_layers):"—";
     const rawRemaining=this.read(c.time_left);
-    const remaining=(!printing && !paused)?"—":(()=>{const n=Number(rawRemaining);if(!Number.isFinite(n)||n<0||["unknown","unavailable",""].includes(rawRemaining))return "—";const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;const minutes=unit==="s"?Math.ceil(n/60):unit==="h"?Math.ceil(n*60):Math.ceil(n);return `${Math.floor(minutes/60)} h ${String(minutes%60).padStart(2,"0")} min`;})();
+    const rawEtaForRemaining=this.read(c.print_eta);
+    const remaining=(!printing&&!paused)?"—":(()=>{
+      const unit=this._hass?.states?.[c.time_left]?.attributes?.unit_of_measurement;
+      const n=Number(rawRemaining);
+      let minutes=valid(rawRemaining)&&Number.isFinite(n)&&n>=0?(unit==="s"?Math.ceil(n/60):unit==="h"?Math.ceil(n*60):Math.ceil(n)):null;
+      if(minutes===null&&valid(rawEtaForRemaining)){
+        const timestamp=Date.parse(rawEtaForRemaining);
+        if(Number.isFinite(timestamp))minutes=Math.max(0,Math.ceil((timestamp-Date.now())/60000));
+      }
+      return minutes===null?"—":`${Math.floor(minutes/60)} h ${String(minutes%60).padStart(2,"0")} min`;
+    })();
     const bed=metric(c.bed_temperature," °C"), chamber=metric(c.chamber_temperature," °C");
     const plannedTools=[0,1,2,3].map(i=>{
       const raw=this.read(c["tool"+i+"_job_estimated"]);
