@@ -87,6 +87,7 @@ class SnapmakerU1Card extends HTMLElement {
     const existingGui=this.shadowRoot.querySelector("details.gui-screen");
     if(existingGui)this._guiOpen=existingGui.open;
     if(this._guiOpen===undefined)this._guiOpen=this.config.gui_open_default===true;
+    if(this._chartsOpen===undefined)this._chartsOpen=this.config.charts_open_default!==false;
     const c=this.config, lang=cardLanguage(c,this._hass), printer=this.read(c.printer_state), state=this.read(c.print_state);
     // Treat either missing status feed as disconnected; never show stale print controls.
     const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
@@ -346,7 +347,7 @@ class SnapmakerU1Card extends HTMLElement {
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
     const samples=Array.isArray(this._jobTracking?.powerSamples)?this._jobTracking.powerSamples:[];
     const spark=(key,color)=>{if(!samples.length)return '<span class="chart-empty">—</span>';if(samples.length===1){const v=Number(samples[0][key]);return `<span class="chart-empty">${Number.isFinite(v)?v.toLocaleString(lang==="es"?"es-ES":"en-US",{maximumFractionDigits:key==="w"?1:4}):"—"}</span>`;}const vals=samples.map(p=>Number(p[key])||0);const max=Math.max(0.001,...vals),min=Math.min(0,...vals);const format=n=>n.toLocaleString(lang==="es"?"es-ES":"en-US",{maximumFractionDigits:key==="w"?0:key==="kwh"?3:3});const pts=vals.map((v,i)=>((i/(vals.length-1))*100).toFixed(2)+","+((1-(v-min)/(max-min||1))*42+3).toFixed(2)).join(" ");return '<div class="chart-with-axis"><div class="chart-y-axis"><span>'+format(max)+'</span><span>'+format(min)+'</span></div><svg viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Trend"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg></div>';};
-        const chartsHtml=`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid"><div><small>${lang==="es"?"Potencia (W)":"Power (W)"}</small>${spark("w","#65c9ff")}</div><div><small>${lang==="es"?"Energía (kWh)":"Energy (kWh)"}</small>${spark("kwh","#a5e6b0")}</div><div><small>${lang==="es"?"Coste eléctrico (€)":"Electricity cost (€)"}</small>${spark("eur","#ffc88a")}</div></div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`;
+        const chartsHtml=c.show_print_charts===false?"":`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid"><div><small>${lang==="es"?"Potencia (W)":"Power (W)"}</small>${spark("w","#65c9ff")}</div><div><small>${lang==="es"?"Energía (kWh)":"Energy (kWh)"}</small>${spark("kwh","#a5e6b0")}</div><div><small>${lang==="es"?"Coste eléctrico (€)":"Electricity cost (€)"}</small>${spark("eur","#ffc88a")}</div></div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:"";
@@ -725,10 +726,10 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
-    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"]]){
+    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"],["show_print_charts","Mostrar gráficos de impresión"],["charts_open_default","Gráficos abiertos por defecto"]]){
       const row=document.createElement("label");
       row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
-      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=this._config[key]===true;
+      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=["show_print_charts","charts_open_default"].includes(key)?this._config[key]!==false:this._config[key]===true;
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
