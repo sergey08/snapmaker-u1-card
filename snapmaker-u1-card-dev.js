@@ -237,7 +237,13 @@ class SnapmakerU1Card extends HTMLElement {
     const exception=this._hass?.states?.[c.exception_sensor];
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
-    if(exception?.state==="on"){
+    // An exception left latched by firmware belongs to the current session only
+    // if it was raised after the latest print transition and power-on.
+    const exceptionRaisedAt=Date.parse(exception?.last_changed||"");
+    const printStartedAt=Date.parse(this._hass?.states?.[c.print_state]?.last_changed||"");
+    const sessionBoundary=Math.max(0,Number.isFinite(switchChangedAt)&&powerState==="on"?switchChangedAt:0,(printing||paused)&&Number.isFinite(printStartedAt)?printStartedAt:0);
+    const exceptionIsCurrent=Number.isFinite(exceptionRaisedAt)&&exceptionRaisedAt>=sessionBoundary;
+    if(exception?.state==="on"&&exceptionIsCurrent){
       const entries=Array.isArray(exceptionText)&&exceptionText.length?exceptionText:[exceptionText];
       for(const entry of entries){
         let detail=entry;
