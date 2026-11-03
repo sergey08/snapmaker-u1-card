@@ -794,7 +794,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
           const value=ev.detail?.value;
           if(!value||value===id||getItems().some((x,i)=>i!==index&&x===value))return;
           const state=this._hass?.states?.[value];
-          if(!state||!Number.isFinite(Number(state.state))||["unknown","unavailable",""].includes(state.state))return;
+          if(!state||!["sensor","number","input_number"].includes(value.split(".")[0]))return;const numeric=Number(state.state);if(!["unknown","unavailable",""].includes(state.state)&&!Number.isFinite(numeric))return;
           const next=getItems();next[index]=value;saveItems(next);
         });
         row.appendChild(picker);
