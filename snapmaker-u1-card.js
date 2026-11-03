@@ -240,7 +240,7 @@ class SnapmakerU1Card extends HTMLElement {
     // Suppress stale firmware exceptions after a new print or power-on.
     const exceptionRaisedAt=Date.parse(exception?.last_changed||"");
     const printStartedAt=Date.parse(this._hass?.states?.[c.print_state]?.last_changed||"");
-    const sessionBoundary=Math.max(0,Number.isFinite(switchChangedAt)&&powerState==="on"?switchChangedAt:0,(printing||paused)&&Number.isFinite(printStartedAt)?printStartedAt:0);
+    const sessionBoundary=Math.max(0,Number.isFinite(switchChangedAt)&&powerState==="on"?switchChangedAt:0,Number.isFinite(printStartedAt)&&!["unknown","unavailable"].includes(String(state).toLowerCase())?printStartedAt:0);
     if(exception?.state==="on"&&Number.isFinite(exceptionRaisedAt)&&exceptionRaisedAt>=sessionBoundary){
       const entries=Array.isArray(exceptionText)&&exceptionText.length?exceptionText:[exceptionText];
       for(const entry of entries){
