@@ -93,7 +93,7 @@ class SnapmakerU1Card extends HTMLElement {
     const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
     const offline=statusMissing(printer)||statusMissing(state);
     const updateAvailable=this.read(c.update_available_sensor)==="on";
-    const powerEntity=c.power_switch_entity||(this._hass?.states?.["switch.impresora3d"]?"switch.impresora3d":"");
+    const powerEntity=c.power_switch_entity||"";
     const powerState=powerEntity?this._hass?.states?.[powerEntity]?.state:"unavailable";
     const powerReady=powerState==="on"||powerState==="off";
     const switchChangedAt=Date.parse(this._hass?.states?.[powerEntity]?.last_changed||"");
