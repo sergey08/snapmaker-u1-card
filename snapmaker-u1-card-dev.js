@@ -775,6 +775,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
         top.appendChild(iconButton("mdi:delete-outline","Eliminar gráfico",()=>saveItems(getItems().filter((_,i)=>i!==index))));
         row.appendChild(top);
         const presets={power:"Potencia",energy:"Energía",cost:"Coste"};
+        const isPreset=Object.hasOwn(presets,id);
         const presetRow=document.createElement("div");
         presetRow.style.cssText="display:flex;gap:6px;margin:2px 0 10px;flex-wrap:wrap";
         for(const [key,name] of Object.entries(presets)){
@@ -784,6 +785,16 @@ class SnapmakerU1CardEditor extends HTMLElement {
           button.addEventListener("click",()=>{if(id===key)return;const next=getItems();if(next.some((x,i)=>i!==index&&x===key))return;next[index]=key;saveItems(next);});
           presetRow.appendChild(button);
         }
+        const customButton=document.createElement("button");
+        customButton.type="button";customButton.textContent="Entidad HA";
+        customButton.style.cssText="border:1px solid var(--divider-color);border-radius:18px;padding:6px 10px;background:"+(!isPreset?"var(--primary-color)":"var(--card-background-color)")+";color:"+(!isPreset?"var(--text-primary-color,#fff)":"var(--primary-text-color)")+";cursor:pointer";
+        customButton.addEventListener("click",()=>{
+          if(!isPreset)return;
+          const next=getItems();
+          const candidate=Object.keys(this._hass?.states||{}).find(k=>/^(sensor|number|input_number)\./.test(k)&&!next.includes(k)&&Number.isFinite(Number(this._hass.states[k].state))&&this._hass.states[k].state!=="")||"sensor.unknown";
+          next[index]=candidate;saveItems(next);
+        });
+        presetRow.appendChild(customButton);
         row.appendChild(presetRow);
         const picker=document.createElement("ha-entity-picker");
         picker.style.cssText="display:block;width:100%";
@@ -797,7 +808,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
           if(!state||!["sensor","number","input_number"].includes(value.split(".")[0]))return;const numeric=Number(state.state);if(!["unknown","unavailable",""].includes(state.state)&&!Number.isFinite(numeric))return;
           const next=getItems();next[index]=value;saveItems(next);
         });
-        row.appendChild(picker);
+        if(!isPreset)row.appendChild(picker);
         container.appendChild(row);
       });
       const actions=chartEditor.querySelector("[data-chart-actions]");
