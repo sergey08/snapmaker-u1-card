@@ -237,7 +237,21 @@ class SnapmakerU1Card extends HTMLElement {
     const exception=this._hass?.states?.[c.exception_sensor];
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
-    if(exception?.state==="on")warnings.push(Array.isArray(exceptionText)&&exceptionText.length?exceptionText.map(x=>typeof x==="string"?x:JSON.stringify(x)).join("; "):"La impresora comunica una incidencia");
+    // Suppress stale firmware exceptions after a new print or power-on.
+    const exceptionRaisedAt=Date.parse(exception?.last_changed||"");
+    const printStartedAt=Date.parse(this._hass?.states?.[c.print_state]?.last_changed||"");
+    const sessionBoundary=Math.max(0,Number.isFinite(switchChangedAt)&&powerState==="on"?switchChangedAt:0,(printing||paused)&&Number.isFinite(printStartedAt)?printStartedAt:0);
+    if(exception?.state==="on"&&Number.isFinite(exceptionRaisedAt)&&exceptionRaisedAt>=sessionBoundary){
+      const entries=Array.isArray(exceptionText)&&exceptionText.length?exceptionText:[exceptionText];
+      for(const entry of entries){
+        let detail=entry;
+        if(typeof detail==="string"){try{detail=JSON.parse(detail);}catch(e){}}
+        const message=typeof detail==="object"&&detail!==null?String(detail.message??""):String(detail??"");
+        const match=message.match(/e([0-3])_filament[ _-]?runout/i);
+        if(match){const tool=Number(match[1]);const relevant=(printing||paused)&&(active===tool||plannedTools[tool]);warnings.push((lang==="es"?"Aviso de filamento en T":"Filament warning on T")+tool+(relevant?(lang==="es"?" · Revisa el filamento":" · Check filament"):(lang==="es"?" · Puede ser de una impresión anterior":" · May be from a previous print")));}
+        else warnings.push(message||(lang==="es"?"La impresora comunica una incidencia":"Printer reports an issue"));
+      }
+    }
     if(printing||paused){for(let i=0;i<4;i++)if(slotPresent[i]===false&&(plannedTools[i]||active===i))warnings.push("T"+i+": falta filamento");}
     const required=[0,1,2,3].map(i=>{const v=this.read(c["tool"+i+"_job_estimated"]);const n=Number(v);return valid(v)&&Number.isFinite(n)&&n>0?n:null;});
     const marginRaw=Number(c.filament_safety_margin??0);
