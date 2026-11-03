@@ -774,23 +774,30 @@ class SnapmakerU1CardEditor extends HTMLElement {
         top.appendChild(iconButton("mdi:arrow-down","Bajar",()=>{const next=getItems();[next[index],next[index+1]]=[next[index+1],next[index]];saveItems(next);},index===items.length-1));
         top.appendChild(iconButton("mdi:delete-outline","Eliminar gráfico",()=>saveItems(getItems().filter((_,i)=>i!==index))));
         row.appendChild(top);
-        const kind=document.createElement("ha-select");
-        kind.style.cssText="display:block;width:100%;margin-bottom:4px";
-        kind.label="Tipo de gráfico";
-        kind.innerHTML='<mwc-list-item value="power">Potencia (W)</mwc-list-item><mwc-list-item value="energy">Energía (kWh)</mwc-list-item><mwc-list-item value="cost">Coste eléctrico (€)</mwc-list-item><mwc-list-item value="custom">Entidad de Home Assistant</mwc-list-item>';
-        const kindValue=["power","energy","cost"].includes(id)?id:"custom";
-        kind.value=kindValue;
-        Promise.resolve(kind.updateComplete).then(()=>{if(kind.isConnected)kind.value=kindValue;});
-        kind.addEventListener("selected",()=>{const next=getItems();const value=kind.value;if(!value||value===kindValue)return;const candidate=value==="custom"?(Object.keys(this._hass?.states||{}).find(k=>k.startsWith("sensor.")&&Number.isFinite(Number(this._hass.states[k].state))&&!next.includes(k))||"sensor.unknown"):value;if(next.some((x,i)=>i!==index&&x===candidate)){kind.value=kindValue;return;}next[index]=candidate;saveItems(next);});
-        row.appendChild(kind);
-        if(!["power","energy","cost"].includes(id)){
-          const picker=document.createElement("ha-entity-picker");
-          picker.style.cssText="display:block;width:100%";
-          picker.hass=this._hass;picker.label="Entidad numérica";picker.value=id;
-          picker.includeDomains=["sensor","number","input_number"];
-          picker.addEventListener("value-changed",ev=>{if(ev.detail?.value&&ev.detail.value!==id&&!getItems().some((x,i)=>i!==index&&x===ev.detail.value)){const next=getItems();next[index]=ev.detail.value;saveItems(next);}});
-          row.appendChild(picker);
+        const presets={power:"Potencia",energy:"Energía",cost:"Coste"};
+        const presetRow=document.createElement("div");
+        presetRow.style.cssText="display:flex;gap:6px;margin:2px 0 10px;flex-wrap:wrap";
+        for(const [key,name] of Object.entries(presets)){
+          const button=document.createElement("button");
+          button.type="button";button.textContent=name;
+          button.style.cssText="border:1px solid var(--divider-color);border-radius:18px;padding:6px 10px;background:"+(id===key?"var(--primary-color)":"var(--card-background-color)")+";color:"+(id===key?"var(--text-primary-color,#fff)":"var(--primary-text-color)")+";cursor:pointer";
+          button.addEventListener("click",()=>{if(id===key)return;const next=getItems();if(next.some((x,i)=>i!==index&&x===key))return;next[index]=key;saveItems(next);});
+          presetRow.appendChild(button);
         }
+        row.appendChild(presetRow);
+        const picker=document.createElement("ha-entity-picker");
+        picker.style.cssText="display:block;width:100%";
+        picker.hass=this._hass;picker.label="Entidad de Home Assistant";
+        picker.value=["power","energy","cost"].includes(id)?"":id;
+        picker.includeDomains=["sensor","number","input_number"];
+        picker.addEventListener("value-changed",ev=>{
+          const value=ev.detail?.value;
+          if(!value||value===id||getItems().some((x,i)=>i!==index&&x===value))return;
+          const state=this._hass?.states?.[value];
+          if(!state||!Number.isFinite(Number(state.state))||["unknown","unavailable",""].includes(state.state))return;
+          const next=getItems();next[index]=value;saveItems(next);
+        });
+        row.appendChild(picker);
         container.appendChild(row);
       });
       const actions=chartEditor.querySelector("[data-chart-actions]");
