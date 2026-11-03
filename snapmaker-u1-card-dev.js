@@ -238,17 +238,20 @@ class SnapmakerU1Card extends HTMLElement {
     const exceptionText=exception?.attributes?.exceptions;
     const warnings=[];
     if(exception?.state==="on"){
-      const items=Array.isArray(exceptionText)&&exceptionText.length?exceptionText:[null];
-      for(const item of items){
-        const raw=typeof item==="string"?item:(item?.message??"");
-        const match=String(raw).match(/e([0-3])_filament[ _-]?runout/i);
+      const entries=Array.isArray(exceptionText)&&exceptionText.length?exceptionText:[exceptionText];
+      for(const entry of entries){
+        let detail=entry;
+        if(typeof detail==="string"){
+          try{detail=JSON.parse(detail);}catch(e){}
+        }
+        const message=typeof detail==="object"&&detail!==null?String(detail.message??""):String(detail??"");
+        const match=message.match(/e([0-3])_filament[ _-]?runout/i);
         if(match){
           const tool=Number(match[1]);
           const relevant=(printing||paused)&&(active===tool||plannedTools[tool]);
-          warnings.push((lang==="es"?"Filamento agotado en T":"Filament runout on T")+tool+(relevant?(lang==="es"?" · Comprueba el filamento":" · Check filament"):(lang==="es"?" · Posible aviso anterior; comprueba la impresora":" · Possibly from a previous job; check printer")));
-        }else if(item&&typeof item==="object"){
-          warnings.push(String(item.message||"Incidencia de impresora"));
-        }else warnings.push(raw||"La impresora comunica una incidencia");
+          const label=lang==="es"?"Aviso de filamento en T":"Filament warning on T";
+          warnings.push(label+tool+(relevant?(lang==="es"?" · Revisa el filamento":" · Check filament"):(lang==="es"?" · Puede ser de una impresión anterior":" · May be from a previous print")));
+        }else warnings.push(message|| (lang==="es"?"La impresora comunica una incidencia":"Printer reports an issue"));
       }
     }
     if(printing||paused){for(let i=0;i<4;i++)if(slotPresent[i]===false&&(plannedTools[i]||active===i))warnings.push("T"+i+": falta filamento");}
