@@ -763,9 +763,9 @@ class SnapmakerU1CardEditor extends HTMLElement {
       const items=getItems();
       items.forEach((id,index)=>{
         const row=document.createElement("div");
-        row.style.cssText="padding:10px 12px;margin:8px 0;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)";
+        row.style.cssText="padding:8px 10px;margin:6px 0;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)";
         const top=document.createElement("div");
-        top.style.cssText="display:flex;align-items:center;gap:4px;margin-bottom:8px";
+        top.style.cssText="display:flex;align-items:center;gap:4px;margin-bottom:4px";
         const label=document.createElement("span");
         label.style.cssText="font-size:13px;font-weight:500;flex:1";
         label.textContent="Gráfico "+(index+1);
@@ -775,18 +775,20 @@ class SnapmakerU1CardEditor extends HTMLElement {
         top.appendChild(iconButton("mdi:delete-outline","Eliminar gráfico",()=>saveItems(getItems().filter((_,i)=>i!==index))));
         row.appendChild(top);
         const kind=document.createElement("ha-select");
-        kind.style.cssText="display:block;width:100%;margin-bottom:8px";
+        kind.style.cssText="display:block;width:100%;margin-bottom:4px";
         kind.label="Tipo de gráfico";
         kind.innerHTML='<mwc-list-item value="power">Potencia (W)</mwc-list-item><mwc-list-item value="energy">Energía (kWh)</mwc-list-item><mwc-list-item value="cost">Coste eléctrico (€)</mwc-list-item><mwc-list-item value="custom">Entidad de Home Assistant</mwc-list-item>';
-        kind.value=["power","energy","cost"].includes(id)?id:"custom";
-        kind.addEventListener("selected",()=>{const next=getItems();const value=kind.value;next[index]=value==="custom"?(Object.keys(this._hass?.states||{}).find(k=>k.startsWith("sensor.")&&Number.isFinite(Number(this._hass.states[k].state)))||"sensor.unknown"):value;saveItems(next);});
+        const kindValue=["power","energy","cost"].includes(id)?id:"custom";
+        kind.value=kindValue;
+        Promise.resolve(kind.updateComplete).then(()=>{if(kind.isConnected)kind.value=kindValue;});
+        kind.addEventListener("selected",()=>{const next=getItems();const value=kind.value;if(!value||value===kindValue)return;const candidate=value==="custom"?(Object.keys(this._hass?.states||{}).find(k=>k.startsWith("sensor.")&&Number.isFinite(Number(this._hass.states[k].state))&&!next.includes(k))||"sensor.unknown"):value;if(next.some((x,i)=>i!==index&&x===candidate)){kind.value=kindValue;return;}next[index]=candidate;saveItems(next);});
         row.appendChild(kind);
         if(!["power","energy","cost"].includes(id)){
           const picker=document.createElement("ha-entity-picker");
           picker.style.cssText="display:block;width:100%";
           picker.hass=this._hass;picker.label="Entidad numérica";picker.value=id;
           picker.includeDomains=["sensor","number","input_number"];
-          picker.addEventListener("value-changed",ev=>{if(ev.detail?.value&&ev.detail.value!==id){const next=getItems();next[index]=ev.detail.value;saveItems(next);}});
+          picker.addEventListener("value-changed",ev=>{if(ev.detail?.value&&ev.detail.value!==id&&!getItems().some((x,i)=>i!==index&&x===ev.detail.value)){const next=getItems();next[index]=ev.detail.value;saveItems(next);}});
           row.appendChild(picker);
         }
         container.appendChild(row);
@@ -797,7 +799,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
       add.textContent="Añadir gráfico";
       add.style.cssText="margin-top:8px";
       add.disabled=items.length>=8;
-      add.addEventListener("click",()=>{if(getItems().length<8)saveItems([...getItems(),"power"]);});
+      add.addEventListener("click",()=>{const current=getItems();if(current.length>=8)return;const available=["power","energy","cost"].find(id=>!current.includes(id));const sensor=Object.keys(this._hass?.states||{}).find(id=>id.startsWith("sensor.")&&!current.includes(id)&&Number.isFinite(Number(this._hass.states[id].state)));saveItems([...current,available||sensor||"sensor.unknown"]);});
       actions.appendChild(add);
     };
     drawItems();
