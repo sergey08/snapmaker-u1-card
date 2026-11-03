@@ -55,7 +55,7 @@ class SnapmakerU1Card extends HTMLElement {
   }
   getCardSize() { return 5; }
   static getStubConfig() { return {type:"custom:snapmaker-u1-card-dev"}; }
-  static getConfigElement() { return document.createElement("snapmaker-u1-card-dev-dev-editor"); }
+  static getConfigElement() { return document.createElement("snapmaker-u1-card-dev-editor"); }
   read(id) { return this._hass?.states?.[id]?.state ?? "unavailable"; }
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
@@ -857,7 +857,7 @@ class SnapmakerU1CardEditor extends HTMLElement {
     }
   }
 }
-if(!customElements.get("snapmaker-u1-card-dev-dev-editor"))customElements.define("snapmaker-u1-card-dev-dev-editor",SnapmakerU1CardEditor);
+if(!customElements.get("snapmaker-u1-card-dev-editor"))customElements.define("snapmaker-u1-card-dev-editor",SnapmakerU1CardEditor);
 
 if (!customElements.get("snapmaker-u1-card-dev")) customElements.define("snapmaker-u1-card-dev",SnapmakerU1Card);
 window.customCards=window.customCards||[];
