@@ -87,6 +87,7 @@ class SnapmakerU1Card extends HTMLElement {
     const existingGui=this.shadowRoot.querySelector("details.gui-screen");
     if(existingGui)this._guiOpen=existingGui.open;
     if(this._guiOpen===undefined)this._guiOpen=this.config.gui_open_default===true;
+    if(this._chartsOpen===undefined)this._chartsOpen=this.config.charts_open_default!==false;
     const c=this.config, lang=cardLanguage(c,this._hass), printer=this.read(c.printer_state), state=this.read(c.print_state);
     // Treat either missing status feed as disconnected; never show stale print controls.
     const statusMissing=value=>["unknown","unavailable","none",""].includes(String(value).trim().toLowerCase());
@@ -269,7 +270,7 @@ class SnapmakerU1Card extends HTMLElement {
     );
     if(newJob){this._jobTracking=null;this._etaTracking=null;try{localStorage.removeItem(trackingKey);}catch(e){}}
     if(trackingActive&&!this._jobTracking){
-      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0,powerSamples:[],startedAt:now};
+      this._jobTracking={jobName,usedKwh:0,cost:0,lastEnergy:energy,lastTick:now,lastPower:power,lastPrice:price,lastState:normalizedState,wasActive:true,pendingKwh:0,pendingCost:0,powerSamples:power!==null&&printing?[{t:now,w:power,kwh:0,eur:0}]:[],startedAt:now};
     }
     if(this._jobTracking){
       const t=this._jobTracking;
@@ -335,8 +336,26 @@ class SnapmakerU1Card extends HTMLElement {
     const money=v=>v===null?"--":v.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" €";
     const combinedCost=jobCost!==null&&materialCost!==null?jobCost+materialCost:null;
     const samples=Array.isArray(this._jobTracking?.powerSamples)?this._jobTracking.powerSamples:[];
-    const spark=(key,color)=>{if(samples.length<2)return '<span class="chart-empty">—</span>';const vals=samples.map(p=>Number(p[key])||0);const max=Math.max(0.001,...vals),min=Math.min(0,...vals);const pts=vals.map((v,i)=>((i/(vals.length-1))*100).toFixed(2)+","+((1-(v-min)/(max-min||1))*42+3).toFixed(2)).join(" ");return '<svg viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Trend"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg>';};
-    const chartsHtml=samples.length>1?`<details class="energy-charts"><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid"><div><small>${lang==="es"?"Potencia (W)":"Power (W)"}</small>${spark("w","#65c9ff")}</div><div><small>${lang==="es"?"Energía (kWh)":"Energy (kWh)"}</small>${spark("kwh","#a5e6b0")}</div><div><small>${lang==="es"?"Coste eléctrico (€)":"Electricity cost (€)"}</small>${spark("eur","#ffc88a")}</div></div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:"";
+    const spark=(key,color,source=samples)=>{if(!source.length)return '<span class="chart-empty">—</span>';if(source.length===1){const v=Number(source[0][key]);return `<span class="chart-empty">${Number.isFinite(v)?v.toLocaleString(lang==="es"?"es-ES":"en-US",{maximumFractionDigits:key==="w"?1:4}):"—"}</span>`;}const vals=source.map(p=>Number(p[key])||0);const max=Math.max(0.001,...vals),min=Math.min(0,...vals);const format=n=>n.toLocaleString(lang==="es"?"es-ES":"en-US",{maximumFractionDigits:key==="w"?0:key==="kwh"?3:3});const pts=vals.map((v,i)=>((i/(vals.length-1))*100).toFixed(2)+","+((1-(v-min)/(max-min||1))*42+3).toFixed(2)).join(" ");return '<div class="chart-with-axis"><div class="chart-y-axis"><span>'+format(max)+'</span><span>'+format(min)+'</span></div><svg viewBox="0 0 100 48" preserveAspectRatio="none" role="img" aria-label="Trend"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.8" vector-effect="non-scaling-stroke"/></svg></div>';};
+        const configuredCharts=Array.isArray(c.print_chart_items)?c.print_chart_items:["power","energy","cost"].filter(id=>c[{"power":"chart_power","energy":"chart_energy","cost":"chart_cost"}[id]]!==false);
+    const palette=["#65c9ff","#a5e6b0","#ffc88a","#d6b1ff","#f7a6c2","#f2d276"];
+    if(!this._customChartSamples)this._customChartSamples={};
+    const chartItems=configuredCharts.slice(0,8).map((id,index)=>{
+      const color=palette[index%palette.length];
+      if(id==="power")return `<div><small>${lang==="es"?"Potencia (W)":"Power (W)"}</small>${spark("w",color)}</div>`;
+      if(id==="energy")return `<div><small>${lang==="es"?"Energía (kWh)":"Energy (kWh)"}</small>${spark("kwh",color)}</div>`;
+      if(id==="cost")return `<div><small>${lang==="es"?"Coste eléctrico (€)":"Electricity cost (€)"}</small>${spark("eur",color)}</div>`;
+      if(typeof id!=="string"||!(/^(sensor|number|input_number)\./.test(id)))return "";
+      const entity=this._hass?.states?.[id],value=Number(entity?.state),now=Date.now();
+      const history=this._customChartSamples[id]||(this._customChartSamples[id]=[]);
+      if(entity&&!["unknown","unavailable",""].includes(entity.state)&&Number.isFinite(value)&&(!history.length||now-history[history.length-1].t>=10000)){
+        history.push({t:now,value});if(history.length>120)history.shift();
+      }
+      const label=entity?.attributes?.friendly_name||id;
+      const unit=entity?.attributes?.unit_of_measurement||"";
+      return `<div><small>${this.esc(label)}${unit?" ("+this.esc(unit)+")":""}</small>${spark("value",color,history)}</div>`;
+    }).join("");
+    const chartsHtml=c.show_print_charts===false?"":`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
     const electricityHtml=c.show_energy!==false?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:"";
@@ -359,7 +378,7 @@ class SnapmakerU1Card extends HTMLElement {
       .inventory{margin-top:16px;border:1px solid #334a5b;border-radius:12px;padding:10px 12px;background:#0c1a27}.inventory summary{cursor:pointer;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}.inventory summary span{color:#91afc1;font-size:11px}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-top:12px}.inventory-item{display:flex;align-items:center;gap:10px;padding:9px;background:#172a3a;border-radius:10px;min-width:0}.inventory-reel{width:34px;height:34px;flex:none;border-radius:50%;background:radial-gradient(circle at center,#152535 0 20%,#7c8790 22% 29%,var(--filament) 31% 70%,#647584 72% 78%,#1b2b38 80%);box-shadow:0 2px 8px #0007}.inventory-info{display:flex;flex-direction:column;min-width:0;gap:2px}.inventory-info b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info small{font-size:10px;color:#9cb2c2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info strong{font-size:11px;color:#d7e8f3}
       .electricity{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px}.electricity-usage,.electricity-costs{display:flex;flex-wrap:wrap;gap:8px;width:100%}.electricity-costs span{flex:1 1 80px;min-width:0}@media(max-width:550px){.electricity-costs{flex-wrap:nowrap;gap:5px}.electricity-costs span{font-size:10px;padding:7px 5px;white-space:nowrap;text-align:center}}.electricity span{background:#162c3e;border:1px solid #33495c;border-radius:8px;padding:8px}.filament-check{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px}.filament-check span{padding:6px 8px;border-radius:7px;background:#193b30}.filament-check .low{background:#603223;color:#ffe3bf}.compact{padding:11px!important}.compact .top{margin-bottom:2px}.compact .title{font-size:14px;letter-spacing:.055em}.compact .status{font-size:11px}.compact .scene-layout{grid-template-columns:minmax(44px,1fr) minmax(0,2.8fr) minmax(44px,1fr);gap:2px;max-width:320px;margin:0 auto}.compact .scene{max-width:205px;margin:1px auto 0}.compact .tool{transform:scale(.82);transform-origin:center center}.compact .tools-side{gap:2px}.compact .filament-overlay{opacity:.8}.compact .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px}.compact .metric{padding:5px 4px;border-radius:7px}.compact .metric label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compact .metric b{font-size:11px;white-space:nowrap}.compact .electricity{gap:4px;margin-top:5px;font-size:10px}.compact .electricity span{padding:5px}.compact .printer-controls{gap:4px;margin-top:6px}.compact .printer-action{padding:6px 2px;font-size:10px;gap:2px;border-radius:7px}.compact .printer-action span{font-size:16px}.compact .preview-panel,.compact .camera-panel,.compact .inventory{margin-top:5px;padding:7px;border-radius:8px}.compact .filament-check{margin-top:4px;gap:4px}.compact .bar{margin-top:7px}.compact .foot{font-size:10px}.compact .inventory[open]{padding:8px}@media(max-width:350px){.compact .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.compact .scene{max-width:180px}.compact .tool{transform:scale(.74)}}
       .preview-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.preview-panel summary{cursor:pointer;font-size:12px;font-weight:650}.preview-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;color:#b5c7d8;font-size:12px}.preview-body img{width:100%;max-height:260px;object-fit:contain;border-radius:8px;background:#06121b}.preview-body strong{max-width:100%;overflow-wrap:anywhere}.preview-body small{color:#a7bece}
-      .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.energy-charts{margin:10px 0;padding:10px;border:1px solid #344b5e;border-radius:10px;background:#102131}.energy-charts summary{cursor:pointer;font-weight:650}.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}.chart-grid>div{min-width:0}.chart-grid small{display:block;color:#b5cbd9}.chart-grid svg{width:100%;height:75px;display:block;margin-top:4px;background:#071723;border-radius:6px}.chart-note{color:#93a8b8;display:block;margin-top:8px}
+      .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.energy-charts{margin:10px 0;padding:12px;border:1px solid var(--divider-color,#344b5e);border-radius:12px;background:var(--secondary-background-color,#1d2935);color:var(--primary-text-color,#edf5ff)}.energy-charts summary{cursor:pointer;font-weight:650;color:var(--primary-text-color,#edf5ff)}.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}.chart-grid>div{min-width:0}.chart-grid small{display:block;color:var(--primary-text-color,#b5cbd9)}.chart-with-axis{display:flex;align-items:stretch;gap:4px;margin-top:4px}.chart-y-axis{display:flex;flex-direction:column;justify-content:space-between;flex:0 0 auto;font-size:9px;line-height:1.1;color:var(--secondary-text-color,#93a8b8);text-align:right;min-width:24px}.chart-grid svg{width:100%;min-width:0;flex:1;height:75px;display:block;background:var(--card-background-color,#071723);border-radius:6px}.chart-note{color:var(--secondary-text-color,#93a8b8);display:block;margin-top:8px}
       .camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b;cursor:zoom-in}
       .camera-zoom[hidden]{display:none!important}.camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
       .camera-zoom-image{max-width:100%;max-height:100%;object-fit:contain}.camera-zoom-toolbar{position:absolute;top:10px;right:14px;display:flex;gap:8px}
@@ -455,6 +474,8 @@ class SnapmakerU1Card extends HTMLElement {
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
+    const chartsPanel=this.shadowRoot.querySelector(".energy-charts");
+    if(chartsPanel){chartsPanel.addEventListener("toggle",()=>{this._chartsOpen=chartsPanel.open;});}
     if(lang!=="es"){
       const walker=document.createTreeWalker(this.shadowRoot,NodeFilter.SHOW_TEXT);
       let node;while((node=walker.nextNode())){if(node.parentElement?.closest("style,script,svg"))continue;const next=cardTranslate(node.nodeValue,lang);if(next!==node.nodeValue)node.nodeValue=next;}
@@ -713,13 +734,95 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
-    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"]]){
+    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"],["show_print_charts","Mostrar gráficos de impresión"],["charts_open_default","Gráficos abiertos por defecto"],["chart_power","Gráfico: potencia (W)"],["chart_energy","Gráfico: energía (kWh)"],["chart_cost","Gráfico: coste eléctrico (€)"]]){
       const row=document.createElement("label");
       row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
-      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=this._config[key]===true;
+      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=["show_print_charts","charts_open_default","chart_power","chart_energy","chart_cost"].includes(key)?this._config[key]!==false:this._config[key]===true;
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
+    const chartEditor=document.createElement("details");
+    chartEditor.className="group";
+    chartEditor.open=this._chartEditorOpen===true;
+    chartEditor.addEventListener("toggle",()=>{this._chartEditorOpen=chartEditor.open;});
+    chartEditor.innerHTML='<summary>Gráficos personalizados y orden</summary><div data-chart-rows></div><div data-chart-actions></div><p style="color:var(--secondary-text-color);font-size:12px;margin:10px 2px 0">Hasta 8 gráficos. Las entidades numéricas se registran mientras la tarjeta esté abierta.</p>';
+    this.shadowRoot.appendChild(chartEditor);
+    const defaults=["power","energy","cost"].filter(id=>this._config[{"power":"chart_power","energy":"chart_energy","cost":"chart_cost"}[id]]!==false);
+    const getItems=()=>Array.isArray(this._config.print_chart_items)?[...this._config.print_chart_items]:defaults;
+    const saveItems=items=>{this._chartEditorOpen=true;this.change("print_chart_items",items);drawItems();};
+    const iconButton=(icon,title,fn,disabled=false)=>{
+      const button=document.createElement("ha-icon-button");
+      button.setAttribute("title",title);button.setAttribute("aria-label",title);
+      button.innerHTML='<ha-icon icon="'+icon+'"></ha-icon>';
+      button.style.cssText="flex:0 0 36px;--mdc-icon-button-size:36px";
+      button.disabled=disabled;
+      button.addEventListener("click",fn);
+      return button;
+    };
+    const drawItems=()=>{
+      const container=chartEditor.querySelector("[data-chart-rows]");
+      container.replaceChildren();
+      const items=getItems();
+      items.forEach((id,index)=>{
+        const row=document.createElement("div");
+        row.style.cssText="padding:8px 10px;margin:6px 0;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)";
+        const top=document.createElement("div");
+        top.style.cssText="display:flex;align-items:center;gap:4px;margin-bottom:4px";
+        const label=document.createElement("span");
+        label.style.cssText="font-size:13px;font-weight:500;flex:1";
+        label.textContent="Gráfico "+(index+1);
+        top.appendChild(label);
+        top.appendChild(iconButton("mdi:arrow-up","Subir",()=>{const next=getItems();[next[index],next[index-1]]=[next[index-1],next[index]];saveItems(next);},index===0));
+        top.appendChild(iconButton("mdi:arrow-down","Bajar",()=>{const next=getItems();[next[index],next[index+1]]=[next[index+1],next[index]];saveItems(next);},index===items.length-1));
+        top.appendChild(iconButton("mdi:delete-outline","Eliminar gráfico",()=>saveItems(getItems().filter((_,i)=>i!==index))));
+        row.appendChild(top);
+        const presets={power:"Potencia",energy:"Energía",cost:"Coste"};
+        const isPreset=Object.hasOwn(presets,id);
+        const presetRow=document.createElement("div");
+        presetRow.style.cssText="display:flex;gap:6px;margin:2px 0 10px;flex-wrap:wrap";
+        for(const [key,name] of Object.entries(presets)){
+          const button=document.createElement("button");
+          button.type="button";button.textContent=name;
+          button.style.cssText="border:1px solid var(--divider-color);border-radius:18px;padding:6px 10px;background:"+(id===key?"var(--primary-color)":"var(--card-background-color)")+";color:"+(id===key?"var(--text-primary-color,#fff)":"var(--primary-text-color)")+";cursor:pointer";
+          button.addEventListener("click",()=>{if(id===key)return;const next=getItems();if(next.some((x,i)=>i!==index&&x===key))return;next[index]=key;saveItems(next);});
+          presetRow.appendChild(button);
+        }
+        const customButton=document.createElement("button");
+        customButton.type="button";customButton.textContent="Entidad HA";
+        customButton.style.cssText="border:1px solid var(--divider-color);border-radius:18px;padding:6px 10px;background:"+(!isPreset?"var(--primary-color)":"var(--card-background-color)")+";color:"+(!isPreset?"var(--text-primary-color,#fff)":"var(--primary-text-color)")+";cursor:pointer";
+        customButton.addEventListener("click",()=>{
+          if(!isPreset)return;
+          const next=getItems();
+          const candidate=Object.keys(this._hass?.states||{}).find(k=>/^(sensor|number|input_number)\./.test(k)&&!next.includes(k)&&Number.isFinite(Number(this._hass.states[k].state))&&this._hass.states[k].state!=="")||"sensor.unknown";
+          next[index]=candidate;saveItems(next);
+        });
+        presetRow.appendChild(customButton);
+        row.appendChild(presetRow);
+        const picker=document.createElement("ha-entity-picker");
+        picker.style.cssText="display:block;width:100%";
+        picker.hass=this._hass;picker.label="Entidad de Home Assistant";
+        picker.value=["power","energy","cost"].includes(id)?"":id;
+        picker.includeDomains=["sensor","number","input_number"];
+        picker.addEventListener("value-changed",ev=>{
+          const value=ev.detail?.value;
+          if(!value||value===id||getItems().some((x,i)=>i!==index&&x===value))return;
+          const state=this._hass?.states?.[value];
+          if(!state||!["sensor","number","input_number"].includes(value.split(".")[0]))return;const numeric=Number(state.state);if(!["unknown","unavailable",""].includes(state.state)&&!Number.isFinite(numeric))return;
+          const next=getItems();next[index]=value;saveItems(next);
+        });
+        if(!isPreset)row.appendChild(picker);
+        container.appendChild(row);
+      });
+      const actions=chartEditor.querySelector("[data-chart-actions]");
+      actions.replaceChildren();
+      const add=document.createElement("ha-button");
+      add.textContent="Añadir gráfico";
+      add.style.cssText="margin-top:8px";
+      add.disabled=items.length>=8;
+      add.addEventListener("click",()=>{const current=getItems();if(current.length>=8)return;const available=["power","energy","cost"].find(id=>!current.includes(id));const sensor=Object.keys(this._hass?.states||{}).find(id=>id.startsWith("sensor.")&&!current.includes(id)&&Number.isFinite(Number(this._hass.states[id].state)));saveItems([...current,available||sensor||"sensor.unknown"]);});
+      actions.appendChild(add);
+    };
+    drawItems();
     translateEditor(this.shadowRoot,cardLanguage(this._config,this._hass));
     this.shadowRoot.querySelector("#snapmaker-card-title")?.addEventListener("input",e=>this.change("title",e.target.value));
     for(const section of this.shadowRoot.querySelectorAll("details[data-editor-group]"))section.addEventListener("toggle",()=>{
