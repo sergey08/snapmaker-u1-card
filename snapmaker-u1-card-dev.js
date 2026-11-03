@@ -743,39 +743,63 @@ class SnapmakerU1CardEditor extends HTMLElement {
     }
     const chartEditor=document.createElement("details");
     chartEditor.className="group";
-    chartEditor.innerHTML='<summary>Gráficos personalizados y orden</summary><div data-chart-rows></div><button type="button" data-chart-add>Añadir gráfico</button><p>Selecciona sensores numéricos. Los cambios de orden se aplican al instante; máximo 8 gráficos.</p>';
+    chartEditor.innerHTML='<summary>Gráficos personalizados y orden</summary><div data-chart-rows></div><div data-chart-actions></div><p style="color:var(--secondary-text-color);font-size:12px;margin:10px 2px 0">Hasta 8 gráficos. Las entidades numéricas se registran mientras la tarjeta esté abierta.</p>';
     this.shadowRoot.appendChild(chartEditor);
     const defaults=["power","energy","cost"].filter(id=>this._config[{"power":"chart_power","energy":"chart_energy","cost":"chart_cost"}[id]]!==false);
     const getItems=()=>Array.isArray(this._config.print_chart_items)?[...this._config.print_chart_items]:defaults;
-    const labels={power:"Potencia (W)",energy:"Energía (kWh)",cost:"Coste eléctrico (€)"};
     const saveItems=items=>{this.change("print_chart_items",items);drawItems();};
+    const iconButton=(icon,title,fn,disabled=false)=>{
+      const button=document.createElement("ha-icon-button");
+      button.setAttribute("title",title);button.setAttribute("aria-label",title);
+      button.innerHTML='<ha-icon icon="'+icon+'"></ha-icon>';
+      button.style.cssText="flex:0 0 36px;--mdc-icon-button-size:36px";
+      button.disabled=disabled;
+      button.addEventListener("click",fn);
+      return button;
+    };
     const drawItems=()=>{
       const container=chartEditor.querySelector("[data-chart-rows]");
       container.replaceChildren();
       const items=getItems();
       items.forEach((id,index)=>{
         const row=document.createElement("div");
-        row.style.cssText="display:flex;align-items:center;gap:5px;margin:8px 0";
-        const picker=document.createElement("select");
-        picker.style.cssText="flex:1;min-width:0";
-        for(const [value,label] of Object.entries(labels)){const opt=document.createElement("option");opt.value=value;opt.textContent=label;picker.appendChild(opt);}
-        const sensors=Object.entries(this._hass?.states||{}).filter(([entityId,state])=>/^(sensor|number|input_number)\./.test(entityId)&&Number.isFinite(Number(state.state))&&state.state!=="").sort((a,b)=>(a[1].attributes?.friendly_name||a[0]).localeCompare(b[1].attributes?.friendly_name||b[0]));
-        for(const [value,state] of sensors){const opt=document.createElement("option");opt.value=value;opt.textContent=state.attributes?.friendly_name||value;picker.appendChild(opt);}
-        if(![...picker.options].some(opt=>opt.value===id)){const opt=document.createElement("option");opt.value=id;opt.textContent=id;picker.appendChild(opt);}
-        picker.value=id;
-        picker.addEventListener("change",()=>{const next=getItems();next[index]=picker.value;saveItems(next);});
-        row.appendChild(picker);
-        for(const [symbol,delta] of [["↑",-1],["↓",1]]){
-          const btn=document.createElement("button");btn.type="button";btn.textContent=symbol;btn.disabled=index+delta<0||index+delta>=items.length;
-          btn.addEventListener("click",()=>{const next=getItems();[next[index],next[index+delta]]=[next[index+delta],next[index]];saveItems(next);});row.appendChild(btn);
+        row.style.cssText="padding:10px 12px;margin:8px 0;border:1px solid var(--divider-color);border-radius:12px;background:var(--card-background-color)";
+        const top=document.createElement("div");
+        top.style.cssText="display:flex;align-items:center;gap:4px;margin-bottom:8px";
+        const label=document.createElement("span");
+        label.style.cssText="font-size:13px;font-weight:500;flex:1";
+        label.textContent="Gráfico "+(index+1);
+        top.appendChild(label);
+        top.appendChild(iconButton("mdi:arrow-up","Subir",()=>{const next=getItems();[next[index],next[index-1]]=[next[index-1],next[index]];saveItems(next);},index===0));
+        top.appendChild(iconButton("mdi:arrow-down","Bajar",()=>{const next=getItems();[next[index],next[index+1]]=[next[index+1],next[index]];saveItems(next);},index===items.length-1));
+        top.appendChild(iconButton("mdi:delete-outline","Eliminar gráfico",()=>saveItems(getItems().filter((_,i)=>i!==index))));
+        row.appendChild(top);
+        const kind=document.createElement("ha-select");
+        kind.style.cssText="display:block;width:100%;margin-bottom:8px";
+        kind.label="Tipo de gráfico";
+        kind.innerHTML='<mwc-list-item value="power">Potencia (W)</mwc-list-item><mwc-list-item value="energy">Energía (kWh)</mwc-list-item><mwc-list-item value="cost">Coste eléctrico (€)</mwc-list-item><mwc-list-item value="custom">Entidad de Home Assistant</mwc-list-item>';
+        kind.value=["power","energy","cost"].includes(id)?id:"custom";
+        kind.addEventListener("selected",()=>{const next=getItems();const value=kind.value;next[index]=value==="custom"?(Object.keys(this._hass?.states||{}).find(k=>k.startsWith("sensor.")&&Number.isFinite(Number(this._hass.states[k].state)))||"sensor.unknown"):value;saveItems(next);});
+        row.appendChild(kind);
+        if(!["power","energy","cost"].includes(id)){
+          const picker=document.createElement("ha-entity-picker");
+          picker.style.cssText="display:block;width:100%";
+          picker.hass=this._hass;picker.label="Entidad numérica";picker.value=id;
+          picker.includeDomains=["sensor","number","input_number"];
+          picker.addEventListener("value-changed",ev=>{if(ev.detail?.value&&ev.detail.value!==id){const next=getItems();next[index]=ev.detail.value;saveItems(next);}});
+          row.appendChild(picker);
         }
-        const remove=document.createElement("button");remove.type="button";remove.textContent="×";remove.title="Eliminar gráfico";
-        remove.addEventListener("click",()=>saveItems(getItems().filter((_,i)=>i!==index)));row.appendChild(remove);
         container.appendChild(row);
       });
-      chartEditor.querySelector("[data-chart-add]").disabled=items.length>=8;
+      const actions=chartEditor.querySelector("[data-chart-actions]");
+      actions.replaceChildren();
+      const add=document.createElement("ha-button");
+      add.textContent="Añadir gráfico";
+      add.style.cssText="margin-top:8px";
+      add.disabled=items.length>=8;
+      add.addEventListener("click",()=>{if(getItems().length<8)saveItems([...getItems(),"power"]);});
+      actions.appendChild(add);
     };
-    chartEditor.querySelector("[data-chart-add]").addEventListener("click",()=>{const items=getItems();if(items.length<8)saveItems([...items,"power"]);});
     drawItems();
     translateEditor(this.shadowRoot,cardLanguage(this._config,this._hass));
     this.shadowRoot.querySelector("#snapmaker-card-title")?.addEventListener("input",e=>this.change("title",e.target.value));
