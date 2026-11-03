@@ -8,6 +8,16 @@
 
 ---
 
+## Development workflow / Flujo de desarrollo
+
+**English:** The `main` branch contains the stable HACS version. Develop new features on `develop`, test them in a separate Home Assistant development dashboard, and merge reviewed changes into `main` before creating a versioned GitHub Release. The official HACS entrypoint is `snapmaker-u1-card.js`. Do not publish development commits as releases.
+
+**Español:** La rama `main` contiene la versión estable de HACS. Las nuevas funciones se desarrollan en `develop`, se prueban en un panel independiente de Home Assistant y se integran en `main` antes de crear una nueva Release. El archivo oficial para HACS es `snapmaker-u1-card.js`. Los cambios de desarrollo no se publican directamente.
+
+**DEV compatibility / Compatibilidad DEV:** The separate `snapmaker-u1-card-dev` custom-element registration is retained for the existing test dashboard. Loading the official file unchanged as a second resource would register the same custom element as the stable card; this must be avoided. / Se mantiene el registro independiente de la tarjeta DEV para evitar colisiones con la estable.
+
+---
+
 <a id="english"></a>
 
 **A four-toolhead dashboard for Snapmaker U1 in Home Assistant.** Monitor print progress, temperatures, filament, cameras and electricity, and manage supported printer controls from one Lovelace card.
@@ -16,7 +26,7 @@
 
 ![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
 
-> **Latest documented version / Última versión documentada:** v0.1.5. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+> **Latest documented version / Última versión documentada:** v0.1.9. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
 
 ## What's new in v0.1.5 / Novedades de v0.1.5
 
