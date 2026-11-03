@@ -743,11 +743,13 @@ class SnapmakerU1CardEditor extends HTMLElement {
     }
     const chartEditor=document.createElement("details");
     chartEditor.className="group";
+    chartEditor.open=this._chartEditorOpen===true;
+    chartEditor.addEventListener("toggle",()=>{this._chartEditorOpen=chartEditor.open;});
     chartEditor.innerHTML='<summary>Gráficos personalizados y orden</summary><div data-chart-rows></div><div data-chart-actions></div><p style="color:var(--secondary-text-color);font-size:12px;margin:10px 2px 0">Hasta 8 gráficos. Las entidades numéricas se registran mientras la tarjeta esté abierta.</p>';
     this.shadowRoot.appendChild(chartEditor);
     const defaults=["power","energy","cost"].filter(id=>this._config[{"power":"chart_power","energy":"chart_energy","cost":"chart_cost"}[id]]!==false);
     const getItems=()=>Array.isArray(this._config.print_chart_items)?[...this._config.print_chart_items]:defaults;
-    const saveItems=items=>{this.change("print_chart_items",items);drawItems();};
+    const saveItems=items=>{this._chartEditorOpen=true;this.change("print_chart_items",items);drawItems();};
     const iconButton=(icon,title,fn,disabled=false)=>{
       const button=document.createElement("ha-icon-button");
       button.setAttribute("title",title);button.setAttribute("aria-label",title);
