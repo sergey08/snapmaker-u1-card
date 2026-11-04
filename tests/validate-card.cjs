@@ -38,6 +38,10 @@ const context = vm.createContext({
     }
   },
   window: { customCards: [] },
+  document: {
+    querySelector: () => ({ hass: { language: 'en-US' } }),
+    documentElement: { lang: 'en-US' }
+  },
   navigator: { language: 'en-US' },
   console
 });
@@ -50,10 +54,26 @@ vm.runInNewContext(source, {
   HTMLElement: HTMLElementMock,
   customElements: context.customElements,
   window: context.window,
+  document: {
+    querySelector: () => ({ hass: { language: 'en-US' } }),
+    documentElement: { lang: 'en-US' }
+  },
   navigator: { language: 'en-US' },
   console
 }, { filename: 'snapmaker-u1-card.js', timeout: 3000 });
 assert.equal(context.window.customCards.filter(c => c.type === 'snapmaker-u1-card').length, 1, 'Duplicate card picker registration');
+
+const picker = context.window.customCards.find(c => c.type === 'snapmaker-u1-card');
+assert.equal(picker.preview, true, 'The picker should request a live card preview');
+assert(picker.description.startsWith('Snapmaker U1 dashboard'), 'English picker description missing');
+for (const locale of ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ja']) {
+  const selected = vm.runInContext('(() => { const lang = ' + JSON.stringify(locale) + '; const normalized = lang.split(/[-_]/)[0]; return SNAPMAKER_PICKER_DESCRIPTIONS[normalized] || SNAPMAKER_PICKER_DESCRIPTIONS.en; })()', context);
+  assert.equal(typeof selected, 'string', 'Picker description missing for ' + locale);
+  assert(selected.length > 25, 'Picker description too short for ' + locale);
+}
+assert.equal(vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS.ja || SNAPMAKER_PICKER_DESCRIPTIONS.en', context),
+  vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS.en', context), 'Unsupported picker language must fall back to English');
+
 for (const locale of ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl']) {
   const actual = vm.runInContext('cardLanguage({language:' + JSON.stringify(locale) + '},{language:"en"})', context);
   assert.equal(actual, locale, 'Language selection failed: ' + locale);
