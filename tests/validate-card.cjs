@@ -72,6 +72,18 @@ for (const code of ['es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'es-ES', 'pt-BR'])
   const description = vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS[snapmakerPickerLanguage()]', context);
   assert(description.length > 25, 'Empty picker description: ' + code);
 }
+// Assert exact descriptions, including the unsupported-locale English fallback.
+for (const [locale, expected] of [
+  ['es-ES', 'Panel Snapmaker U1: cuatro cabezales, progreso de impresión, temperaturas, filamentos, cámara y controles.'],
+  ['en-GB', 'Snapmaker U1 dashboard: four toolheads, print progress, temperatures, filament, camera and controls.'],
+  ['ja-JP', 'Snapmaker U1 dashboard: four toolheads, print progress, temperatures, filament, camera and controls.']
+]) {
+  context.document.querySelector = () => ({hass: {language: locale}});
+  assert.equal(vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS[snapmakerPickerLanguage()]', context), expected,
+    'Incorrect picker description or fallback for ' + locale);
+}
+console.log('Exact picker descriptions and English fallback verified.');
+
 context.document.querySelector = () => ({hass: {language: 'en-US'}});
 for (const locale of ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl']) {
   const actual = vm.runInContext('cardLanguage({language:' + JSON.stringify(locale) + '},{language:"en"})', context);
