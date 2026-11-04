@@ -24,7 +24,7 @@
 
 **Español:** Tarjeta para Home Assistant dedicada a la Snapmaker U1: cuatro cabezales, progreso, temperaturas, bobinas, cámaras, consumo y controles de impresión.
 
-![Snapmaker U1 Card illustration](assets/snapmaker-u1-preview.svg)
+<p align="center"><img src="assets/snapmaker-u1-preview.svg" alt="Snapmaker U1 Card illustration" width="600"></p>
 
 > **Latest documented version / Última versión documentada:** v0.1.9. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
 
@@ -242,7 +242,7 @@ MIT.
 
 **Versión estable actual: [v0.1.0](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0).** Instalación mediante HACS como repositorio personalizado de tipo **Dashboard**.
 
-![Vista previa de Snapmaker U1 Card](assets/snapmaker-u1-preview.svg)
+<p align="center"><img src="assets/snapmaker-u1-preview.svg" alt="Vista previa de Snapmaker U1 Card" width="600"></p>
 
 ## Capturas de pantalla
 
