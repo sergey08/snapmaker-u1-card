@@ -149,7 +149,7 @@ class SnapmakerU1Card extends HTMLElement {
     });
     if(!offline) { try {localStorage.setItem(spoolCacheKey,JSON.stringify(saved));}catch(e){} }
     const spool=(i)=>{
-      if(spoolData[i].empty)return `<div class="tool empty"><div class="empty-slot">T${i}<small>Libre</small></div></div>`;
+      if(spoolData[i].empty){const emptyLabel=({es:"Libre",en:"Empty",fr:"Vide",de:"Leer",it:"Vuoto",pt:"Vazio",nl:"Leeg"})[lang]||"Empty";return `<div class="tool empty"><div class="empty-slot">T${i}<small>${emptyLabel}</small></div></div>`;}
       const color=spoolData[i].color;
       const normalizedColor=String(color).trim();
       const safeColor=/^#?[0-9a-fA-F]{6}$/.test(normalizedColor)?(normalizedColor.startsWith("#")?normalizedColor:"#"+normalizedColor):"#808080";
