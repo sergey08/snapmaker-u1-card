@@ -8,7 +8,7 @@
 
 A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four toolheads, filament, cameras and energy, and use compatible printer controls from one card.
 
-<p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Snapmaker U1 Card illustration" width="1200"></p>
+<p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Snapmaker U1 Card illustration" width="600"></p>
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
@@ -105,7 +105,7 @@ Earlier v0.1.2–v0.1.5 notes and previous documentation are preserved in [the R
 
 Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuatro cabezales, filamentos, cámaras y energía, y utiliza los controles compatibles desde un único panel.
 
-<p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Ilustración de Snapmaker U1 Card" width="1200"></p>
+<p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Ilustración de Snapmaker U1 Card" width="600"></p>
 
 [![Abrir en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
