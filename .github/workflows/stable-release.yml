@@ -1,15 +1,12 @@
 name: Publish stable release
 
 on:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/stable-release.yml']
   workflow_dispatch:
     inputs:
       version:
         description: 'Stable version tag (e.g. v0.1.1)'
         required: true
-        default: 'v0.1.2'
+        default: 'v0.1.15'
         type: string
 
 permissions:
@@ -21,7 +18,7 @@ jobs:
     steps:
       - name: Check stable version
         env:
-          VERSION: ${{ inputs.version || 'v0.1.2' }}
+          VERSION: ${{ inputs.version }}
         run: |
           [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Stable version must look like v0.1.0"; exit 1; }
       - uses: actions/checkout@v4
@@ -44,7 +41,7 @@ jobs:
       - name: Publish GitHub stable release
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version || 'v0.1.2' }}
+          VERSION: ${{ inputs.version }}
         run: |
           if gh release view "$VERSION" >/dev/null 2>&1; then
             echo "::error::Release $VERSION already exists; refusing to overwrite a stable release"
@@ -54,12 +51,16 @@ jobs:
             echo "::error::Tag $VERSION already exists; refusing to move it"
             exit 1
           fi
-          if [ "$VERSION" = "v0.1.2" ]; then
-            cp RELEASE_NOTES_v0.1.2.md /tmp/release-notes.md
-          else
-            echo "::error::Add reviewed bilingual release notes before publishing $VERSION"
+          NOTES="docs/releases/$VERSION.md"
+          if [ ! -s "$NOTES" ]; then
+            echo "::error::Missing reviewed bilingual release notes: $NOTES"
             exit 1
           fi
+          if ! grep -q '^## English' "$NOTES" || ! grep -q '^## Español' "$NOTES"; then
+            echo "::error::Release notes must contain both English and Español sections"
+            exit 1
+          fi
+          cp "$NOTES" /tmp/release-notes.md
           gh release create "$VERSION" snapmaker-u1-card.js \
             --target "$GITHUB_SHA" \
             --title "Snapmaker U1 Card $VERSION" \

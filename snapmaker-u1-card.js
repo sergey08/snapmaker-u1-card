@@ -54,7 +54,7 @@ class SnapmakerU1Card extends HTMLElement {
     if(this._energyRefreshTimer){clearInterval(this._energyRefreshTimer);this._energyRefreshTimer=null;}
   }
   getCardSize() { return 5; }
-  static getStubConfig() { return {type:"custom:snapmaker-u1-card"}; }
+  static getStubConfig() { return {}; }
   static getConfigElement() { return document.createElement("snapmaker-u1-card-editor"); }
   read(id) { return this._hass?.states?.[id]?.state ?? "unavailable"; }
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
@@ -149,7 +149,7 @@ class SnapmakerU1Card extends HTMLElement {
     });
     if(!offline) { try {localStorage.setItem(spoolCacheKey,JSON.stringify(saved));}catch(e){} }
     const spool=(i)=>{
-      if(spoolData[i].empty)return `<div class="tool empty"><div class="empty-slot">T${i}<small>Libre</small></div></div>`;
+      if(spoolData[i].empty){const emptyLabel=({es:"Libre",en:"Empty",fr:"Vide",de:"Leer",it:"Vuoto",pt:"Vazio",nl:"Leeg"})[lang]||"Empty";return `<div class="tool empty"><div class="empty-slot">T${i}<small>${emptyLabel}</small></div></div>`;}
       const color=spoolData[i].color;
       const normalizedColor=String(color).trim();
       const safeColor=/^#?[0-9a-fA-F]{6}$/.test(normalizedColor)?(normalizedColor.startsWith("#")?normalizedColor:"#"+normalizedColor):"#808080";
@@ -860,5 +860,30 @@ class SnapmakerU1CardEditor extends HTMLElement {
 if(!customElements.get("snapmaker-u1-card-editor"))customElements.define("snapmaker-u1-card-editor",SnapmakerU1CardEditor);
 
 if (!customElements.get("snapmaker-u1-card")) customElements.define("snapmaker-u1-card",SnapmakerU1Card);
-window.customCards=window.customCards||[];
-if(!window.customCards.some(card=>card.type==="snapmaker-u1-card"))window.customCards.push({type:"snapmaker-u1-card",name:"Snapmaker U1 Card",description:"Tarjeta para Snapmaker U1: cuatro cabezales, impresión, temperaturas, filamentos, cámara y controles. / Four-toolhead dashboard.",documentationURL:"https://github.com/sergey08/snapmaker-u1-card"});
+// Home Assistant card picker metadata. Use HA's UI language and default to English.
+const SNAPMAKER_PICKER_DESCRIPTIONS = {
+  en: "Snapmaker U1 dashboard: four toolheads, print progress, temperatures, filament, camera and controls.",
+  es: "Panel Snapmaker U1: cuatro cabezales, progreso de impresión, temperaturas, filamentos, cámara y controles.",
+  fr: "Tableau de bord Snapmaker U1 : quatre têtes, progression, températures, filaments, caméra et commandes.",
+  de: "Snapmaker U1: vier Druckköpfe, Druckfortschritt, Temperaturen, Filament, Kamera und Steuerung.",
+  it: "Pannello Snapmaker U1: quattro testine, avanzamento stampa, temperature, filamenti, fotocamera e comandi.",
+  pt: "Painel Snapmaker U1: quatro cabeças, progresso de impressão, temperaturas, filamentos, câmara e controlos.",
+  nl: "Snapmaker U1-dashboard: vier printkoppen, printvoortgang, temperaturen, filament, camera en bediening."
+};
+function snapmakerPickerLanguage() {
+  const root = document.querySelector("home-assistant");
+  const uiLanguage = root?.hass?.language || document.documentElement.lang || navigator.language || "en";
+  const code = String(uiLanguage).toLowerCase().split(/[-_]/)[0];
+  return Object.hasOwn(SNAPMAKER_PICKER_DESCRIPTIONS, code) ? code : "en";
+}
+window.customCards = window.customCards || [];
+const snapmakerPickerInfo = {
+  type: "snapmaker-u1-card",
+  name: "Snapmaker U1 Card",
+  description: SNAPMAKER_PICKER_DESCRIPTIONS[snapmakerPickerLanguage()],
+  preview: true,
+  documentationURL: "https://github.com/sergey08/snapmaker-u1-card"
+};
+const snapmakerPickerIndex = window.customCards.findIndex(card => card.type === snapmakerPickerInfo.type);
+if (snapmakerPickerIndex === -1) window.customCards.push(snapmakerPickerInfo);
+else Object.assign(window.customCards[snapmakerPickerIndex], snapmakerPickerInfo);
