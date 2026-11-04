@@ -12,9 +12,9 @@ A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four too
 
 [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Upcoming v0.1.15 / Release candidate
+## Latest release: v0.1.16
 
-The next release candidate improves the localized card picker and preview, translates empty filament slots, and updates the bilingual HACS documentation. See [v0.1.15 release notes](docs/releases/v0.1.15.md). **Not published yet: final visual verification is pending.**
+This release makes the HACS illustration compact (240 × 150 px) without changing the card's printer features. It includes the previously released v0.1.15 picker localization and preview improvements. See [v0.1.16 release notes](docs/releases/v0.1.16.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Card languages
 
@@ -113,9 +113,9 @@ Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuat
 
 [![Abrir en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Próxima v0.1.15 / Candidata
+## Última versión: v0.1.16
 
-La siguiente candidata mejora el selector multidioma y su vista previa, traduce las posiciones de filamento vacías y actualiza la documentación bilingüe de HACS. Consulta las [notas de v0.1.15](docs/releases/v0.1.15.md). **Todavía no publicada: falta la comprobación visual final.**
+Esta versión muestra una ilustración compacta en HACS (240 × 150 px), sin modificar las funciones de impresión de la tarjeta. Incluye las mejoras ya publicadas en v0.1.15 del selector multidioma y la vista previa. Consulta las [notas de v0.1.16](docs/releases/v0.1.16.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Idiomas de la tarjeta
 
