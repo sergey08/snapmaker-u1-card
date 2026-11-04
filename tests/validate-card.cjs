@@ -60,6 +60,11 @@ const picker = context.window.customCards.find(c => c.type === 'snapmaker-u1-car
 assert.equal(picker.preview, true, 'Live card picker preview must be enabled');
 assert.deepEqual(Object.keys(registered.get('snapmaker-u1-card').getStubConfig()), [], 'Stub must not persist preview flags or a duplicate type');
 assert(source.includes('<svg class="machine"'), 'Native printer illustration must be present');
+assert(source.includes("en:\"Empty\""), "English empty slot label missing");
+assert(source.includes("de:\"Leer\""), "German empty slot label missing");
+assert(source.includes("nl:\"Leeg\""), "Dutch empty slot label missing");
+assert(!source.includes("<small>Libre</small>"), "Untranslated empty slot label remains");
+
 for (const code of ['es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'es-ES', 'pt-BR']) {
   context.document.querySelector = () => ({hass: {language: code}});
   const expected = code === 'ja' ? 'en' : code.split('-')[0];
