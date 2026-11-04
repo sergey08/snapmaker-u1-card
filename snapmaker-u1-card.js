@@ -54,7 +54,7 @@ class SnapmakerU1Card extends HTMLElement {
     if(this._energyRefreshTimer){clearInterval(this._energyRefreshTimer);this._energyRefreshTimer=null;}
   }
   getCardSize() { return 5; }
-  static getStubConfig() { return {type:"custom:snapmaker-u1-card"}; }
+  static getStubConfig() { return {}; }
   static getConfigElement() { return document.createElement("snapmaker-u1-card-editor"); }
   read(id) { return this._hass?.states?.[id]?.state ?? "unavailable"; }
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
