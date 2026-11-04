@@ -38,6 +38,7 @@ const context = vm.createContext({
     }
   },
   window: { customCards: [] },
+  document: {querySelector: () => ({hass: {language: 'en-US'}}), documentElement: {lang: 'en-US'}},
   navigator: { language: 'en-US' },
   console
 });
@@ -50,10 +51,23 @@ vm.runInNewContext(source, {
   HTMLElement: HTMLElementMock,
   customElements: context.customElements,
   window: context.window,
+  document: {querySelector: () => ({hass: {language: 'en-US'}}), documentElement: {lang: 'en-US'}},
   navigator: { language: 'en-US' },
   console
 }, { filename: 'snapmaker-u1-card.js', timeout: 3000 });
 assert.equal(context.window.customCards.filter(c => c.type === 'snapmaker-u1-card').length, 1, 'Duplicate card picker registration');
+const picker = context.window.customCards.find(c => c.type === 'snapmaker-u1-card');
+assert.equal(picker.preview, true, 'Live card picker preview must be enabled');
+assert.deepEqual(Object.keys(registered.get('snapmaker-u1-card').getStubConfig()), [], 'Stub must not persist preview flags or a duplicate type');
+assert(source.includes('<svg class="machine"'), 'Native printer illustration must be present');
+for (const code of ['es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'es-ES', 'pt-BR']) {
+  context.document.querySelector = () => ({hass: {language: code}});
+  const expected = code === 'ja' ? 'en' : code.split('-')[0];
+  assert.equal(vm.runInContext('snapmakerPickerLanguage()', context), expected, 'Unexpected picker language: ' + code);
+  const description = vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS[snapmakerPickerLanguage()]', context);
+  assert(description.length > 25, 'Empty picker description: ' + code);
+}
+context.document.querySelector = () => ({hass: {language: 'en-US'}});
 for (const locale of ['en', 'es', 'pt', 'fr', 'de', 'it', 'nl']) {
   const actual = vm.runInContext('cardLanguage({language:' + JSON.stringify(locale) + '},{language:"en"})', context);
   assert.equal(actual, locale, 'Language selection failed: ' + locale);
