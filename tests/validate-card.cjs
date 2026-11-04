@@ -65,6 +65,9 @@ assert.equal(context.window.customCards.filter(c => c.type === 'snapmaker-u1-car
 
 const picker = context.window.customCards.find(c => c.type === 'snapmaker-u1-card');
 assert.equal(picker.preview, true, 'The picker should request a live card preview');
+assert.equal(Object.keys(registered.get('snapmaker-u1-card').getStubConfig()).length, 0,
+  'Stub config must not duplicate the custom card type or persist a preview flag');
+assert(source.includes('<svg class="machine"'), 'Built-in printer illustration missing from live picker preview');
 assert(picker.description.startsWith('Snapmaker U1 dashboard'), 'English picker description missing');
 for (const locale of ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'es-ES', 'pt-BR']) {
   context.document.querySelector = () => ({ hass: { language: locale } });
