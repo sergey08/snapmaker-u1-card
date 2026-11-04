@@ -160,7 +160,7 @@ The setup wizard preview is not yet connected to printer entities, so it may sho
 - Optional LED lightbulb and 0–100% brightness slider, synchronized with Home Assistant / Bombilla LED y barra de brillo 0–100 % opcionales, sincronizadas con Home Assistant.
 - Update notification shown only when an update is available / Aviso visible únicamente cuando hay una actualización disponible.
 - Visual editor, three-step setup wizard and read-only entity auto-detection / Editor visual, asistente de tres pasos y detección de entidades de solo lectura.
-- **Card languages:** English (`en`), Español (`es`), Français (`fr`), Deutsch (`de`), Italiano (`it`), Português (`pt`) and Nederlands (`nl`). The card detects the Home Assistant language automatically and falls back to English when a translation is unavailable. Translation coverage is still being completed.
+- **Card languages:** English (`en`), Español (`es`), Français (`fr`), Deutsch (`de`), Italiano (`it`), Português (`pt`) and Nederlands (`nl`). The card detects the Home Assistant language automatically, or you can select a supported language in the editor. Unsupported languages fall back to English. Translation coverage is still being completed.
 - Light/dark Home Assistant theme-aware design with cyan-blue accents / Diseño adaptable al tema claro/oscuro y acentos azul cian.
 
 ## Requirements / Requisitos
@@ -273,7 +273,7 @@ MIT.
 - **Aviso de actualizaciones opcional:** aparece solo cuando el sensor indica una actualización disponible.
 - **Editor visual y asistente inicial de tres pasos**, con detección automática de entidades y revisión de las asignaciones.
 - **Diseño claro y oscuro**, adaptado al tema de Home Assistant, con modo completo y compacto.
-- **Idiomas de la tarjeta:** inglés (`en`), español (`es`), francés (`fr`), alemán (`de`), italiano (`it`), portugués (`pt`) y neerlandés (`nl`). La tarjeta detecta automáticamente el idioma de Home Assistant y utiliza inglés cuando no hay traducción disponible. Algunas traducciones siguen en revisión.
+- **Idiomas de la tarjeta:** inglés (`en`), español (`es`), francés (`fr`), alemán (`de`), italiano (`it`), portugués (`pt`) y neerlandés (`nl`). La tarjeta detecta automáticamente el idioma de Home Assistant y también permite elegir uno compatible en el editor. Si el idioma no es compatible, utiliza inglés. Algunas traducciones siguen en revisión.
 
 ## Requisitos
 
