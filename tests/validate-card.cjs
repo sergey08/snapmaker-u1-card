@@ -66,11 +66,16 @@ assert.equal(context.window.customCards.filter(c => c.type === 'snapmaker-u1-car
 const picker = context.window.customCards.find(c => c.type === 'snapmaker-u1-card');
 assert.equal(picker.preview, true, 'The picker should request a live card preview');
 assert(picker.description.startsWith('Snapmaker U1 dashboard'), 'English picker description missing');
-for (const locale of ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ja']) {
-  const selected = vm.runInContext('(() => { const lang = ' + JSON.stringify(locale) + '; const normalized = lang.split(/[-_]/)[0]; return SNAPMAKER_PICKER_DESCRIPTIONS[normalized] || SNAPMAKER_PICKER_DESCRIPTIONS.en; })()', context);
+for (const locale of ['en', 'es', 'fr', 'de', 'it', 'pt', 'nl', 'ja', 'es-ES', 'pt-BR']) {
+  context.document.querySelector = () => ({ hass: { language: locale } });
+  const expected = ['es-ES', 'pt-BR'].includes(locale) ? locale.split('-')[0] : locale === 'ja' ? 'en' : locale;
+  assert.equal(vm.runInContext('snapmakerPickerLanguage()', context), expected,
+    'Incorrect HA picker language detection: ' + locale);
+  const selected = vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS[snapmakerPickerLanguage()]', context);
   assert.equal(typeof selected, 'string', 'Picker description missing for ' + locale);
   assert(selected.length > 25, 'Picker description too short for ' + locale);
 }
+context.document.querySelector = () => ({ hass: { language: 'en-US' } });
 assert.equal(vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS.ja || SNAPMAKER_PICKER_DESCRIPTIONS.en', context),
   vm.runInContext('SNAPMAKER_PICKER_DESCRIPTIONS.en', context), 'Unsupported picker language must fall back to English');
 
