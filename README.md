@@ -1,90 +1,79 @@
 # Snapmaker U1 Card
 
-**Documentation / Documentación:** [English](#english) · [Español](#español)
-
-[![Open in HACS / Abrir en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
-
-**Install via HACS / Instalar mediante HACS:** Click the button above to open the repository in Home Assistant. / Pulsa el botón para abrir el repositorio en Home Assistant. If it is not registered yet, add `https://github.com/sergey08/snapmaker-u1-card` as a custom **Dashboard** repository. / Si todavía no está registrado, añádelo como repositorio personalizado de tipo **Dashboard**.
-
----
-
-## Development workflow / Flujo de desarrollo
-
-**English:** The `main` branch contains the stable HACS version. Develop new features on `develop`, test them in a separate Home Assistant development dashboard, and merge reviewed changes into `main` before creating a versioned GitHub Release. The official HACS entrypoint is `snapmaker-u1-card.js`. Do not publish development commits as releases.
-
-**Español:** La rama `main` contiene la versión estable de HACS. Las nuevas funciones se desarrollan en `develop`, se prueban en un panel independiente de Home Assistant y se integran en `main` antes de crear una nueva Release. El archivo oficial para HACS es `snapmaker-u1-card.js`. Los cambios de desarrollo no se publican directamente.
-
-**DEV compatibility / Compatibilidad DEV:** The separate `snapmaker-u1-card-dev` custom-element registration is retained for the existing test dashboard. Loading the official file unchanged as a second resource would register the same custom element as the stable card; this must be avoided. / Se mantiene el registro independiente de la tarjeta DEV para evitar colisiones con la estable.
-
----
+[English](#english) · [Español](#español)
 
 <a id="english"></a>
 
-**A four-toolhead dashboard for Snapmaker U1 in Home Assistant.** Monitor print progress, temperatures, filament, cameras and electricity, and manage supported printer controls from one Lovelace card.
+# English
 
-**Español:** Tarjeta para Home Assistant dedicada a la Snapmaker U1: cuatro cabezales, progreso, temperaturas, bobinas, cámaras, consumo y controles de impresión.
+A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four toolheads, filament, cameras and energy, and use compatible printer controls from one card.
 
 <p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Snapmaker U1 Card illustration" width="1200"></p>
 
-> **Latest documented version / Última versión documentada:** v0.1.9. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published downloads. / Consulta GitHub Releases para las descargas publicadas.
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## What's new in v0.1.5 / Novedades de v0.1.5
+## Card languages
 
-### English
+The card supports **English (`en`), Español (`es`), Français (`fr`), Deutsch (`de`), Italiano (`it`), Português (`pt`) and Nederlands (`nl`)**. It detects the Home Assistant language automatically, or you can choose a supported language in the editor. Unsupported languages fall back to English. Some translations are still under review. This README is in English and Spanish.
 
-- Simplified active spool appearance: no blue border or printing label; filament animation remains.
-- All four filament indicators remain visible during printing; unused tools show `-- / --`.
-- Hide the job energy metric but keep its internal electricity-cost calculation.
-- Electricity cost shown with two decimal places; filament cost is not yet included.
-- Camera panel refreshes still images approximately every 2.5 seconds when expanded (not continuous video).
+## Features
 
-### Español
+- Four toolheads (T0–T3), temperatures, active tool and filament information.
+- Print status, progress, layers, estimated time and current-job thumbnail.
+- Optional camera, Spoolman inventory and filament colours and weights.
+- Optional power, energy and estimated electricity cost.
+- Compatible print controls, with confirmation for destructive actions.
+- Optional printer light control with a bulb button and 0–100% brightness slider.
+- Optional update notice, shown only when the configured sensor indicates an update.
+- Visual editor, three-step setup wizard and read-only entity auto-detection.
+- Light and dark Home Assistant themes, with full and compact layouts.
 
-- Bobina activa sin recuadro azul ni etiqueta de impresión; se mantiene la animación.
-- Cuatro indicadores de filamento visibles durante la impresión; los no utilizados muestran `-- / --`.
-- Se oculta la energía del trabajo, conservando el cálculo interno del coste eléctrico.
-- Coste de la luz con dos decimales; aún no incluye el coste del filamento.
-- La cámara actualiza imágenes cada 2,5 segundos aproximadamente cuando está desplegada (no es vídeo continuo).
+## Requirements
 
-## What's new in v0.1.4 / Novedades de v0.1.4
+| Component | Requirement | Purpose |
+| --- | --- | --- |
+| Home Assistant | Required | Dashboard and entities |
+| [Moonraker for Home Assistant](https://github.com/marcolivierarsenault/moonraker-home-assistant) | Required for core printing features | Status, progress, temperatures and compatible controls |
+| [Lava / U1 Companion](https://github.com/zkasuran/u1-companion) | Required for full U1-specific functionality | Toolhead and filament information |
+| [Spoolman](https://github.com/Donkie/Spoolman) | Optional | Inventory, colours and remaining filament |
+| Camera and electricity entities | Optional | Camera, energy and cost |
 
-### English
+Installing the card does not install or configure these integrations. Without Spoolman, compatible core printing functions can still work.
 
-- When the printer is **off**, only the printer illustration, T0–T3 spools, Spoolman inventory and the power button remain visible.
-- The power button **stays on the left** in both power states.
-- Turning the printer on immediately restores the complete dashboard, including during startup.
-- No configuration changes required.
+## Installation with HACS
 
-### Español
+1. Open HACS and select **Custom repositories** from the menu.
+2. Add `https://github.com/sergey08/snapmaker-u1-card` as a **Dashboard** repository.
+3. Install the card and add **Snapmaker U1 Card** from the card picker, or use:
 
-- Con la impresora **apagada**, solo se ven la imagen de la impresora, las bobinas T0–T3, el inventario Spoolman y el botón de encendido.
-- El botón de encendido **permanece a la izquierda** en ambos estados.
-- Al encender, se recupera inmediatamente la tarjeta completa, también durante el arranque.
-- No es necesario cambiar la configuración.
+```yaml
+type: custom:snapmaker-u1-card
+```
 
-## What's new in v0.1.3 / Novedades de v0.1.3
+4. In the wizard, select **Auto-detect entities**, review the matches and configure optional entities in the editor.
+5. If an older frontend remains cached, reload the browser. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published versions.
 
-### English
+For a development preview, expose the JavaScript file as a Lovelace module resource. Do not load two resources that register the same custom element. An isolated DEV build may use the separate `snapmaker-u1-card-dev` element.
 
-- **Printer power status:** clearer Off, Starting up and Available states; switching the power relay off immediately shows Off.
-- **LED control:** lightbulb toggle and brightness slider reflect the actual Home Assistant light entity; 0% turns the light off. The brightness slider and print progress bar have exchanged positions.
-- **Printer GUI screen:** optional read-only display from a Home Assistant camera entity (`gui_camera`), with a collapsible section and **Show screen on startup** (`gui_open_default`) setting. Touching the screen image does not execute any action.
-- **Spoolman toolheads:** clicking a T0–T3 spool opens the associated Home Assistant spool entity details.
-- **Print and energy information:** improved placement of print progress, power, daily energy consumption, electricity cost and job information.
-- **Conditional update banner:** appears only when the configured update-available binary sensor is on.
-- **No remote-control iframe:** the experimental PAXX12 interactive-screen integration has been removed.
+## Screenshots
 
-### Español
+The screenshots show the approved light/cyan design. The setup preview may show unavailable values until entities are configured.
 
-- **Estado de alimentación:** estados Apagada, Encendiéndose y Disponible más claros; al apagar el relé se muestra Apagada inmediatamente.
-- **Control LED:** la bombilla y la barra de brillo reflejan el estado real de la entidad `light` de Home Assistant; el 0 % apaga la luz. Se han intercambiado las posiciones de las barras de brillo y progreso de impresión.
-- **Pantalla GUI:** visualización opcional de solo lectura desde una entidad `camera` (`gui_camera`), con sección desplegable y opción **Mostrar pantalla al iniciar** (`gui_open_default`). Tocar la imagen no ejecuta ninguna acción.
-- **Bobinas Spoolman:** al tocar una bobina T0–T3 se abre la información de su entidad en Home Assistant.
-- **Información de impresión y energía:** mejoras en la disposición del progreso, potencia, consumo diario, coste y trabajo.
-- **Aviso de actualizaciones:** solo se muestra cuando el sensor binario de actualización configurado está activado.
-- **Sin iframe remoto:** se ha retirado la prueba de pantalla interactiva de PAXX12.
+### Full dashboard
+![Full dashboard](assets/screenshots/card-full.png)
 
-### Configuration example / Ejemplo de configuración
+### Compact mode
+![Compact mode](assets/screenshots/card-compact.png)
+
+### Setup wizard
+![Setup wizard](assets/screenshots/setup-wizard.png)
+
+### Spoolman inventory
+![Spoolman inventory](assets/screenshots/spoolman-inventory.png)
+
+## Configuration examples
+
+All entities below are optional; replace them with your own. An empty title hides the title.
 
 ```yaml
 type: custom:snapmaker-u1-card
@@ -93,142 +82,20 @@ gui_open_default: false
 daily_energy_sensor: sensor.impresora3d_energy_today
 led_light_entity: light.led_cavity_led_snapmaker_u1_despacho
 update_available_sensor: binary_sensor.update_available_lava
+title: ""
 ```
 
-All entities are optional and should be replaced with those in your own Home Assistant installation. / Todas las entidades son opcionales y deben sustituirse por las de tu propia instalación.
+The GUI camera is read-only. The LED entity must support Home Assistant light services; brightness depends on the integration. A brightness of 0% turns the light off. The update banner appears when the configured binary sensor is on.
 
-## What's new in v0.1.2 / Novedades de v0.1.2
+## Safety, development and releases
 
-### English
+Automatic detection only reads Home Assistant state. Printer controls can perform real actions: check entity mappings before using them. The wizard and automatic detection have been tested in one Home Assistant installation; translation coverage, browsers, live-print controls and multi-printer setups need further validation.
 
-- **Optional printer LED control:** select a Home Assistant `light` entity using the visual editor's **Printer LED light** field (`led_light_entity`).
-- **Lightbulb button:** tap to turn the printer light off or turn it on at 100% brightness. For reliable startup, the card sends `light.turn_on` before setting brightness. The bulb appears dim/grey when off and illuminated when on.
-- **Brightness slider (0–100%):** moving above 0% turns the light on and applies the chosen brightness; moving to 0% turns it off. When off, the slider returns to 0%; when on, it reflects the actual brightness reported by Home Assistant.
-- **Moonraker compatibility:** when the light is off, the card first sends `light.turn_on` and then applies `brightness_pct`, accommodating devices that cannot start directly at a specified brightness.
-- **Conditional update notice:** configure `update_available_sensor` (for example, `binary_sensor.update_available_lava`). The notice appears only when the sensor is `on` and remains completely hidden otherwise.
-- Both features are optional and do not affect cards without these entities. The LED must support Home Assistant light services; brightness availability depends on the integration.
-- **Optional card title:** leave **Card name** empty to hide the title completely, or enter any custom title. The visual editor enables saving immediately while typing or clearing the field.
+Develop on a separate branch and test in an isolated Home Assistant environment. The official HACS entrypoint is `snapmaker-u1-card.js`; do not publish development commits as releases. The beta workflow uses `v*-beta.*` tags and the manually triggered [stable release workflow](.github/workflows/stable-release.yml) publishes a versioned release after acceptance. See [BETA_CHECKLIST.md](BETA_CHECKLIST.md). Do not publish before review and acceptance are complete.
 
-### Español
+Earlier v0.1.2–v0.1.5 notes and previous documentation are preserved in [the README archive](docs/README-history-archive.md). For issues or suggestions use [GitHub Issues](https://github.com/sergey08/snapmaker-u1-card/issues).
 
-- **Control LED opcional:** selecciona una entidad `light` desde el campo **Luz LED de la impresora** del editor visual (`led_light_entity`).
-- **Bombilla interactiva:** pulsa para apagar o encender al 100 % de brillo. Para un encendido fiable, la tarjeta envía `light.turn_on` antes de establecer el brillo. Se muestra gris y atenuada cuando está apagada, e iluminada cuando está encendida.
-- **Barra de brillo (0–100 %):** por encima del 0 % enciende y ajusta la intensidad; al 0 % apaga. Apagada, la barra vuelve al 0 %; encendida, refleja el brillo real comunicado por Home Assistant.
-- **Compatibilidad con Moonraker:** al encender desde la barra, primero se ejecuta `light.turn_on` y después se aplica `brightness_pct`, para integraciones que no admiten arrancar directamente con una intensidad determinada.
-- **Aviso de actualización condicional:** configura `update_available_sensor` (por ejemplo, `binary_sensor.update_available_lava`). Solo se muestra cuando el sensor está en `on`; en cualquier otro estado no ocupa espacio.
-- Ambas funciones son opcionales. La entidad LED debe admitir los servicios de luz de Home Assistant; la regulación depende de la integración.
-- **Título opcional:** deja **Nombre de la tarjeta** vacío para ocultarlo por completo o escribe un título personalizado. El editor visual permite guardar inmediatamente al escribir o borrar, sin salir del campo.
-
-### Example configuration / Ejemplo de configuración
-
-```yaml
-type: custom:snapmaker-u1-card
-led_light_entity: light.led_cavity_led_snapmaker_u1_despacho
-update_available_sensor: binary_sensor.update_available_lava
-title: ""  # Hide card title / Ocultar título
-```
-
-Replace these example entity IDs with your own; keep the rest of your existing card configuration. / Sustituye las entidades del ejemplo por las tuyas y conserva el resto de la configuración actual.
-
-## Screenshots / Capturas de pantalla
-
-These are genuine screenshots of the approved light/cyan Home Assistant design. / Capturas reales del diseño claro y azul cian aprobado en Home Assistant.
-
-### Full dashboard / Vista completa
-![Snapmaker U1 Card — full dashboard](assets/screenshots/card-full.png)
-
-### Compact mode / Modo compacto
-![Snapmaker U1 Card — compact mode](assets/screenshots/card-compact.png)
-
-### Initial setup wizard / Asistente de configuración inicial
-![Snapmaker U1 Card — setup wizard step 1](assets/screenshots/setup-wizard.png)
-
-The setup wizard preview is not yet connected to printer entities, so it may show unavailable values. / La vista previa del asistente aún no tiene entidades asignadas, por lo que puede mostrar valores no disponibles.
-
-### Spoolman inventory / Inventario Spoolman
-![Snapmaker U1 Card — Spoolman inventory](assets/screenshots/spoolman-inventory.png)
-
-## Features / Funciones
-
-- Four toolheads (T0–T3), temperatures and active tool / Cuatro cabezales, temperaturas y herramienta activa.
-- Print status, progress, layers, estimated time and an in-job thumbnail / Estado, progreso, capas, tiempo estimado y miniatura integrada en el trabajo actual.
-- Optional live camera; the print thumbnail is displayed inside the current-job panel without a duplicate preview section / Cámara en directo opcional; la miniatura aparece dentro del trabajo actual sin una sección duplicada.
-- Optional Lava filament presence and job estimates / Presencia de filamento y estimaciones opcionales mediante Lava.
-- Optional Spoolman spool colors, weights and inventory / Colores, pesos e inventario opcional mediante Spoolman.
-- Optional power and electricity cost / Potencia y coste eléctrico opcionales.
-- Print controls with confirmation for destructive actions / Controles con confirmación para acciones destructivas.
-- Optional LED lightbulb and 0–100% brightness slider, synchronized with Home Assistant / Bombilla LED y barra de brillo 0–100 % opcionales, sincronizadas con Home Assistant.
-- Update notification shown only when an update is available / Aviso visible únicamente cuando hay una actualización disponible.
-- Visual editor, three-step setup wizard and read-only entity auto-detection / Editor visual, asistente de tres pasos y detección de entidades de solo lectura.
-- **Card languages:** English (`en`), Español (`es`), Français (`fr`), Deutsch (`de`), Italiano (`it`), Português (`pt`) and Nederlands (`nl`). The card detects the Home Assistant language automatically, or you can select a supported language in the editor. Unsupported languages fall back to English. Translation coverage is still being completed.
-- Light/dark Home Assistant theme-aware design with cyan-blue accents / Diseño adaptable al tema claro/oscuro y acentos azul cian.
-
-## Requirements / Requisitos
-
-For the **full Snapmaker U1 Card experience**, configure **Moonraker and Lava** in Home Assistant. **Spoolman is optional**. / Para disfrutar de **todas las funciones de Snapmaker U1 Card**, configura **Moonraker y Lava** en Home Assistant. **Spoolman es opcional**.
-
-| Component / Componente | Requirement / Requisito | What it provides / Qué aporta |
-| --- | --- | --- |
-| **Home Assistant** | **Required / Obligatorio** | Lovelace dashboard and entity configuration / Panel Lovelace y configuración de entidades |
-| **[Moonraker (Home Assistant)](https://github.com/marcolivierarsenault/moonraker-home-assistant)** | **Required for core printing features / Necesario para las funciones principales de impresión** | Printer status, print progress, temperatures and compatible controls / Estado, progreso, temperaturas y controles compatibles |
-| **[Lava / U1 Companion](https://github.com/zkasuran/u1-companion)** | **Required for full U1-specific functionality / Necesario para todas las funciones específicas de U1** | Snapmaker U1-specific toolhead and filament information / Información específica de los cuatro cabezales y filamentos |
-| **[Spoolman](https://github.com/Donkie/Spoolman)** | **Optional / Opcional** | Filament inventory, spool colors, weights and remaining material / Inventario de filamento, colores, pesos y material restante |
-| Camera entities / Entidades de cámara | Optional / Opcional | Live camera and current-job thumbnail when entities are available / Cámara en directo y miniatura del trabajo actual cuando existen entidades |
-| Power, energy and electricity-price entities / Entidades de potencia, energía y precio | Optional / Opcional | Electricity consumption and estimated cost / Consumo eléctrico y coste estimado |
-
-**Component links / Enlaces a componentes:** The Moonraker link points to its Home Assistant integration; Spoolman points to its official project. Lava / U1 Companion links to its project repository. / Lava / U1 Companion enlaza a su repositorio del proyecto.
-
-**Important / Importante:** The card reads entities exposed in Home Assistant; installing the card alone does not install or configure Moonraker, Lava or Spoolman. The available features depend on the entities provided by those integrations and their configured mappings. / La tarjeta utiliza las entidades disponibles en Home Assistant: instalarla no instala ni configura Moonraker, Lava o Spoolman. Las funciones disponibles dependen de las entidades que expongan esas integraciones y de su asignación.
-
-**Without Spoolman / Sin Spoolman:** The printer status and printing controls can still work with Moonraker and Lava; only the optional inventory functionality is unavailable. / El estado y los controles de impresión pueden seguir funcionando con Moonraker y Lava; únicamente faltará el inventario opcional.
-
-## Installation / Instalación
-
-### Development preview / Versión de pruebas
-
-1. Make the JavaScript file `snapmaker-u1-card.js` available to Home Assistant as a Lovelace JavaScript module resource. / Añade el archivo como recurso JavaScript de tipo módulo en Lovelace.
-2. Add **Snapmaker U1 Card** from the card picker, or use the YAML below. / Añade la tarjeta desde el selector o utiliza este YAML:
-
-```yaml
-type: custom:snapmaker-u1-card
-```
-
-3. In the initial wizard, select **Auto-detect entities / Detectar entidades automáticamente**. Review all matches before finishing. / Revisa las entidades detectadas antes de finalizar.
-4. Complete any optional entities in the advanced editor. / Completa las entidades opcionales desde el editor avanzado.
-
-### HACS custom repository / Repositorio personalizado HACS
-
-The repository includes `hacs.json` and can be added as a **custom dashboard repository** in HACS. / El repositorio incluye `hacs.json` y puede añadirse como **repositorio personalizado de tipo Dashboard** en HACS.
-
-1. Open **HACS → ⋮ → Custom repositories** / Abre **HACS → ⋮ → Repositorios personalizados**.
-2. Add `https://github.com/sergey08/snapmaker-u1-card` with category **Dashboard** / Añade esa URL con categoría **Dashboard**.
-3. Install the card and add `custom:snapmaker-u1-card` to a dashboard / Instala la tarjeta y añádela al panel.
-
-**Stable release available / Versión estable disponible:** [v0.1.0](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0). Official HACS catalog inclusion remains pending. / Sigue pendiente la inclusión en el catálogo oficial de HACS.
-
-## Beta release process / Publicación de la beta
-
-The beta workflow runs when a matching tag (`v*-beta.*`) is pushed or manually using **Run workflow** with an existing tag. It validates the card and screenshots, then creates or updates the GitHub pre-release and attaches `snapmaker-u1-card.js`. / El flujo se ejecuta al crear una etiqueta `v*-beta.*` o manualmente con **Run workflow** indicando una etiqueta existente. Valida la tarjeta y las capturas, crea o actualiza la versión preliminar y adjunta `snapmaker-u1-card.js`.
-
-The first beta has been published; see [BETA_CHECKLIST.md](BETA_CHECKLIST.md) for remaining installation and live-print acceptance tests. / La primera beta ya está publicada; consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md) para las pruebas pendientes de instalación e impresión real.
-
-## Stable releases and HACS versions / Versiones estables y HACS
-
-The manually triggered [Publish stable release](.github/workflows/stable-release.yml) workflow validates the card and publishes a versioned GitHub release, starting with `v0.1.0`, without moving existing tags. Do not publish it before completing acceptance tests. Once published, refresh the repository information in HACS and install the tagged release. / El flujo manual **Publish stable release** valida la tarjeta y publica una versión numerada en GitHub, empezando por `v0.1.0`, sin modificar etiquetas existentes. No debe ejecutarse hasta completar las pruebas de aceptación. Después, actualiza la información del repositorio en HACS e instala la versión etiquetada.
-
-## Safety / Seguridad
-
-Automatic detection only reads Home Assistant state; it does not execute printer actions. / La detección automática solo lee estados de Home Assistant y no ejecuta acciones.
-
-Printer controls can execute real actions once configured. Verify entity mappings before using them. / Los controles pueden ejecutar acciones reales; comprueba las entidades antes de utilizarlos.
-
-## Development status / Estado del desarrollo
-
-The wizard and auto-detection have been validated on one Home Assistant installation. The current card styling has been reviewed in light mode. Translation coverage, cross-browser testing, HACS installation testing, live-print controls and multi-printer matching still need further validation. / El asistente y la detección se han validado en una instalación y el diseño claro se ha revisado. Aún hay que ampliar la cobertura de traducciones y validar la instalación por HACS, los controles durante una impresión real, distintos navegadores y varias impresoras.
-
-## License
-
-MIT.
+**License:** MIT.
 
 ---
 
@@ -236,94 +103,93 @@ MIT.
 
 # Español
 
-**Tarjeta para Home Assistant dedicada a la impresora 3D Snapmaker U1.** Permite consultar el estado de impresión, controlar los cuatro cabezales, visualizar temperaturas, filamentos, cámara y consumo eléctrico, y ejecutar los controles compatibles desde un único panel.
+Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuatro cabezales, filamentos, cámaras y energía, y utiliza los controles compatibles desde un único panel.
 
-**Idiomas disponibles en este mismo README:** español e inglés.
+<p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Ilustración de Snapmaker U1 Card" width="1200"></p>
 
-**Versión estable actual: [v0.1.0](https://github.com/sergey08/snapmaker-u1-card/releases/tag/v0.1.0).** Instalación mediante HACS como repositorio personalizado de tipo **Dashboard**.
+[![Abrir en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-<p align="center"><img src="assets/snapmaker-u1-readme.svg" alt="Vista previa de Snapmaker U1 Card" width="1200"></p>
+## Idiomas de la tarjeta
 
-## Capturas de pantalla
-
-### Vista completa
-![Vista completa de la tarjeta](assets/screenshots/card-full.png)
-
-### Vista compacta
-![Vista compacta](assets/screenshots/card-compact.png)
-
-### Asistente de configuración
-![Asistente de configuración](assets/screenshots/setup-wizard.png)
-
-### Inventario de Spoolman
-![Inventario de filamentos](assets/screenshots/spoolman-inventory.png)
+La tarjeta admite **inglés (`en`), español (`es`), francés (`fr`), alemán (`de`), italiano (`it`), portugués (`pt`) y neerlandés (`nl`)**. Detecta automáticamente el idioma de Home Assistant o permite elegir uno compatible en el editor. Si el idioma no es compatible, utiliza inglés. Algunas traducciones siguen en revisión. Este README está disponible en inglés y español.
 
 ## Funcionalidades
 
-**Novedades de v0.1.2:** control LED con bombilla y brillo del 0 al 100 %, sincronización automática del estado y aviso de actualización que permanece oculto si no hay novedades. Consulta [la documentación detallada en español e inglés](#whats-new-in-v012--novedades-de-v012).
-
-
-- **Cuatro cabezales T0, T1, T2 y T3:** temperaturas, herramienta activa e información de filamento.
-- **Seguimiento de impresión:** estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
-- **Cámara opcional:** imagen en directo si Home Assistant dispone de la entidad correspondiente.
-- **Spoolman opcional:** inventario, materiales, colores, pesos y filamento restante.
-- **Consumo eléctrico opcional:** potencia, energía y coste estimado según las entidades configuradas.
-- **Controles de impresión:** acciones compatibles con confirmación para operaciones potencialmente destructivas.
-- **Control de luz LED opcional:** bombilla interactiva, brillo regulable de 0 a 100 % y sincronización con el estado real de Home Assistant.
-- **Aviso de actualizaciones opcional:** aparece solo cuando el sensor indica una actualización disponible.
-- **Editor visual y asistente inicial de tres pasos**, con detección automática de entidades y revisión de las asignaciones.
-- **Diseño claro y oscuro**, adaptado al tema de Home Assistant, con modo completo y compacto.
-- **Idiomas de la tarjeta:** inglés (`en`), español (`es`), francés (`fr`), alemán (`de`), italiano (`it`), portugués (`pt`) y neerlandés (`nl`). La tarjeta detecta automáticamente el idioma de Home Assistant y también permite elegir uno compatible en el editor. Si el idioma no es compatible, utiliza inglés. Algunas traducciones siguen en revisión.
+- Cuatro cabezales (T0–T3), temperaturas, herramienta activa y filamento.
+- Estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
+- Cámara, inventario Spoolman, colores y pesos de filamento opcionales.
+- Potencia, energía y coste eléctrico estimado opcionales.
+- Controles de impresión compatibles, con confirmación para acciones destructivas.
+- Control opcional de luz mediante bombilla y barra de brillo de 0 a 100 %.
+- Aviso de actualización opcional, visible solo cuando el sensor configurado la indica.
+- Editor visual, asistente de tres pasos y detección de entidades de solo lectura.
+- Adaptación a temas claro y oscuro de Home Assistant, con modo completo y compacto.
 
 ## Requisitos
 
 | Componente | Necesidad | Función |
 | --- | --- | --- |
 | Home Assistant | Obligatorio | Panel y entidades |
-| [Moonraker (Home Assistant)](https://github.com/marcolivierarsenault/moonraker-home-assistant) | Necesario para las funciones principales | Estado, temperaturas, progreso y controles compatibles |
-| [Lava / U1 Companion](https://github.com/zkasuran/u1-companion) | Necesario para las funciones específicas de U1 | Información de cabezales y filamentos |
-| [Spoolman](https://github.com/Donkie/Spoolman) | Opcional | Inventario, colores y cantidades de filamento |
-| Entidad de cámara | Opcional | Vídeo o imagen en directo |
-| Sensores eléctricos | Opcional | Consumo y coste |
+| [Moonraker para Home Assistant](https://github.com/marcolivierarsenault/moonraker-home-assistant) | Necesario para las funciones principales | Estado, progreso, temperaturas y controles compatibles |
+| [Lava / U1 Companion](https://github.com/zkasuran/u1-companion) | Necesario para todas las funciones específicas de U1 | Información de cabezales y filamentos |
+| [Spoolman](https://github.com/Donkie/Spoolman) | Opcional | Inventario, colores y filamento restante |
+| Entidades de cámara y electricidad | Opcionales | Cámara, energía y coste |
 
-**Enlaces:** Moonraker enlaza a su integración para Home Assistant; Spoolman, a su repositorio oficial. Lava / U1 Companion enlaza a su repositorio en GitHub.
-
-**Importante:** instalar la tarjeta no instala Moonraker, Lava ni Spoolman. Estas integraciones deben estar configuradas por separado y exponer sus entidades en Home Assistant. Sin Spoolman, las funciones principales de impresión pueden seguir funcionando.
+Instalar la tarjeta no instala ni configura estas integraciones. Sin Spoolman pueden seguir funcionando las funciones principales compatibles.
 
 ## Instalación con HACS
 
-1. Abre **HACS** en Home Assistant.
-2. En el menú de los tres puntos, selecciona **Repositorios personalizados**.
-3. Introduce `https://github.com/sergey08/snapmaker-u1-card`.
-4. Selecciona la categoría **Dashboard** y añade el repositorio.
-5. Instala **Snapmaker U1 Card**, preferiblemente la versión estable **v0.1.0**.
-6. Añade la tarjeta desde el selector de tarjetas o utiliza:
+1. Abre HACS y selecciona **Repositorios personalizados** en el menú.
+2. Añade `https://github.com/sergey08/snapmaker-u1-card` como repositorio de tipo **Dashboard**.
+3. Instala la tarjeta y añade **Snapmaker U1 Card** desde el selector, o utiliza:
 
 ```yaml
 type: custom:snapmaker-u1-card
 ```
 
-7. Abre el asistente de configuración, pulsa **Detectar entidades automáticamente** y revisa las correspondencias antes de guardar.
-8. Si el navegador sigue mostrando una versión anterior, recarga con **Ctrl + Shift + R**.
+4. En el asistente, selecciona **Detectar entidades automáticamente**, revisa las correspondencias y configura las entidades opcionales en el editor.
+5. Si el navegador conserva una versión anterior, recarga la página. Consulta las [versiones de GitHub](https://github.com/sergey08/snapmaker-u1-card/releases) para ver las publicaciones.
 
-**Actualizaciones:** las versiones estables se publican con etiquetas `v0.1.0`, `v0.1.1`, etc. HACS permite instalar las actualizaciones disponibles. La inclusión en el catálogo oficial de HACS sigue pendiente; por ahora se utiliza el repositorio personalizado.
+Para una prueba de desarrollo, añade el archivo JavaScript como recurso Lovelace de tipo módulo. No cargues dos recursos que registren el mismo elemento personalizado. Una compilación DEV aislada puede utilizar el elemento independiente `snapmaker-u1-card-dev`.
 
-## Configuración y uso
+## Capturas de pantalla
 
-El asistente intenta identificar automáticamente las entidades de Moonraker, Lava y los componentes opcionales. Si alguna no se detecta, puede asignarse manualmente desde el editor visual. Los sensores que no existan pueden dejarse sin configurar cuando sean opcionales.
+Las capturas muestran el diseño claro y azul cian aprobado. La vista previa del asistente puede mostrar valores no disponibles hasta configurar las entidades.
 
-Durante la impresión, la tarjeta muestra la información disponible del trabajo y del cabezal activo. Cuando la impresora está inactiva o desconectada, algunas entidades pueden mostrar valores no disponibles; esto no significa necesariamente que la tarjeta esté averiada.
+### Vista completa
+![Vista completa](assets/screenshots/card-full.png)
 
-**Seguridad:** la detección automática solo consulta estados; no ejecuta acciones. Antes de utilizar los botones de control, comprueba las entidades asignadas.
+### Modo compacto
+![Modo compacto](assets/screenshots/card-compact.png)
 
-## Estado del proyecto
+### Asistente de configuración
+![Asistente de configuración](assets/screenshots/setup-wizard.png)
 
-**v0.1.0 está publicada e instalada correctamente mediante HACS en una instalación real de Home Assistant.** Quedan pendientes pruebas adicionales durante una impresión real, comprobaciones en otros navegadores y configuraciones con varias impresoras, así como completar algunas traducciones.
+### Inventario Spoolman
+![Inventario Spoolman](assets/screenshots/spoolman-inventory.png)
 
-La primera beta `v0.1.0-beta.1` sigue disponible en [versiones publicadas](https://github.com/sergey08/snapmaker-u1-card/releases). El procedimiento de publicación y validación se mantiene en los flujos de GitHub Actions del repositorio.
+## Ejemplos de configuración
 
-## Soporte y desarrollo
+Todas las entidades siguientes son opcionales; sustitúyelas por las tuyas. Un título vacío oculta el título.
 
-Para informar de errores o proponer mejoras, utiliza [GitHub Issues](https://github.com/sergey08/snapmaker-u1-card/issues).
+```yaml
+type: custom:snapmaker-u1-card
+gui_camera: camera.gui_snapmaker_u1_despacho_2
+gui_open_default: false
+daily_energy_sensor: sensor.impresora3d_energy_today
+led_light_entity: light.led_cavity_led_snapmaker_u1_despacho
+update_available_sensor: binary_sensor.update_available_lava
+title: ""
+```
+
+La cámara GUI es de solo lectura. La entidad LED debe admitir los servicios de luz de Home Assistant; la regulación depende de la integración. El brillo al 0 % apaga la luz. El aviso aparece cuando el sensor binario configurado está activado.
+
+## Seguridad, desarrollo y versiones
+
+La detección automática solo consulta estados de Home Assistant. Los controles pueden ejecutar acciones reales: revisa las entidades antes de utilizarlos. El asistente y la detección se han probado en una instalación de Home Assistant; quedan por ampliar las pruebas de traducciones, navegadores, controles durante impresión y configuraciones con varias impresoras.
+
+Desarrolla en una rama independiente y prueba en un entorno aislado de Home Assistant. El archivo oficial para HACS es `snapmaker-u1-card.js`; no publiques commits de desarrollo como versiones. El flujo beta utiliza etiquetas `v*-beta.*` y el [flujo de versión estable](.github/workflows/stable-release.yml), de ejecución manual, publica una versión después de la aceptación. Consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md). No publiques antes de completar la revisión y la aceptación.
+
+Las notas anteriores de v0.1.2–v0.1.5 y la documentación previa se conservan en el [archivo del README](docs/README-history-archive.md). Para errores o propuestas, utiliza [GitHub Issues](https://github.com/sergey08/snapmaker-u1-card/issues).
 
 **Licencia:** MIT.
