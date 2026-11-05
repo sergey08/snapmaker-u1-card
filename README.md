@@ -61,10 +61,14 @@ For a development preview, expose the JavaScript file as a Lovelace module resou
 
 ## Screenshots
 
-The screenshots show the approved light/cyan design. The setup preview may show unavailable values until entities are configured.
+The setup preview may show unavailable values until entities are configured.
 
 ### Full dashboard
-![Full dashboard](assets/screenshots/card-full.png)
+![Full dashboard with printer status and filaments](assets/screenshots/card-overview.jpg)
+
+![Print graphs and printer camera](assets/screenshots/print-graphs-camera.jpg)
+
+![Printer screen and light control](assets/screenshots/printer-screen.jpg)
 
 ### Compact mode
 ![Compact mode](assets/screenshots/card-compact.png)
@@ -73,7 +77,7 @@ The screenshots show the approved light/cyan design. The setup preview may show 
 ![Setup wizard](assets/screenshots/setup-wizard.png)
 
 ### Spoolman inventory
-![Spoolman inventory](assets/screenshots/spoolman-inventory.png)
+![Spoolman inventory with remaining filament in grams](assets/screenshots/spoolman-inventory.jpg)
 
 ## Configuration examples
 
@@ -162,10 +166,14 @@ Para una prueba de desarrollo, añade el archivo JavaScript como recurso Lovelac
 
 ## Capturas de pantalla
 
-Las capturas muestran el diseño claro y azul cian aprobado. La vista previa del asistente puede mostrar valores no disponibles hasta configurar las entidades.
+La vista previa del asistente puede mostrar valores no disponibles hasta configurar las entidades.
 
 ### Vista completa
-![Vista completa](assets/screenshots/card-full.png)
+![Vista completa con el estado de la impresora y los filamentos](assets/screenshots/card-overview.jpg)
+
+![Gráficos de impresión y cámara de la impresora](assets/screenshots/print-graphs-camera.jpg)
+
+![Pantalla de la impresora y control de luz](assets/screenshots/printer-screen.jpg)
 
 ### Modo compacto
 ![Modo compacto](assets/screenshots/card-compact.png)
@@ -174,7 +182,7 @@ Las capturas muestran el diseño claro y azul cian aprobado. La vista previa del
 ![Asistente de configuración](assets/screenshots/setup-wizard.png)
 
 ### Inventario Spoolman
-![Inventario Spoolman](assets/screenshots/spoolman-inventory.png)
+![Inventario Spoolman con los gramos restantes de cada bobina](assets/screenshots/spoolman-inventory.jpg)
 
 ## Ejemplos de configuración
 
