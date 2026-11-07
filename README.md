@@ -10,11 +10,11 @@ A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four too
 
 <p align="center"><img src="https://raw.githubusercontent.com/sergey08/snapmaker-u1-card/main/assets/snapmaker-u1-hacs-logo.svg" alt="Snapmaker U1 Card illustration" width="240"></p>
 
-[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
+[![Open in Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
 ## Latest release: v0.1.16
 
-This release makes the HACS illustration compact (240 × 150 px) without changing the card's printer features. It includes the previously released v0.1.15 picker localization and preview improvements. See [v0.1.16 release notes](docs/releases/v0.1.16.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+This release uses a compact illustration (240 × 150 px) in the catalog. It includes the previously released v0.1.15 picker localization and preview improvements. See [v0.1.16 release notes](docs/releases/v0.1.16.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Card languages
 
@@ -44,20 +44,25 @@ The card supports **English (`en`), Español (`es`), Français (`fr`), Deutsch (
 
 Installing the card does not install or configure these integrations. Without Spoolman, compatible core printing functions can still work.
 
-## Installation with HACS
+## Install from the Marketplace
 
-1. Open HACS and select **Custom repositories** from the menu.
-2. Add `https://github.com/sergey08/snapmaker-u1-card` as a **Dashboard** repository.
-3. Install the card and add **Snapmaker U1 Card** from the card picker, or use:
+Snapmaker U1 Card is in the default catalog of the Marketplace, built into Home Assistant 2026.11 and later.
+
+1. Open **Settings → Marketplace** and search for **Snapmaker U1 Card**, or use the **Open in Marketplace** badge above.
+2. Open the card’s page, select **Install** and confirm.
+3. Reload your browser, edit your dashboard and select **Snapmaker U1 Card** from the card picker. You can also add it in YAML.
 
 ```yaml
 type: custom:snapmaker-u1-card
 ```
 
-4. In the wizard, select **Auto-detect entities**, review the matches and configure optional entities in the editor.
-5. If an older frontend remains cached, reload the browser. See [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases) for published versions.
+In the wizard, select **Auto-detect entities**, review the matches and configure optional entities in the editor.
 
-For a development preview, expose the JavaScript file as a Lovelace module resource. Do not load two resources that register the same custom element. An isolated DEV build may use the separate `snapmaker-u1-card-dev` element.
+If you manage dashboard resources in YAML, add the JavaScript module shown in the Marketplace install dialog.
+
+Home Assistant 2026.11 automatically migrates existing HACS installations of this card to the Marketplace.
+
+For a development preview, expose the JavaScript file as a Lovelace module resource. An isolated DEV build may use the separate `snapmaker-u1-card-dev` element. Load one resource per custom element.
 
 ## Screenshots
 
@@ -99,7 +104,7 @@ The GUI camera is read-only. The LED entity must support Home Assistant light se
 
 Automatic detection only reads Home Assistant state. Printer controls can perform real actions: check entity mappings before using them. The wizard and automatic detection have been tested in one Home Assistant installation; translation coverage, browsers, live-print controls and multi-printer setups need further validation.
 
-Develop on a separate branch and test in an isolated Home Assistant environment. The official HACS entrypoint is `snapmaker-u1-card.js`; do not publish development commits as releases. The beta workflow uses `v*-beta.*` tags and the manually triggered [stable release workflow](.github/workflows/stable-release.yml) publishes a versioned release after acceptance. See [BETA_CHECKLIST.md](BETA_CHECKLIST.md). Do not publish before review and acceptance are complete.
+Develop on a separate branch and test in an isolated Home Assistant environment. The Marketplace entry point is `snapmaker-u1-card.js`; do not publish development commits as releases. The beta workflow uses `v*-beta.*` tags and the manually triggered [stable release workflow](.github/workflows/stable-release.yml) publishes a versioned release after acceptance. See [BETA_CHECKLIST.md](BETA_CHECKLIST.md). Do not publish before review and acceptance are complete.
 
 Earlier v0.1.2–v0.1.5 notes and previous documentation are preserved in [the README archive](docs/README-history-archive.md). For issues or suggestions use [GitHub Issues](https://github.com/sergey08/snapmaker-u1-card/issues).
 
@@ -115,11 +120,11 @@ Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuat
 
 <p align="center"><img src="https://raw.githubusercontent.com/sergey08/snapmaker-u1-card/main/assets/snapmaker-u1-hacs-logo.svg" alt="Ilustración de Snapmaker U1 Card" width="240"></p>
 
-[![Abrir en HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
+[![Abrir en Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
 ## Última versión: v0.1.16
 
-Esta versión muestra una ilustración compacta en HACS (240 × 150 px), sin modificar las funciones de impresión de la tarjeta. Incluye las mejoras ya publicadas en v0.1.15 del selector multidioma y la vista previa. Consulta las [notas de v0.1.16](docs/releases/v0.1.16.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+Esta versión usa una ilustración compacta (240 × 150 px) en el catálogo. Incluye las mejoras ya publicadas en v0.1.15 del selector multidioma y la vista previa. Consulta las [notas de v0.1.16](docs/releases/v0.1.16.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Idiomas de la tarjeta
 
@@ -149,20 +154,25 @@ La tarjeta admite **inglés (`en`), español (`es`), francés (`fr`), alemán (`
 
 Instalar la tarjeta no instala ni configura estas integraciones. Sin Spoolman pueden seguir funcionando las funciones principales compatibles.
 
-## Instalación con HACS
+## Instalar desde el Marketplace
 
-1. Abre HACS y selecciona **Repositorios personalizados** en el menú.
-2. Añade `https://github.com/sergey08/snapmaker-u1-card` como repositorio de tipo **Dashboard**.
-3. Instala la tarjeta y añade **Snapmaker U1 Card** desde el selector, o utiliza:
+Snapmaker U1 Card está en el catálogo predeterminado del Marketplace, integrado en Home Assistant desde la versión 2026.11.
+
+1. Abre **Ajustes → Marketplace** y busca **Snapmaker U1 Card**, o usa el botón **Abrir en Marketplace** de arriba.
+2. Abre la ficha de la tarjeta, pulsa **Instalar** y confirma.
+3. Recarga el navegador, edita tu panel y elige **Snapmaker U1 Card** en el selector de tarjetas. También puedes añadirla en YAML.
 
 ```yaml
 type: custom:snapmaker-u1-card
 ```
 
-4. En el asistente, selecciona **Detectar entidades automáticamente**, revisa las correspondencias y configura las entidades opcionales en el editor.
-5. Si el navegador conserva una versión anterior, recarga la página. Consulta las [versiones de GitHub](https://github.com/sergey08/snapmaker-u1-card/releases) para ver las publicaciones.
+En el asistente, selecciona **Detectar entidades automáticamente**, revisa las coincidencias y configura las entidades opcionales en el editor.
 
-Para una prueba de desarrollo, añade el archivo JavaScript como recurso Lovelace de tipo módulo. No cargues dos recursos que registren el mismo elemento personalizado. Una compilación DEV aislada puede utilizar el elemento independiente `snapmaker-u1-card-dev`.
+Si gestionas los recursos del panel en YAML, añade el módulo JavaScript que indica el cuadro de instalación del Marketplace.
+
+Home Assistant 2026.11 migra automáticamente al Marketplace las instalaciones de esta tarjeta hechas con HACS.
+
+Para una prueba de desarrollo, añade el archivo JavaScript como recurso Lovelace de tipo módulo. Una compilación DEV aislada puede utilizar el elemento independiente `snapmaker-u1-card-dev`. Carga un solo recurso por elemento personalizado.
 
 ## Capturas de pantalla
 
@@ -204,7 +214,7 @@ La cámara GUI es de solo lectura. La entidad LED debe admitir los servicios de 
 
 La detección automática solo consulta estados de Home Assistant. Los controles pueden ejecutar acciones reales: revisa las entidades antes de utilizarlos. El asistente y la detección se han probado en una instalación de Home Assistant; quedan por ampliar las pruebas de traducciones, navegadores, controles durante impresión y configuraciones con varias impresoras.
 
-Desarrolla en una rama independiente y prueba en un entorno aislado de Home Assistant. El archivo oficial para HACS es `snapmaker-u1-card.js`; no publiques commits de desarrollo como versiones. El flujo beta utiliza etiquetas `v*-beta.*` y el [flujo de versión estable](.github/workflows/stable-release.yml), de ejecución manual, publica una versión después de la aceptación. Consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md). No publiques antes de completar la revisión y la aceptación.
+Desarrolla en una rama independiente y prueba en un entorno aislado de Home Assistant. El archivo que instala el Marketplace es `snapmaker-u1-card.js`; no publiques commits de desarrollo como versiones. El flujo beta utiliza etiquetas `v*-beta.*` y el [flujo de versión estable](.github/workflows/stable-release.yml), de ejecución manual, publica una versión después de la aceptación. Consulta [BETA_CHECKLIST.md](BETA_CHECKLIST.md). No publiques antes de completar la revisión y la aceptación.
 
 Las notas anteriores de v0.1.2–v0.1.5 y la documentación previa se conservan en el [archivo del README](docs/README-history-archive.md). Para errores o propuestas, utiliza [GitHub Issues](https://github.com/sergey08/snapmaker-u1-card/issues).
 
