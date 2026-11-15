@@ -370,12 +370,13 @@ class SnapmakerU1Card extends HTMLElement {
       return `<div><small>${this.esc(label)}${unit?" ("+this.esc(unit)+")":""}</small>${spark("value",color,history)}</div>`;
     }).join("");
     // The print-chart panel may be shown/hidden without editing YAML.
-    // Keep the toggle available even when the panel is hidden.
+    // If the charts are disabled in the editor, show neither charts nor toggle.
     if(this._chartsVisible===undefined)this._chartsVisible=c.show_print_charts!==false;
-    const chartsHtml=`<div class="chart-toggle-row"><button type="button" class="chart-visibility-toggle" aria-expanded="${this._chartsVisible?"true":"false"}">${this._chartsVisible?(lang==="es"?"Ocultar gráficos de impresión":"Hide print charts"):(lang==="es"?"Mostrar gráficos de impresión":"Show print charts")}</button></div>${this._chartsVisible?`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:""}`;
+    const chartsHtml=c.show_print_charts===false?"":`<div class="chart-toggle-row"><button type="button" class="chart-visibility-toggle" aria-expanded="${this._chartsVisible?"true":"false"}">${this._chartsVisible?(lang==="es"?"Ocultar gráficos de impresión":"Hide print charts"):(lang==="es"?"Mostrar gráficos de impresión":"Show print charts")}</button></div>${this._chartsVisible?`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:""}`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
-    const electricityHtml=c.show_energy!==false?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:"";
+    if(this._energyVisible===undefined)this._energyVisible=true;
+    const electricityHtml=c.show_energy===false?"":`<div class="chart-toggle-row"><button type="button" class="energy-visibility-toggle chart-visibility-toggle" aria-expanded="${this._energyVisible?"true":"false"}">${this._energyVisible?(lang==="es"?"Ocultar potencia y energía":"Hide power and energy"):(lang==="es"?"Mostrar potencia y energía":"Show power and energy")}</button></div>${this._energyVisible?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:""}`;
     // Only expose the per-tool required/remaining weight comparison when a
     // Spoolman spool is actually mapped to the card. Lava-only configurations
     // cannot reliably report remaining inventory.
@@ -607,6 +608,8 @@ ${heads}
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
+    const energyToggle=this.shadowRoot.querySelector("button.energy-visibility-toggle");
+    energyToggle?.addEventListener("click",()=>{this._energyVisible=!this._energyVisible;this.render();});
     const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle");
     chartToggle?.addEventListener("click",()=>{this._chartsVisible=!this._chartsVisible;this.render();});
     const chartDetails=this.shadowRoot.querySelector("details.energy-charts");
