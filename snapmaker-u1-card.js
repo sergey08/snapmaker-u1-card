@@ -379,7 +379,12 @@ class SnapmakerU1Card extends HTMLElement {
     // The current print thumbnail is already shown in the job summary.
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
-    const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager" role="button" tabindex="0" title="${lang==="es"?"Ampliar cámara":"Enlarge camera"}"></details><div class="camera-zoom" ${this._cameraZoomOpen?"":"hidden"} role="dialog" aria-modal="true" aria-label="${lang==="es"?"Cámara ampliada":"Enlarged camera"}"><div class="camera-zoom-toolbar"><button class="camera-fullscreen" type="button">${lang==="es"?"Pantalla completa":"Fullscreen"}</button><button class="camera-zoom-close" type="button" aria-label="${lang==="es"?"Cerrar":"Close"}">✕</button></div><img class="camera-zoom-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Snapmaker U1"></div>`:"";
+    // A valid camera entity is independent from the printer's smart-plug state.
+    // Home Assistant's native picture-entity card supports streaming cameras whose
+    // picture URL is absent, non-proxy, or not suitable for a plain <img> tag.
+    const cameraState=c.live_camera?this._hass?.states?.[c.live_camera]:null;
+    const cameraAvailable=cameraState&&!["unknown","unavailable"].includes(cameraState.state);
+    const cameraHtml=c.show_camera!==false&&cameraAvailable?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 ${lang==="es"?"Cámara de la impresora":"Printer camera"}</summary><div class="native-camera-host"></div></details>`:"";
     const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
@@ -592,12 +597,28 @@ ${heads}
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
     if(cameraDetails){
       cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
-      const image=cameraDetails.querySelector("img.camera-image");
-      if(image){
-        const reveal=()=>{if(image.naturalWidth>0&&image.naturalHeight>0)cameraDetails.style.display="";};
-        image.addEventListener("load",reveal);
-        image.addEventListener("error",()=>{cameraDetails.style.display="none";});
-        if(image.complete)reveal();
+      const host=cameraDetails.querySelector(".native-camera-host");
+      if(host&&c.live_camera){
+        // Render through Home Assistant itself, as a normal picture-entity camera.
+        // No direct camera URL, power switch, or proxy format is required.
+        try{
+          const nativeCamera=document.createElement("hui-picture-entity-card");
+          nativeCamera.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+          nativeCamera.hass=this._hass;
+          host.appendChild(nativeCamera);
+        }catch(error){
+          // Keep an ordinary camera image as a fallback on older HA frontends.
+          if(cameraUrl){
+            const img=document.createElement("img");
+            img.className="camera-image";
+            img.src=cameraUrl;
+            img.alt="Snapmaker U1";
+            img.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
+            host.appendChild(img);
+          }else{
+            host.textContent=lang==="es"?"No se pudo iniciar la cámara. Revisa la entidad en Home Assistant.":"Could not initialize camera. Check the entity in Home Assistant.";
+          }
+        }
       }
     }
     const zoom=this.shadowRoot.querySelector(".camera-zoom");
