@@ -25,7 +25,7 @@ The card supports **English (`en`), Español (`es`), Français (`fr`), Deutsch (
 - Four toolheads (T0–T3), temperatures, active tool and filament information.
 - Print status, progress, layers, estimated time and current-job thumbnail.
 - Optional camera, Spoolman inventory and filament colours and weights.
-- Show or hide the entire print-charts section with a button directly on the card; the per-tool required/remaining gram comparison is hidden when no Spoolman spool is mapped.
+- Show or hide the print-charts section directly on the card when print charts are enabled. If charts are disabled in the editor (`show_print_charts: false`), both the charts and the toggle button remain hidden. A separate Show/Hide power and energy button collapses the power, print energy and cost figures when the energy block is enabled. The per-tool required/remaining gram comparison is hidden when no Spoolman spool is mapped.
 - Live printer camera uses Home Assistant's native camera display, without requiring a smart-plug power entity.
 - Optional power, energy and estimated electricity cost.
 - Compatible print controls, with confirmation for destructive actions.
@@ -137,7 +137,7 @@ La tarjeta admite **inglés (`en`), español (`es`), francés (`fr`), alemán (`
 - Cuatro cabezales (T0–T3), temperaturas, herramienta activa y filamento.
 - Estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
 - Cámara, inventario Spoolman, colores y pesos de filamento opcionales.
-- Botón en la propia tarjeta para mostrar u ocultar todo el apartado de gráficos de impresión; la comparación de gramos necesarios/restantes T0–T3 se oculta cuando no hay ninguna bobina de Spoolman asociada.
+- Botón para mostrar u ocultar los gráficos de impresión cuando estén habilitados. Si los gráficos se desactivan en el editor (`show_print_charts: false`), no se muestra ni el apartado ni el botón. Otro botón independiente permite ocultar o mostrar potencia, energía y costes cuando ese bloque está habilitado. La comparación de gramos necesarios/restantes T0–T3 se oculta cuando no hay ninguna bobina de Spoolman asociada.
 - La cámara utiliza la visualización nativa de Home Assistant, sin depender de una entidad de enchufe inteligente.
 - Potencia, energía y coste eléctrico estimado opcionales.
 - Controles de impresión compatibles, con confirmación para acciones destructivas.
