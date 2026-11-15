@@ -369,17 +369,37 @@ class SnapmakerU1Card extends HTMLElement {
       const unit=entity?.attributes?.unit_of_measurement||"";
       return `<div><small>${this.esc(label)}${unit?" ("+this.esc(unit)+")":""}</small>${spark("value",color,history)}</div>`;
     }).join("");
-    const chartsHtml=c.show_print_charts===false?"":`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`;
+    // The print-chart panel may be shown/hidden without editing YAML.
+    // If the charts are disabled in the editor, show neither charts nor toggle.
+    if(this._chartsVisible===undefined)this._chartsVisible=c.show_print_charts!==false;
+    const chartsHtml=c.show_print_charts===false?"":`<div class="chart-toggle-row"><button type="button" class="chart-visibility-toggle" aria-expanded="${this._chartsVisible?"true":"false"}">${this._chartsVisible?(lang==="es"?"Ocultar gráficos de impresión":"Hide print charts"):(lang==="es"?"Mostrar gráficos de impresión":"Show print charts")}</button></div>${this._chartsVisible?`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:""}`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
-    const electricityHtml=c.show_energy!==false?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:"";
-    const filamentHtml=filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
+    // Electricity visibility is configured in the visual editor (show_energy).
+    // Do not add an extra toggle to the card itself.
+    const electricityHtml=c.show_energy===false?"":`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`;
+    // Only expose the per-tool required/remaining weight comparison when a
+    // Spoolman spool is actually mapped to the card. Lava-only configurations
+    // cannot reliably report remaining inventory.
+    const hasSpoolmanMapping=[0,1,2,3].some(i=>{
+      const id=Number(Array.isArray(c.spoolman_spool_ids)?c.spoolman_spool_ids[i]:0);
+      const spoolEntity=id>0?"sensor.spoolman_spool_"+id:"";
+      const configuredWeight=c["tool"+i+"_weight"]||"";
+      return (id>0&&!!this._hass?.states?.[spoolEntity])||
+        (/^sensor\.spoolman_spool_\d+$/.test(configuredWeight)&&!!this._hass?.states?.[configuredWeight]);
+    });
+    const filamentHtml=hasSpoolmanMapping&&filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
     const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}${etaConfidence}</span></div></div>`:"";
     // The current print thumbnail is already shown in the job summary.
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
-    const cameraHtml=c.show_camera!==false&&powerState==="on"&&cameraUrl?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 Cámara de la impresora</summary><img class="camera-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Cámara Snapmaker U1" loading="eager" role="button" tabindex="0" title="${lang==="es"?"Ampliar cámara":"Enlarge camera"}"></details><div class="camera-zoom" ${this._cameraZoomOpen?"":"hidden"} role="dialog" aria-modal="true" aria-label="${lang==="es"?"Cámara ampliada":"Enlarged camera"}"><div class="camera-zoom-toolbar"><button class="camera-fullscreen" type="button">${lang==="es"?"Pantalla completa":"Fullscreen"}</button><button class="camera-zoom-close" type="button" aria-label="${lang==="es"?"Cerrar":"Close"}">✕</button></div><img class="camera-zoom-image" src="${this.esc(cameraUrl)}" data-camera-base="${this.esc(cameraUrl)}" alt="Snapmaker U1"></div>`:"";
+    // A valid camera entity is independent from the printer's smart-plug state.
+    // Home Assistant's native picture-entity card supports streaming cameras whose
+    // picture URL is absent, non-proxy, or not suitable for a plain <img> tag.
+    const cameraState=c.live_camera?this._hass?.states?.[c.live_camera]:null;
+    const cameraAvailable=cameraState&&!["unknown","unavailable"].includes(cameraState.state);
+    const cameraHtml=c.show_camera!==false&&cameraAvailable?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 ${lang==="es"?"Cámara de la impresora":"Printer camera"}</summary><div class="native-camera-host"></div></details>`:"";
     const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
     const inventoryHtml=showInventory&&inventory.length?`<details class="inventory" ${this._inventoryOpen?"open":""}><summary>Inventario Spoolman <span>${inventory.length} bobinas</span></summary><div class="inventory-grid">${inventory.map(item=>`<div class="inventory-item"><span class="inventory-reel" style="--filament:${item.color}"></span><div class="inventory-info"><b>${this.esc(item.name)}</b><small>${this.esc(item.vendor)}</small><strong>${Math.round(item.grams)} g</strong></div></div>`).join("")}</div></details>`:"";
     this.shadowRoot.innerHTML=`<style>
@@ -388,9 +408,9 @@ class SnapmakerU1Card extends HTMLElement {
       /* Powered-off minimalist view: keep only the power control, printer illustration, spools and Spoolman inventory. */
       ha-card.power-off .top>:not(.power-toggle){display:none!important}
       ha-card.power-off .top{justify-content:flex-start}
-      ha-card.power-off .progress-top,ha-card.power-off .metrics,ha-card.power-off .job,ha-card.power-off .filament,ha-card.power-off .warnings,ha-card.power-off .electricity,ha-card.power-off .controls,ha-card.power-off .preview,ha-card.power-off .camera-panel,ha-card.power-off .gui-screen,ha-card.power-off .led-control{display:none!important}
+      ha-card.power-off .progress-top,ha-card.power-off .metrics,ha-card.power-off .job,ha-card.power-off .filament,ha-card.power-off .warnings,ha-card.power-off .electricity,ha-card.power-off .controls,ha-card.power-off .preview,ha-card.power-off .gui-screen,ha-card.power-off .led-control{display:none!important}
       .inventory{margin-top:16px;border:1px solid #334a5b;border-radius:12px;padding:10px 12px;background:#0c1a27}.inventory summary{cursor:pointer;font-size:13px;font-weight:700;display:flex;justify-content:space-between;align-items:center}.inventory summary span{color:#91afc1;font-size:11px}.inventory-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px;margin-top:12px}.inventory-item{display:flex;align-items:center;gap:10px;padding:9px;background:#172a3a;border-radius:10px;min-width:0}.inventory-reel{width:34px;height:34px;flex:none;border-radius:50%;background:radial-gradient(circle at center,#152535 0 20%,#7c8790 22% 29%,var(--filament) 31% 70%,#647584 72% 78%,#1b2b38 80%);box-shadow:0 2px 8px #0007}.inventory-info{display:flex;flex-direction:column;min-width:0;gap:2px}.inventory-info b{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info small{font-size:10px;color:#9cb2c2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.inventory-info strong{font-size:11px;color:#d7e8f3}
-      .electricity{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px}.electricity-usage,.electricity-costs{display:flex;flex-wrap:wrap;gap:8px;width:100%}.electricity-costs span{flex:1 1 80px;min-width:0}@media(max-width:550px){.electricity-costs{flex-wrap:nowrap;gap:5px}.electricity-costs span{font-size:10px;padding:7px 5px;white-space:nowrap;text-align:center}}.electricity span{background:#162c3e;border:1px solid #33495c;border-radius:8px;padding:8px}.filament-check{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px}.filament-check span{padding:6px 8px;border-radius:7px;background:#193b30}.filament-check .low{background:#603223;color:#ffe3bf}.compact{padding:11px!important}.compact .top{margin-bottom:2px}.compact .title{font-size:14px;letter-spacing:.055em}.compact .status{font-size:11px}.compact .scene-layout{grid-template-columns:minmax(44px,1fr) minmax(0,2.8fr) minmax(44px,1fr);gap:2px;max-width:320px;margin:0 auto}.compact .scene{max-width:205px;margin:1px auto 0}.compact .tool{transform:scale(.82);transform-origin:center center}.compact .tools-side{gap:2px}.compact .filament-overlay{opacity:.8}.compact .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px}.compact .metric{padding:5px 4px;border-radius:7px}.compact .metric label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compact .metric b{font-size:11px;white-space:nowrap}.compact .electricity{gap:4px;margin-top:5px;font-size:10px}.compact .electricity span{padding:5px}.compact .printer-controls{gap:4px;margin-top:6px}.compact .printer-action{padding:6px 2px;font-size:10px;gap:2px;border-radius:7px}.compact .printer-action span{font-size:16px}.compact .preview-panel,.compact .camera-panel,.compact .inventory{margin-top:5px;padding:7px;border-radius:8px}.compact .filament-check{margin-top:4px;gap:4px}.compact .bar{margin-top:7px}.compact .foot{font-size:10px}.compact .inventory[open]{padding:8px}@media(max-width:350px){.compact .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.compact .scene{max-width:180px}.compact .tool{transform:scale(.74)}}
+      .electricity{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;font-size:11px}.electricity-usage,.electricity-costs{display:flex;flex-wrap:wrap;gap:8px;width:100%}.electricity-costs span{flex:1 1 80px;min-width:0}@media(max-width:550px){.electricity-costs{flex-wrap:nowrap;gap:5px}.electricity-costs span{font-size:10px;padding:7px 5px;white-space:nowrap;text-align:center}}.electricity span{background:#162c3e;border:1px solid #33495c;border-radius:8px;padding:8px}.chart-toggle-row{margin-top:9px}.chart-visibility-toggle{padding:7px 11px;background:var(--u1-tile,#172a3a);border:1px solid var(--u1-line,#33495c);color:var(--u1-text,#edf5ff);border-radius:8px;font:inherit;font-size:11px;cursor:pointer}.chart-visibility-toggle:focus-visible{outline:2px solid var(--u1-accent,#65c9ff);outline-offset:2px}.filament-check{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;font-size:11px}.filament-check span{padding:6px 8px;border-radius:7px;background:#193b30}.filament-check .low{background:#603223;color:#ffe3bf}.compact{padding:11px!important}.compact .top{margin-bottom:2px}.compact .title{font-size:14px;letter-spacing:.055em}.compact .status{font-size:11px}.compact .scene-layout{grid-template-columns:minmax(44px,1fr) minmax(0,2.8fr) minmax(44px,1fr);gap:2px;max-width:320px;margin:0 auto}.compact .scene{max-width:205px;margin:1px auto 0}.compact .tool{transform:scale(.82);transform-origin:center center}.compact .tools-side{gap:2px}.compact .filament-overlay{opacity:.8}.compact .metrics{grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;margin-top:3px}.compact .metric{padding:5px 4px;border-radius:7px}.compact .metric label{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.compact .metric b{font-size:11px;white-space:nowrap}.compact .electricity{gap:4px;margin-top:5px;font-size:10px}.compact .electricity span{padding:5px}.compact .printer-controls{gap:4px;margin-top:6px}.compact .printer-action{padding:6px 2px;font-size:10px;gap:2px;border-radius:7px}.compact .printer-action span{font-size:16px}.compact .preview-panel,.compact .camera-panel,.compact .inventory{margin-top:5px;padding:7px;border-radius:8px}.compact .filament-check{margin-top:4px;gap:4px}.compact .bar{margin-top:7px}.compact .foot{font-size:10px}.compact .inventory[open]{padding:8px}@media(max-width:350px){.compact .metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.compact .scene{max-width:180px}.compact .tool{transform:scale(.74)}}
       .preview-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.preview-panel summary{cursor:pointer;font-size:12px;font-weight:650}.preview-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;color:#b5c7d8;font-size:12px}.preview-body img{width:100%;max-height:260px;object-fit:contain;border-radius:8px;background:#06121b}.preview-body strong{max-width:100%;overflow-wrap:anywhere}.preview-body small{color:#a7bece}
       .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.energy-charts{margin:10px 0;padding:12px;border:1px solid var(--divider-color,#344b5e);border-radius:12px;background:var(--secondary-background-color,#1d2935);color:var(--primary-text-color,#edf5ff)}.energy-charts summary{cursor:pointer;font-weight:650;color:var(--primary-text-color,#edf5ff)}.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}.chart-grid>div{min-width:0}.chart-grid small{display:block;color:var(--primary-text-color,#b5cbd9)}.chart-with-axis{display:flex;align-items:stretch;gap:4px;margin-top:4px}.chart-y-axis{display:flex;flex-direction:column;justify-content:space-between;flex:0 0 auto;font-size:9px;line-height:1.1;color:var(--secondary-text-color,#93a8b8);text-align:right;min-width:24px}.chart-grid svg{width:100%;min-width:0;flex:1;height:75px;display:block;background:var(--card-background-color,#071723);border-radius:6px}.chart-note{color:var(--secondary-text-color,#93a8b8);display:block;margin-top:8px}
       .camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b;cursor:zoom-in}
@@ -589,15 +609,40 @@ ${heads}
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
+    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle");
+    chartToggle?.addEventListener("click",()=>{this._chartsVisible=!this._chartsVisible;this.render();});
+    const chartDetails=this.shadowRoot.querySelector("details.energy-charts");
+    chartDetails?.addEventListener("toggle",()=>{this._chartsOpen=chartDetails.open;});
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
     if(cameraDetails){
       cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
-      const image=cameraDetails.querySelector("img.camera-image");
-      if(image){
-        const reveal=()=>{if(image.naturalWidth>0&&image.naturalHeight>0)cameraDetails.style.display="";};
-        image.addEventListener("load",reveal);
-        image.addEventListener("error",()=>{cameraDetails.style.display="none";});
-        if(image.complete)reveal();
+      const host=cameraDetails.querySelector(".native-camera-host");
+      if(host&&c.live_camera){
+        // Render through Home Assistant itself, as a normal picture-entity camera.
+        // No direct camera URL, power switch, or proxy format is required.
+        try{
+          let nativeCamera=this._nativeCameraCard;
+          if(!nativeCamera||this._nativeCameraEntity!==c.live_camera){
+            nativeCamera=document.createElement("hui-picture-entity-card");
+            nativeCamera.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+            this._nativeCameraCard=nativeCamera;
+            this._nativeCameraEntity=c.live_camera;
+          }
+          nativeCamera.hass=this._hass;
+          host.appendChild(nativeCamera);
+        }catch(error){
+          // Keep an ordinary camera image as a fallback on older HA frontends.
+          if(cameraUrl){
+            const img=document.createElement("img");
+            img.className="camera-image";
+            img.src=cameraUrl;
+            img.alt="Snapmaker U1";
+            img.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
+            host.appendChild(img);
+          }else{
+            host.textContent=lang==="es"?"No se pudo iniciar la cámara. Revisa la entidad en Home Assistant.":"Could not initialize camera. Check the entity in Home Assistant.";
+          }
+        }
       }
     }
     const zoom=this.shadowRoot.querySelector(".camera-zoom");
@@ -748,10 +793,10 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
-    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"],["show_print_charts","Mostrar gráficos de impresión"],["charts_open_default","Gráficos abiertos por defecto"],["chart_power","Gráfico: potencia (W)"],["chart_energy","Gráfico: energía (kWh)"],["chart_cost","Gráfico: coste eléctrico (€)"]]){
+    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"],["show_energy","Mostrar potencia, energía y costes"],["show_print_charts","Mostrar gráficos de impresión"],["charts_open_default","Gráficos abiertos por defecto"],["chart_power","Gráfico: potencia (W)"],["chart_energy","Gráfico: energía (kWh)"],["chart_cost","Gráfico: coste eléctrico (€)"]]){
       const row=document.createElement("label");
       row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
-      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=["show_print_charts","charts_open_default","chart_power","chart_energy","chart_cost"].includes(key)?this._config[key]!==false:this._config[key]===true;
+      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=["show_energy","show_print_charts","charts_open_default","chart_power","chart_energy","chart_cost"].includes(key)?this._config[key]!==false:this._config[key]===true;
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
