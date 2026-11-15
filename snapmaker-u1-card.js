@@ -375,8 +375,9 @@ class SnapmakerU1Card extends HTMLElement {
     const chartsHtml=c.show_print_charts===false?"":`<div class="chart-toggle-row"><button type="button" class="chart-visibility-toggle" aria-expanded="${this._chartsVisible?"true":"false"}">${this._chartsVisible?(lang==="es"?"Ocultar gráficos de impresión":"Hide print charts"):(lang==="es"?"Mostrar gráficos de impresión":"Show print charts")}</button></div>${this._chartsVisible?`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:""}`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
-    if(this._energyVisible===undefined)this._energyVisible=true;
-    const electricityHtml=c.show_energy===false?"":`<div class="chart-toggle-row"><button type="button" class="energy-visibility-toggle chart-visibility-toggle" aria-expanded="${this._energyVisible?"true":"false"}">${this._energyVisible?(lang==="es"?"Ocultar potencia y energía":"Hide power and energy"):(lang==="es"?"Mostrar potencia y energía":"Show power and energy")}</button></div>${this._energyVisible?`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:""}`;
+    // Electricity visibility is configured in the visual editor (show_energy).
+    // Do not add an extra toggle to the card itself.
+    const electricityHtml=c.show_energy===false?"":`<div class="electricity"><div class="electricity-usage"><span>⚡ ${lang==="es"?"Potencia":"Power"}: <b>${power===null?"—":Math.round(power)+" W"}</b></span><span>${energyLabel}: <b>${energyText}</b></span></div><div class="electricity-costs"><span>${lang==="es"?"Electricidad":"Electricity"}: <b>${money(jobCost)}</b></span><span>${lang==="es"?"Material":"Material"}: <b>${money(materialCost)}</b></span><span class="total-print-cost">${lang==="es"?"Total":"Total"}: <b>${money(combinedCost)}</b></span></div></div>`:"";
     // Only expose the per-tool required/remaining weight comparison when a
     // Spoolman spool is actually mapped to the card. Lava-only configurations
     // cannot reliably report remaining inventory.
@@ -608,9 +609,7 @@ ${heads}
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
-    const energyToggle=this.shadowRoot.querySelector("button.energy-visibility-toggle");
-    energyToggle?.addEventListener("click",()=>{this._energyVisible=!this._energyVisible;this.render();});
-    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle:not(.energy-visibility-toggle)");
+    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle");
     chartToggle?.addEventListener("click",()=>{this._chartsVisible=!this._chartsVisible;this.render();});
     const chartDetails=this.shadowRoot.querySelector("details.energy-charts");
     chartDetails?.addEventListener("toggle",()=>{this._chartsOpen=chartDetails.open;});
@@ -794,10 +793,10 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const syncPriceFields=()=>{extra.querySelector("[data-sensor-row]").hidden=mode.value!=="sensor";extra.querySelector("[data-fixed-row]").hidden=mode.value!=="fixed";};
     mode.addEventListener("change",()=>{this.change("electricity_price_mode",mode.value);syncPriceFields();});syncPriceFields();
     const rateInput=extra.querySelector("[data-rate]");rateInput.value=this._config.electricity_price??"";rateInput.addEventListener("change",()=>this.change("electricity_price",rateInput.value===""?null:Number(rateInput.value)));
-    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"],["show_print_charts","Mostrar gráficos de impresión"],["charts_open_default","Gráficos abiertos por defecto"],["chart_power","Gráfico: potencia (W)"],["chart_energy","Gráfico: energía (kWh)"],["chart_cost","Gráfico: coste eléctrico (€)"]]){
+    for(const [key,label] of [["camera_open_default","Cámara abierta por defecto"],["gui_open_default","Mostrar pantalla al iniciar"],["show_energy","Mostrar potencia, energía y costes"],["show_print_charts","Mostrar gráficos de impresión"],["charts_open_default","Gráficos abiertos por defecto"],["chart_power","Gráfico: potencia (W)"],["chart_energy","Gráfico: energía (kWh)"],["chart_cost","Gráfico: coste eléctrico (€)"]]){
       const row=document.createElement("label");
       row.style.cssText="display:flex;align-items:center;gap:10px;margin:10px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
-      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=["show_print_charts","charts_open_default","chart_power","chart_energy","chart_cost"].includes(key)?this._config[key]!==false:this._config[key]===true;
+      const checkbox=document.createElement("input");checkbox.type="checkbox";checkbox.style.width="auto";checkbox.checked=["show_energy","show_print_charts","charts_open_default","chart_power","chart_energy","chart_cost"].includes(key)?this._config[key]!==false:this._config[key]===true;
       checkbox.addEventListener("change",()=>this.change(key,checkbox.checked));
       row.append(checkbox,document.createTextNode(label));this.shadowRoot.appendChild(row);
     }
