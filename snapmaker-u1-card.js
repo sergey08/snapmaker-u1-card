@@ -610,7 +610,7 @@ ${heads}
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
     const energyToggle=this.shadowRoot.querySelector("button.energy-visibility-toggle");
     energyToggle?.addEventListener("click",()=>{this._energyVisible=!this._energyVisible;this.render();});
-    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle");
+    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle:not(.energy-visibility-toggle)");
     chartToggle?.addEventListener("click",()=>{this._chartsVisible=!this._chartsVisible;this.render();});
     const chartDetails=this.shadowRoot.querySelector("details.energy-charts");
     chartDetails?.addEventListener("toggle",()=>{this._chartsOpen=chartDetails.open;});
