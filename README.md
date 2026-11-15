@@ -25,6 +25,8 @@ The card supports **English (`en`), Español (`es`), Français (`fr`), Deutsch (
 - Four toolheads (T0–T3), temperatures, active tool and filament information.
 - Print status, progress, layers, estimated time and current-job thumbnail.
 - Optional camera, Spoolman inventory and filament colours and weights.
+- Show or hide the entire print-charts section with a button directly on the card; the per-tool required/remaining gram comparison is hidden when no Spoolman spool is mapped.
+- Live printer camera uses Home Assistant's native camera display, without requiring a smart-plug power entity.
 - Optional power, energy and estimated electricity cost.
 - Compatible print controls, with confirmation for destructive actions.
 - Optional printer light control with a bulb button and 0–100% brightness slider.
@@ -135,6 +137,8 @@ La tarjeta admite **inglés (`en`), español (`es`), francés (`fr`), alemán (`
 - Cuatro cabezales (T0–T3), temperaturas, herramienta activa y filamento.
 - Estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
 - Cámara, inventario Spoolman, colores y pesos de filamento opcionales.
+- Botón en la propia tarjeta para mostrar u ocultar todo el apartado de gráficos de impresión; la comparación de gramos necesarios/restantes T0–T3 se oculta cuando no hay ninguna bobina de Spoolman asociada.
+- La cámara utiliza la visualización nativa de Home Assistant, sin depender de una entidad de enchufe inteligente.
 - Potencia, energía y coste eléctrico estimado opcionales.
 - Controles de impresión compatibles, con confirmación para acciones destructivas.
 - Control opcional de luz mediante bombilla y barra de brillo de 0 a 100 %.
