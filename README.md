@@ -12,9 +12,9 @@ A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four too
 
 [![Open in Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Latest release: v0.1.16
+## Latest release: v0.1.17
 
-This release uses a compact illustration (240 × 150 px) in the catalog. It includes the previously released v0.1.15 picker localization and preview improvements. See [v0.1.16 release notes](docs/releases/v0.1.16.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+This release fixes the live camera using Home Assistant's native camera display, hides per-tool filament weight comparisons when Spoolman is not configured, respects disabled print charts, and adds an editor-only option to show or hide power, energy and cost information. See [v0.1.17 release notes](docs/releases/v0.1.17.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Card languages
 
@@ -124,9 +124,9 @@ Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuat
 
 [![Abrir en Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Última versión: v0.1.16
+## Última versión: v0.1.17
 
-Esta versión usa una ilustración compacta (240 × 150 px) en el catálogo. Incluye las mejoras ya publicadas en v0.1.15 del selector multidioma y la vista previa. Consulta las [notas de v0.1.16](docs/releases/v0.1.16.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+Esta versión corrige la cámara en directo usando el visor nativo de Home Assistant, oculta los pesos por cabezal cuando no hay Spoolman configurado, respeta la desactivación de gráficos y añade la opción de mostrar u ocultar potencia, energía y costes únicamente en el editor visual. Consulta las [notas de v0.1.17](docs/releases/v0.1.17.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Idiomas de la tarjeta
 
