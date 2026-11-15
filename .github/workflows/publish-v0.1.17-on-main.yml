@@ -1,0 +1,62 @@
+name: Publish Snapmaker U1 Card v0.1.17 stable
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/releases/v0.1.17.md
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapmaker-u1-v0.1.17-stable
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'sergey08/snapmaker-u1-card'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate stable source and metadata
+        run: |
+          set -euo pipefail
+          node --check snapmaker-u1-card.js
+          node tests/validate-card.cjs
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          h = json.loads(Path('hacs.json').read_text())
+          assert h['filename'] == 'snapmaker-u1-card.js'
+          assert Path(h['filename']).is_file()
+          notes = Path('docs/releases/v0.1.17.md').read_text()
+          assert '## English' in notes and '## Español' in notes
+          readme = Path('README.md').read_text()
+          assert '## Latest release: v0.1.17' in readme
+          assert '## Última versión: v0.1.17' in readme
+          for image in ('card-full.png','card-compact.png','setup-wizard.png','spoolman-inventory.png'):
+              assert (Path('assets/screenshots') / image).stat().st_size > 0
+          PY
+      - name: Publish stable release on merged main commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v0.1.17
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release exists; refusing to overwrite stable."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag exists; refusing to move stable."
+            exit 1
+          fi
+          gh release create "$TAG" snapmaker-u1-card.js \
+            --target "$GITHUB_SHA" \
+            --title "Snapmaker U1 Card $TAG" \
+            --notes-file docs/releases/v0.1.17.md \
+            --latest
