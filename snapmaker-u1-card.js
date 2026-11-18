@@ -423,6 +423,9 @@ class SnapmakerU1Card extends HTMLElement {
       .native-camera-host .camera-enlarge-trigger{position:absolute;inset:0;width:100%;height:100%;z-index:3;border:0;background:transparent;cursor:zoom-in}
       dialog.u1-media-dialog{position:fixed;inset:0;box-sizing:border-box;width:min(96vw,1200px);max-width:96vw;height:auto;max-height:94vh;padding:12px;border-radius:14px;border:1px solid #526b82;background:#0b1621;color:#f2f6fb;box-shadow:0 14px 60px #000a;overflow:auto}
       dialog.u1-media-dialog::backdrop{background:rgba(0,0,0,.88)}
+      dialog.u1-media-dialog.u1-thumbnail-dialog{width:min(92vw,600px);max-width:92vw;max-height:82vh;padding:12px}
+      .u1-thumbnail-dialog .u1-media-content{min-height:0;max-height:calc(82vh - 85px);overflow:hidden;border-radius:9px}
+      .u1-thumbnail-dialog .u1-media-content img{width:auto;height:auto;max-width:100%;max-height:calc(82vh - 85px);object-fit:contain}
       .u1-media-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;font-size:15px;font-weight:700}
       .u1-media-close{border:1px solid #64809a;border-radius:8px;background:#203c53;color:#fff;padding:7px 13px;cursor:pointer;font-size:20px}
       .u1-media-content{width:100%;display:flex;justify-content:center;align-items:center;min-height:100px}
@@ -674,6 +677,7 @@ ${heads}
     const openMedia=kind=>{
       if(!mediaDialog||!mediaContent||mediaDialog.open)return;
       mediaContent.replaceChildren();
+      mediaDialog.classList.toggle("u1-thumbnail-dialog",kind==="thumbnail");
       this._zoomCameraCard=null;
       if(kind==="camera"){
         if(!c.live_camera||!this._hass?.states?.[c.live_camera])return;
@@ -694,9 +698,47 @@ ${heads}
         const url=pictureState?.attributes?.entity_picture||thumbUrl;
         if(!url)return;
         mediaTitle.textContent=lang==="es"?"Imagen del trabajo actual":"Current job image";
-        const image=document.createElement("img");image.src=url;
+        const image=document.createElement("img");
         image.alt=mediaTitle.textContent;
+        image.src=url;
         mediaContent.appendChild(image);
+        // Slicer thumbnails may have large transparent margins. Crop only
+        // transparent padding in the enlarged view, never alter the source.
+        image.addEventListener("load",()=>{
+          if(!image.naturalWidth||!image.naturalHeight||!mediaDialog.open)return;
+          try{
+            const canvas=document.createElement("canvas");
+            canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+            const ctx=canvas.getContext("2d",{willReadFrequently:true});
+            if(!ctx)return;
+            ctx.drawImage(image,0,0);
+            const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+            let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
+            const step=Math.max(1,Math.floor(Math.max(canvas.width,canvas.height)/1600));
+            for(let y=0;y<canvas.height;y+=step)for(let x=0;x<canvas.width;x+=step){
+              if(pixels[(y*canvas.width+x)*4+3]>20){
+                if(x<minX)minX=x;if(y<minY)minY=y;
+                if(x>maxX)maxX=x;if(y>maxY)maxY=y;
+              }
+            }
+            if(maxX<minX||maxY<minY)return;
+            const boundsWidth=maxX-minX+1,boundsHeight=maxY-minY+1;
+            if(boundsWidth*boundsHeight>canvas.width*canvas.height*.75)return;
+            const pad=Math.ceil(Math.max(boundsWidth,boundsHeight)*.08);
+            const left=Math.max(0,minX-pad),top=Math.max(0,minY-pad);
+            const width=Math.min(canvas.width-left,boundsWidth+2*pad);
+            const height=Math.min(canvas.height-top,boundsHeight+2*pad);
+            const cropped=document.createElement("canvas");
+            cropped.width=width;cropped.height=height;
+            cropped.getContext("2d")?.drawImage(canvas,left,top,width,height,0,0,width,height);
+            // Avoid firing a second crop pass on the newly assigned data URL.
+            image.onload=null;
+            image.replaceWith(cropped);
+            cropped.style.cssText="display:block;max-width:100%;max-height:calc(82vh - 85px);width:auto;height:auto;object-fit:contain";
+          }catch(e){
+            // Cross-origin and unusual camera-image formats keep original view.
+          }
+        },{once:true});
       }
       if(typeof mediaDialog.showModal==="function"){
         mediaDialog.showModal();
