@@ -60,6 +60,11 @@ class SnapmakerU1Card extends HTMLElement {
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
     if (!this.shadowRoot || !this.config) return;
+    const activeMediaDialog=this.shadowRoot.querySelector("dialog.u1-media-dialog");
+    if(activeMediaDialog?.open){
+      if(this._zoomCameraCard)this._zoomCameraCard.hass=this._hass;
+      return;
+    }
     // Replacing the fullscreen element via innerHTML exits fullscreen in browsers.
     // Defer DOM reconstruction until the camera leaves fullscreen; image refresh
     // remains active independently and the latest HA state is retained in _hass.
@@ -390,7 +395,7 @@ class SnapmakerU1Card extends HTMLElement {
     });
     const filamentHtml=hasSpoolmanMapping&&filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
-    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}${etaConfidence}</span></div></div>`:"";
+    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img class="job-thumbnail-zoom" src="${this.esc(thumbUrl)}" alt="${lang==="es"?"Ampliar imagen del trabajo actual":"Enlarge current job image"}" title="${lang==="es"?"Ampliar imagen":"Enlarge image"}" loading="lazy" tabindex="0" role="button">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}${etaConfidence}</span></div></div>`:"";
     // The current print thumbnail is already shown in the job summary.
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
@@ -414,7 +419,17 @@ class SnapmakerU1Card extends HTMLElement {
       .preview-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.preview-panel summary{cursor:pointer;font-size:12px;font-weight:650}.preview-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;color:#b5c7d8;font-size:12px}.preview-body img{width:100%;max-height:260px;object-fit:contain;border-radius:8px;background:#06121b}.preview-body strong{max-width:100%;overflow-wrap:anywhere}.preview-body small{color:#a7bece}
       .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.energy-charts{margin:10px 0;padding:12px;border:1px solid var(--divider-color,#344b5e);border-radius:12px;background:var(--secondary-background-color,#1d2935);color:var(--primary-text-color,#edf5ff)}.energy-charts summary{cursor:pointer;font-weight:650;color:var(--primary-text-color,#edf5ff)}.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}.chart-grid>div{min-width:0}.chart-grid small{display:block;color:var(--primary-text-color,#b5cbd9)}.chart-with-axis{display:flex;align-items:stretch;gap:4px;margin-top:4px}.chart-y-axis{display:flex;flex-direction:column;justify-content:space-between;flex:0 0 auto;font-size:9px;line-height:1.1;color:var(--secondary-text-color,#93a8b8);text-align:right;min-width:24px}.chart-grid svg{width:100%;min-width:0;flex:1;height:75px;display:block;background:var(--card-background-color,#071723);border-radius:6px}.chart-note{color:var(--secondary-text-color,#93a8b8);display:block;margin-top:8px}
       .camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b;cursor:zoom-in}
-      .camera-zoom[hidden]{display:none!important}.camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
+      .camera-zoom[hidden]{display:none!important}.job-thumbnail-zoom{cursor:zoom-in}.job-thumbnail-zoom:focus-visible,.camera-enlarge-trigger:focus-visible{outline:3px solid var(--u1-accent,#65c9ff);outline-offset:2px}
+      .native-camera-host{position:relative;min-height:70px}
+      .native-camera-host .camera-enlarge-trigger{position:absolute;inset:0;width:100%;height:100%;z-index:3;border:0;background:transparent;cursor:zoom-in}
+      dialog.u1-media-dialog{position:fixed;inset:0;box-sizing:border-box;width:min(96vw,1200px);max-width:96vw;height:auto;max-height:94vh;padding:12px;border-radius:14px;border:1px solid #526b82;background:#0b1621;color:#f2f6fb;box-shadow:0 14px 60px #000a;overflow:auto}
+      dialog.u1-media-dialog::backdrop{background:rgba(0,0,0,.88)}
+      .u1-media-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;font-size:15px;font-weight:700}
+      .u1-media-close{border:1px solid #64809a;border-radius:8px;background:#203c53;color:#fff;padding:7px 13px;cursor:pointer;font-size:20px}
+      .u1-media-content{width:100%;display:flex;justify-content:center;align-items:center;min-height:100px}
+      .u1-media-content hui-picture-entity-card{display:block;width:100%;max-width:1100px}
+      .u1-media-content img{display:block;max-width:100%;max-height:calc(94vh - 95px);object-fit:contain}
+      .camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
       .camera-zoom-image{max-width:100%;max-height:100%;object-fit:contain}.camera-zoom-toolbar{position:absolute;top:10px;right:14px;display:flex;gap:8px}
       .camera-zoom-toolbar button{background:#203c53;color:#fff;border:1px solid #64809a;border-radius:8px;padding:8px 12px;cursor:pointer}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
@@ -507,7 +522,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":statusMissing(state)?({es:"Conectando…",en:"Connecting…",fr:"Connexion…",de:"Verbindung wird hergestellt…",it:"Connessione in corso…",pt:"A ligar…",nl:"Verbinden…"}[lang]||"Connecting…"):this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":statusMissing(state)?({es:"Conectando…",en:"Connecting…",fr:"Connexion…",de:"Verbindung wird hergestellt…",it:"Connessione in corso…",pt:"A ligar…",nl:"Verbinden…"}[lang]||"Connecting…"):this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card><dialog class="u1-media-dialog" aria-label="${lang==="es"?"Ampliación de imagen":"Image enlargement"}"><div class="u1-media-header"><strong class="u1-media-title"></strong><button class="u1-media-close" type="button" aria-label="${lang==="es"?"Cerrar":"Close"}">✕</button></div><div class="u1-media-content"></div></dialog>`;
     const chartsPanel=this.shadowRoot.querySelector(".energy-charts");
     if(chartsPanel){chartsPanel.addEventListener("toggle",()=>{this._chartsOpen=chartsPanel.open;});}
     if(lang!=="es"){
@@ -645,18 +660,67 @@ ${heads}
         }
       }
     }
-    const zoom=this.shadowRoot.querySelector(".camera-zoom");
-    if(zoom){
-      const closeZoom=()=>{this._cameraZoomOpen=false;if(document.fullscreenElement===zoom&&document.exitFullscreen){document.exitFullscreen().catch(()=>{}).finally(()=>{zoom.hidden=true;});}else{zoom.hidden=true;}};
-      const openZoom=()=>{this._cameraZoomOpen=true;zoom.hidden=false;zoom.querySelector(".camera-zoom-close")?.focus();};
-      const cameraImage=this.shadowRoot.querySelector("img.camera-image");
-      cameraImage?.addEventListener("click",openZoom);
-      cameraImage?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openZoom();}});
-      zoom.querySelector(".camera-zoom-close")?.addEventListener("click",closeZoom);
-      zoom.addEventListener("click",e=>{if(e.target===zoom)closeZoom();});
-      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(document.fullscreenElement===zoom){document.exitFullscreen?.().catch(()=>{});}else if(!document.fullscreenElement){zoom.requestFullscreen?.().catch(()=>{});}});
-      zoom.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();closeZoom();}});
+    // Native Home Assistant camera renders inside a custom element, not img.camera-image.
+    // Use an accessible top-layer <dialog> for both live camera and job thumbnail.
+    const mediaDialog=this.shadowRoot.querySelector("dialog.u1-media-dialog");
+    const mediaContent=mediaDialog?.querySelector(".u1-media-content");
+    const mediaTitle=mediaDialog?.querySelector(".u1-media-title");
+    const closeMedia=()=>{if(mediaDialog?.open)mediaDialog.close();};
+    if(mediaDialog){
+      mediaDialog.querySelector(".u1-media-close")?.addEventListener("click",closeMedia);
+      mediaDialog.addEventListener("click",e=>{if(e.target===mediaDialog)closeMedia();});
+      mediaDialog.addEventListener("close",()=>{
+        this._zoomCameraCard=null;
+        if(this.isConnected)this.render();
+      });
     }
+    const openMedia=kind=>{
+      if(!mediaDialog||!mediaContent||mediaDialog.open)return;
+      mediaContent.replaceChildren();
+      this._zoomCameraCard=null;
+      if(kind==="camera"){
+        if(!c.live_camera||!this._hass?.states?.[c.live_camera])return;
+        mediaTitle.textContent=lang==="es"?"Cámara de la impresora":"Printer camera";
+        try{
+          const live=document.createElement("hui-picture-entity-card");
+          live.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+          live.hass=this._hass;
+          mediaContent.appendChild(live);
+          this._zoomCameraCard=live;
+        }catch(error){
+          if(!cameraUrl)return;
+          const img=document.createElement("img");img.src=cameraUrl;img.alt=mediaTitle.textContent;
+          mediaContent.appendChild(img);
+        }
+      }else{
+        const pictureState=this._hass?.states?.[c.thumbnail_camera];
+        const url=pictureState?.attributes?.entity_picture||thumbUrl;
+        if(!url)return;
+        mediaTitle.textContent=lang==="es"?"Imagen del trabajo actual":"Current job image";
+        const image=document.createElement("img");image.src=url;
+        image.alt=mediaTitle.textContent;
+        mediaContent.appendChild(image);
+      }
+      if(typeof mediaDialog.showModal==="function"){
+        mediaDialog.showModal();
+        mediaDialog.querySelector(".u1-media-close")?.focus();
+      }
+    };
+    const cameraHost=cameraDetails?.querySelector(".native-camera-host");
+    if(cameraHost){
+      const trigger=document.createElement("button");
+      trigger.type="button";
+      trigger.className="camera-enlarge-trigger";
+      trigger.setAttribute("aria-label",lang==="es"?"Ampliar cámara":"Enlarge camera");
+      trigger.title=lang==="es"?"Ampliar cámara":"Enlarge camera";
+      cameraHost.appendChild(trigger);
+      trigger.addEventListener("click",e=>{e.stopPropagation();openMedia("camera");});
+    }
+    const thumbnail=this.shadowRoot.querySelector(".job-thumbnail-zoom");
+    thumbnail?.addEventListener("click",()=>openMedia("thumbnail"));
+    thumbnail?.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();openMedia("thumbnail");}
+    });
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
     if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
   }
