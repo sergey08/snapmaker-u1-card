@@ -169,6 +169,24 @@ assert(source.includes('stream.src=mjpegUrl'), 'MJPEG stream must be used by liv
 assert(source.includes('stream.addEventListener("error"'), 'MJPEG stream must gracefully fall back to native camera');
 console.log('Live camera and current-job thumbnail lightbox regression checks passed.');
 
+// Movable blocks must be stable, unique and backwards-compatible.
+const blockIds=vm.runInContext('SNAPMAKER_BLOCK_DEFINITIONS.map(b=>b.id)',context);
+assert.equal(blockIds.length,12,'Expected twelve individually movable card blocks');
+assert.equal(new Set(blockIds).size,12,'Duplicate block identifiers');
+assert.deepEqual([...vm.runInContext('snapmakerBlockOrder(undefined)',context)], [...blockIds], 'Existing cards must keep current default order');
+const customOrder=vm.runInContext('snapmakerBlockOrder(["camera","progress","camera","unknown"])',context);
+assert.equal(customOrder[0],"camera",'Configured first block must be honored');
+assert.equal(customOrder[1],"progress",'Configured second block must be honored');
+assert.equal([...customOrder].length,12,'Missing blocks must be appended');
+assert.equal([...new Set(customOrder)].length,12,'Invalid and duplicate IDs must be removed');
+assert(source.includes('cardSurface.replaceChildren(...blockElements)'), 'Visual blocks must reorder actual live DOM nodes');
+assert(source.includes('this.change("block_order",current)'), 'Editor must persist order in Lovelace configuration');
+assert(source.includes('handle.draggable=true'), 'Six-dot drag handle missing');
+assert(source.includes('handle.textContent="⠿"'), 'VE Builder six-dot handle missing');
+assert(source.includes('e.altKey&&(e.key==="ArrowUp"||e.key==="ArrowDown")'), 'Keyboard block ordering missing');
+assert(source.includes('this.buildBlockOrderEditor()'), 'Block order editor must be visible');
+console.log('Twelve draggable, persistent card blocks verified.');
+
 // Prevent obsolete preview settings and missing job-label translations from returning.
 assert(!source.includes('["preview_open_default","Miniatura abierta por defecto"]'), 'Removed preview toggle must not reappear in the editor');
 for (const locale of ['en', 'fr', 'de', 'it', 'pt', 'nl']) {
