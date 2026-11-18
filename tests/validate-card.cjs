@@ -157,6 +157,8 @@ assert(source.includes('class="job-thumbnail-zoom"'), 'Current-job thumbnail mus
 assert(source.includes('openMedia("thumbnail")'), 'Current-job thumbnail must open lightbox');
 assert(source.includes('mediaDialog.addEventListener("close"'), 'Closing the modal must restore normal card updates');
 assert(source.includes('if(activeMediaDialog?.open)'), 'Active modal must survive routine Home Assistant card updates');
+assert(source.includes('u1-thumbnail-dialog'), 'Thumbnail viewer must have a compact layout');
+assert(source.includes('ctx.getImageData(0,0,canvas.width,canvas.height).data'), 'Thumbnail viewer should remove large transparent margins when possible');
 console.log('Live camera and current-job thumbnail lightbox regression checks passed.');
 
 // Prevent obsolete preview settings and missing job-label translations from returning.
