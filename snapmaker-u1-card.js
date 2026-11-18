@@ -374,10 +374,9 @@ class SnapmakerU1Card extends HTMLElement {
       const unit=entity?.attributes?.unit_of_measurement||"";
       return `<div><small>${this.esc(label)}${unit?" ("+this.esc(unit)+")":""}</small>${spark("value",color,history)}</div>`;
     }).join("");
-    // The print-chart panel may be shown/hidden without editing YAML.
-    // If the charts are disabled in the editor, show neither charts nor toggle.
-    if(this._chartsVisible===undefined)this._chartsVisible=c.show_print_charts!==false;
-    const chartsHtml=c.show_print_charts===false?"":`<div class="chart-toggle-row"><button type="button" class="chart-visibility-toggle" aria-expanded="${this._chartsVisible?"true":"false"}">${this._chartsVisible?(lang==="es"?"Ocultar gráficos de impresión":"Hide print charts"):(lang==="es"?"Mostrar gráficos de impresión":"Show print charts")}</button></div>${this._chartsVisible?`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:""}`;
+    // Print charts visibility is controlled exclusively by the visual editor.
+    // The standard details header still allows expanding/collapsing the panel.
+    const chartsHtml=c.show_print_charts===false?"":`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
     // Electricity visibility is configured in the visual editor (show_energy).
@@ -624,8 +623,6 @@ ${heads}
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
-    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle");
-    chartToggle?.addEventListener("click",()=>{this._chartsVisible=!this._chartsVisible;this.render();});
     const chartDetails=this.shadowRoot.querySelector("details.energy-charts");
     chartDetails?.addEventListener("toggle",()=>{this._chartsOpen=chartDetails.open;});
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
