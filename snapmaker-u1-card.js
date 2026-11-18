@@ -402,6 +402,14 @@ class SnapmakerU1Card extends HTMLElement {
     // Home Assistant's native picture-entity card supports streaming cameras whose
     // picture URL is absent, non-proxy, or not suitable for a plain <img> tag.
     const cameraState=c.live_camera?this._hass?.states?.[c.live_camera]:null;
+    // Cameras without the HA STREAM feature (notably MJPEG IP Camera)
+    // need the MJPEG proxy, not the picture-entity snapshot fallback.
+    const cameraPlatform=this._hass?.entities?.[c.live_camera]?.platform;
+    const isMjpegCamera=c.live_camera&&cameraPlatform==="mjpeg"||
+      (c.live_camera&&!cameraPlatform&&Number(cameraState?.attributes?.supported_features)===0);
+    const accessToken=cameraState?.attributes?.access_token;
+    const mjpegUrl=isMjpegCamera&&accessToken&&/^camera\.[a-z0-9_]+$/.test(c.live_camera)?
+      "/api/camera_proxy_stream/"+c.live_camera+"?token="+encodeURIComponent(accessToken):"";
     const cameraAvailable=cameraState&&!["unknown","unavailable"].includes(cameraState.state);
     const cameraHtml=c.show_camera!==false&&cameraAvailable?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 ${lang==="es"?"Cámara de la impresora":"Printer camera"}</summary><div class="native-camera-host"></div></details>`:"";
     const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
@@ -636,31 +644,38 @@ ${heads}
       cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
       const host=cameraDetails.querySelector(".native-camera-host");
       if(host&&c.live_camera){
-        // Render through Home Assistant itself, as a normal picture-entity camera.
-        // No direct camera URL, power switch, or proxy format is required.
-        try{
-          let nativeCamera=this._nativeCameraCard;
-          if(!nativeCamera||this._nativeCameraEntity!==c.live_camera){
-            nativeCamera=document.createElement("hui-picture-entity-card");
-            nativeCamera.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
-            this._nativeCameraCard=nativeCamera;
-            this._nativeCameraEntity=c.live_camera;
+        const mountNative=()=>{
+          try{
+            let nativeCamera=this._nativeCameraCard;
+            if(!nativeCamera||this._nativeCameraEntity!==c.live_camera){
+              nativeCamera=document.createElement("hui-picture-entity-card");
+              nativeCamera.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+              this._nativeCameraCard=nativeCamera;
+              this._nativeCameraEntity=c.live_camera;
+            }
+            nativeCamera.hass=this._hass;
+            host.appendChild(nativeCamera);
+          }catch(error){
+            if(cameraUrl){
+              const fallback=document.createElement("img");
+              fallback.className="camera-image";
+              fallback.src=cameraUrl;fallback.alt="Snapmaker U1";
+              fallback.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
+              host.appendChild(fallback);
+            }
           }
-          nativeCamera.hass=this._hass;
-          host.appendChild(nativeCamera);
-        }catch(error){
-          // Keep an ordinary camera image as a fallback on older HA frontends.
-          if(cameraUrl){
-            const img=document.createElement("img");
-            img.className="camera-image";
-            img.src=cameraUrl;
-            img.alt="Snapmaker U1";
-            img.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
-            host.appendChild(img);
-          }else{
-            host.textContent=lang==="es"?"No se pudo iniciar la cámara. Revisa la entidad en Home Assistant.":"Could not initialize camera. Check the entity in Home Assistant.";
-          }
-        }
+        };
+        if(mjpegUrl){
+          // Render the authenticated multipart MJPEG stream. Unlike the
+          // generic picture-entity component, this does not freeze on a still.
+          const stream=document.createElement("img");
+          stream.className="u1-mjpeg-stream";
+          stream.alt=lang==="es"?"Cámara en directo":"Live camera";
+          stream.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
+          stream.addEventListener("error",()=>{stream.remove();mountNative();},{once:true});
+          stream.src=mjpegUrl;
+          host.appendChild(stream);
+        }else mountNative();
       }
     }
     // Native Home Assistant camera renders inside a custom element, not img.camera-image.
@@ -686,17 +701,29 @@ ${heads}
       if(kind==="camera"){
         if(!c.live_camera||!this._hass?.states?.[c.live_camera])return;
         mediaTitle.textContent=lang==="es"?"Cámara de la impresora":"Printer camera";
-        try{
-          const live=document.createElement("hui-picture-entity-card");
-          live.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
-          live.hass=this._hass;
-          mediaContent.appendChild(live);
-          this._zoomCameraCard=live;
-        }catch(error){
-          if(!cameraUrl)return;
-          const img=document.createElement("img");img.src=cameraUrl;img.alt=mediaTitle.textContent;
-          mediaContent.appendChild(img);
-        }
+        const mountNative=()=>{
+          try{
+            const live=document.createElement("hui-picture-entity-card");
+            live.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+            live.hass=this._hass;
+            mediaContent.appendChild(live);
+            this._zoomCameraCard=live;
+          }catch(error){
+            if(cameraUrl){
+              const img=document.createElement("img");
+              img.src=cameraUrl;img.alt=mediaTitle.textContent;
+              mediaContent.appendChild(img);
+            }
+          }
+        };
+        if(mjpegUrl){
+          const stream=document.createElement("img");
+          stream.className="u1-mjpeg-stream";
+          stream.alt=mediaTitle.textContent;
+          stream.addEventListener("error",()=>{stream.remove();mountNative();},{once:true});
+          stream.src=mjpegUrl;
+          mediaContent.appendChild(stream);
+        }else mountNative();
       }else{
         const pictureState=this._hass?.states?.[c.thumbnail_camera];
         const url=pictureState?.attributes?.entity_picture||thumbUrl;
