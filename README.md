@@ -12,9 +12,9 @@ A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four too
 
 [![Open in Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Latest release: v0.1.17
+## Latest release: v0.1.18
 
-This release fixes the live camera using Home Assistant's native camera display, hides per-tool filament weight comparisons when Spoolman is not configured, respects disabled print charts, and adds an editor-only option to show or hide power, energy and cost information. See [v0.1.17 release notes](docs/releases/v0.1.17.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+The camera now opens in a responsive enlarged viewer and plays a continuous MJPEG stream through Home Assistant's authenticated camera proxy when required. The current-job thumbnail enlarges in a window that fits the image and, when possible, trims transparent or uniform background margins. Print charts are shown or hidden only via configuration, with no redundant button on the card. See [v0.1.18 release notes](docs/releases/v0.1.18.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Card languages
 
@@ -124,9 +124,9 @@ Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuat
 
 [![Abrir en Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Última versión: v0.1.17
+## Última versión: v0.1.18
 
-Esta versión corrige la cámara en directo usando el visor nativo de Home Assistant, oculta los pesos por cabezal cuando no hay Spoolman configurado, respeta la desactivación de gráficos y añade la opción de mostrar u ocultar potencia, energía y costes únicamente en el editor visual. Consulta las [notas de v0.1.17](docs/releases/v0.1.17.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+La cámara se amplía en un visor adaptable y, cuando es necesario, reproduce vídeo MJPEG continuo mediante el proxy autenticado de Home Assistant. La miniatura del trabajo actual se amplía en una ventana ajustada a la imagen, recortando cuando es posible márgenes transparentes o fondos uniformes. Los gráficos se muestran u ocultan solo desde configuración, sin botón adicional en la tarjeta. Consulta las [notas de v0.1.18](docs/releases/v0.1.18.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Idiomas de la tarjeta
 
