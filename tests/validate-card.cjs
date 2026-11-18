@@ -141,6 +141,13 @@ assert(source.includes('.filament-check .ok{background:color-mix'), 'Filament st
 assert(source.includes('tool-active-label'), 'Active T0-T3 label must remain visible');
 console.log('Approved UI regression checks passed.');
 
+// Chart visibility must be controlled by editor configuration, not a separate card button.
+assert(source.includes('const chartsHtml=c.show_print_charts===false?"":'), 'Chart visibility must honor editor checkbox');
+assert(!source.includes('class="chart-visibility-toggle"'), 'Redundant in-card chart toggle must be absent');
+assert(!source.includes('const chartToggle='), 'Obsolete chart toggle event handler must be absent');
+assert(source.includes('["show_print_charts","Mostrar gráficos de impresión"]'), 'Chart editor checkbox must remain present');
+console.log('Editor-only chart visibility regression checks passed.');
+
 // Lightbox regression: the live camera is a native HA component, not img.camera-image.
 assert(source.includes('dialog class="u1-media-dialog"'), 'Native modal lightbox missing');
 assert(source.includes('mediaDialog.showModal()'), 'Media lightbox must use native modal top layer');
