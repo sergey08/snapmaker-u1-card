@@ -141,6 +141,17 @@ assert(source.includes('.filament-check .ok{background:color-mix'), 'Filament st
 assert(source.includes('tool-active-label'), 'Active T0-T3 label must remain visible');
 console.log('Approved UI regression checks passed.');
 
+// Lightbox regression: the live camera is a native HA component, not img.camera-image.
+assert(source.includes('dialog class="u1-media-dialog"'), 'Native modal lightbox missing');
+assert(source.includes('mediaDialog.showModal()'), 'Media lightbox must use native modal top layer');
+assert(source.includes('const live=document.createElement("hui-picture-entity-card")'), 'Zoomed camera must preserve native HA live streaming');
+assert(source.includes('cameraHost.appendChild(trigger)'), 'Live camera must have a clickable zoom target');
+assert(source.includes('class="job-thumbnail-zoom"'), 'Current-job thumbnail must have zoom affordance');
+assert(source.includes('openMedia("thumbnail")'), 'Current-job thumbnail must open lightbox');
+assert(source.includes('mediaDialog.addEventListener("close"'), 'Closing the modal must restore normal card updates');
+assert(source.includes('if(activeMediaDialog?.open)'), 'Active modal must survive routine Home Assistant card updates');
+console.log('Live camera and current-job thumbnail lightbox regression checks passed.');
+
 // Prevent obsolete preview settings and missing job-label translations from returning.
 assert(!source.includes('["preview_open_default","Miniatura abierta por defecto"]'), 'Removed preview toggle must not reappear in the editor');
 for (const locale of ['en', 'fr', 'de', 'it', 'pt', 'nl']) {
