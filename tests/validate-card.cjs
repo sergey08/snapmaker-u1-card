@@ -163,6 +163,10 @@ assert(source.includes('dialog.u1-media-dialog.u1-camera-dialog'), 'Camera dialo
 assert(source.includes('width:fit-content'), 'Image dialog must size to its content');
 assert(source.includes('const uniform=corners.every'), 'Opaque uniform backgrounds should be identified for cropping');
 assert(source.includes('output.style.width=Math.round(width*scale)'), 'The enlarged thumbnail must scale proportionally');
+assert(source.includes('"/api/camera_proxy_stream/"+c.live_camera'), 'MJPEG camera must use Home Assistant MJPEG proxy endpoint');
+assert(source.includes('const isMjpegCamera='), 'MJPEG camera fallback detection missing');
+assert(source.includes('stream.src=mjpegUrl'), 'MJPEG stream must be used by live camera and zoom');
+assert(source.includes('stream.addEventListener("error"'), 'MJPEG stream must gracefully fall back to native camera');
 console.log('Live camera and current-job thumbnail lightbox regression checks passed.');
 
 // Prevent obsolete preview settings and missing job-label translations from returning.
