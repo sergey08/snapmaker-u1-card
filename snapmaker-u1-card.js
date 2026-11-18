@@ -421,11 +421,14 @@ class SnapmakerU1Card extends HTMLElement {
       .camera-zoom[hidden]{display:none!important}.job-thumbnail-zoom{cursor:zoom-in}.job-thumbnail-zoom:focus-visible,.camera-enlarge-trigger:focus-visible{outline:3px solid var(--u1-accent,#65c9ff);outline-offset:2px}
       .native-camera-host{position:relative;min-height:70px}
       .native-camera-host .camera-enlarge-trigger{position:absolute;inset:0;width:100%;height:100%;z-index:3;border:0;background:transparent;cursor:zoom-in}
-      dialog.u1-media-dialog{position:fixed;inset:0;box-sizing:border-box;width:min(96vw,1200px);max-width:96vw;height:auto;max-height:94vh;padding:12px;border-radius:14px;border:1px solid #526b82;background:#0b1621;color:#f2f6fb;box-shadow:0 14px 60px #000a;overflow:auto}
+      dialog.u1-media-dialog{position:fixed;inset:0;box-sizing:border-box;width:fit-content;max-width:94vw;height:fit-content;max-height:92vh;padding:12px;border-radius:14px;border:1px solid #526b82;background:#0b1621;color:#f2f6fb;box-shadow:0 14px 60px #000a;overflow:auto}
       dialog.u1-media-dialog::backdrop{background:rgba(0,0,0,.88)}
-      dialog.u1-media-dialog.u1-thumbnail-dialog{width:min(92vw,600px);max-width:92vw;max-height:82vh;padding:12px}
-      .u1-thumbnail-dialog .u1-media-content{min-height:0;max-height:calc(82vh - 85px);overflow:hidden;border-radius:9px}
-      .u1-thumbnail-dialog .u1-media-content img{width:auto;height:auto;max-width:100%;max-height:calc(82vh - 85px);object-fit:contain}
+      dialog.u1-media-dialog.u1-camera-dialog{width:min(92vw,940px);max-height:92vh}
+      .u1-camera-dialog .u1-media-content{width:100%;min-height:0;max-height:calc(92vh - 74px)}
+      .u1-camera-dialog .u1-media-content hui-picture-entity-card{display:block;width:100%;max-width:100%}
+      dialog.u1-media-dialog.u1-thumbnail-dialog{width:fit-content;max-width:92vw;max-height:86vh;padding:12px}
+      .u1-thumbnail-dialog .u1-media-content{width:fit-content;max-width:100%;min-height:0;max-height:calc(86vh - 75px);overflow:hidden;border-radius:9px}
+      .u1-thumbnail-dialog .u1-media-content img,.u1-thumbnail-dialog .u1-media-content canvas{display:block;width:auto;height:auto;max-width:calc(92vw - 26px);max-height:calc(86vh - 75px);object-fit:contain}
       .u1-media-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;font-size:15px;font-weight:700}
       .u1-media-close{border:1px solid #64809a;border-radius:8px;background:#203c53;color:#fff;padding:7px 13px;cursor:pointer;font-size:20px}
       .u1-media-content{width:100%;display:flex;justify-content:center;align-items:center;min-height:100px}
@@ -678,6 +681,7 @@ ${heads}
       if(!mediaDialog||!mediaContent||mediaDialog.open)return;
       mediaContent.replaceChildren();
       mediaDialog.classList.toggle("u1-thumbnail-dialog",kind==="thumbnail");
+      mediaDialog.classList.toggle("u1-camera-dialog",kind==="camera");
       this._zoomCameraCard=null;
       if(kind==="camera"){
         if(!c.live_camera||!this._hass?.states?.[c.live_camera])return;
@@ -702,42 +706,63 @@ ${heads}
         image.alt=mediaTitle.textContent;
         image.src=url;
         mediaContent.appendChild(image);
-        // Slicer thumbnails may have large transparent margins. Crop only
-        // transparent padding in the enlarged view, never alter the source.
+        // Crop transparent or near-uniform opaque backgrounds in slicer renders,
+        // then size the dialog according to the actual image, not its source canvas.
         image.addEventListener("load",()=>{
           if(!image.naturalWidth||!image.naturalHeight||!mediaDialog.open)return;
+          let output=image;
+          let width=image.naturalWidth,height=image.naturalHeight;
           try{
             const canvas=document.createElement("canvas");
-            canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+            canvas.width=width;canvas.height=height;
             const ctx=canvas.getContext("2d",{willReadFrequently:true});
-            if(!ctx)return;
-            ctx.drawImage(image,0,0);
-            const pixels=ctx.getImageData(0,0,canvas.width,canvas.height).data;
-            let minX=canvas.width,minY=canvas.height,maxX=-1,maxY=-1;
-            const step=Math.max(1,Math.floor(Math.max(canvas.width,canvas.height)/1600));
-            for(let y=0;y<canvas.height;y+=step)for(let x=0;x<canvas.width;x+=step){
-              if(pixels[(y*canvas.width+x)*4+3]>20){
-                if(x<minX)minX=x;if(y<minY)minY=y;
-                if(x>maxX)maxX=x;if(y>maxY)maxY=y;
+            if(ctx){
+              ctx.drawImage(image,0,0);
+              const pixels=ctx.getImageData(0,0,width,height).data;
+              const at=(x,y)=>{const i=(y*width+x)*4;return [pixels[i],pixels[i+1],pixels[i+2],pixels[i+3]];};
+              const corners=[at(0,0),at(width-1,0),at(0,height-1),at(width-1,height-1)];
+              const bg=corners[0];
+              const delta=(a,b)=>Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]),Math.abs(a[2]-b[2]));
+              // Only segment opaque backgrounds when the four corners agree.
+              const uniform=corners.every(c=>c[3]>245&&delta(c,bg)<28);
+              const step=Math.max(1,Math.floor(Math.max(width,height)/1600));
+              let minX=width,minY=height,maxX=-1,maxY=-1;
+              for(let y=0;y<height;y+=step)for(let x=0;x<width;x+=step){
+                const i=(y*width+x)*4;
+                const alpha=pixels[i+3];
+                const foreground=alpha>20&&(!uniform||alpha<245||
+                  Math.max(Math.abs(pixels[i]-bg[0]),Math.abs(pixels[i+1]-bg[1]),Math.abs(pixels[i+2]-bg[2]))>36);
+                if(foreground){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+              }
+              if(maxX>=minX&&maxY>=minY){
+                const bw=maxX-minX+step,bh=maxY-minY+step;
+                // Never crop a full-background image or a tiny noisy fragment.
+                const ratio=(bw*bh)/(width*height);
+                if(ratio>.003&&ratio<.8){
+                  const pad=Math.ceil(Math.max(bw,bh)*.09);
+                  const left=Math.max(0,minX-pad),top=Math.max(0,minY-pad);
+                  const right=Math.min(width,maxX+step+pad),bottom=Math.min(height,maxY+step+pad);
+                  const crop=document.createElement("canvas");
+                  crop.width=right-left;crop.height=bottom-top;
+                  crop.getContext("2d")?.drawImage(canvas,left,top,crop.width,crop.height,0,0,crop.width,crop.height);
+                  if(crop.width&&crop.height){
+                    image.replaceWith(crop);output=crop;
+                    width=crop.width;height=crop.height;
+                  }
+                }
               }
             }
-            if(maxX<minX||maxY<minY)return;
-            const boundsWidth=maxX-minX+1,boundsHeight=maxY-minY+1;
-            if(boundsWidth*boundsHeight>canvas.width*canvas.height*.75)return;
-            const pad=Math.ceil(Math.max(boundsWidth,boundsHeight)*.08);
-            const left=Math.max(0,minX-pad),top=Math.max(0,minY-pad);
-            const width=Math.min(canvas.width-left,boundsWidth+2*pad);
-            const height=Math.min(canvas.height-top,boundsHeight+2*pad);
-            const cropped=document.createElement("canvas");
-            cropped.width=width;cropped.height=height;
-            cropped.getContext("2d")?.drawImage(canvas,left,top,width,height,0,0,width,height);
-            // Avoid firing a second crop pass on the newly assigned data URL.
-            image.onload=null;
-            image.replaceWith(cropped);
-            cropped.style.cssText="display:block;max-width:100%;max-height:calc(82vh - 85px);width:auto;height:auto;object-fit:contain";
-          }catch(e){
-            // Cross-origin and unusual camera-image formats keep original view.
+          }catch(error){
+            // Unreadable cross-origin images keep their original dimensions.
           }
+          // Preserve the picture's proportions; enlarge small model renders up
+          // to a practical reading size, while limiting the viewport height.
+          const maxWidth=Math.min(window.innerWidth*.9-28,760);
+          const maxHeight=window.innerHeight*.84-80;
+          const preferred=Math.max(1,Math.min(3,500/Math.max(width,1)));
+          const scale=Math.min(preferred,maxWidth/width,maxHeight/height);
+          output.style.width=Math.round(width*scale)+"px";
+          output.style.height="auto";
         },{once:true});
       }
       if(typeof mediaDialog.showModal==="function"){
