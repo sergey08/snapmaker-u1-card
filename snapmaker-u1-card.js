@@ -668,12 +668,19 @@ ${heads}
         if(mjpegUrl){
           // Render the authenticated multipart MJPEG stream. Unlike the
           // generic picture-entity component, this does not freeze on a still.
-          const stream=document.createElement("img");
+          // Reuse the same image node between card renders: replacing it would
+          // repeatedly disconnect the multipart stream while the printer updates.
+          let stream=this._nativeMjpegImage;
+          if(!stream||this._nativeMjpegEntity!==c.live_camera){
+            stream=document.createElement("img");
+            this._nativeMjpegImage=stream;
+            this._nativeMjpegEntity=c.live_camera;
+          }
           stream.className="u1-mjpeg-stream";
           stream.alt=lang==="es"?"Cámara en directo":"Live camera";
           stream.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
-          stream.addEventListener("error",()=>{stream.remove();mountNative();},{once:true});
-          stream.src=mjpegUrl;
+          stream.onerror=()=>{if(stream.isConnected){stream.remove();mountNative();}};
+          if(stream.src!==new URL(mjpegUrl,document.baseURI).href)stream.src=mjpegUrl;
           host.appendChild(stream);
         }else mountNative();
       }
