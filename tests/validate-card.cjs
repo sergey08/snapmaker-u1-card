@@ -141,6 +141,34 @@ assert(source.includes('.filament-check .ok{background:color-mix'), 'Filament st
 assert(source.includes('tool-active-label'), 'Active T0-T3 label must remain visible');
 console.log('Approved UI regression checks passed.');
 
+// Chart visibility must be controlled by editor configuration, not a separate card button.
+assert(source.includes('const chartsHtml=c.show_print_charts===false?"":'), 'Chart visibility must honor editor checkbox');
+assert(!source.includes('class="chart-visibility-toggle"'), 'Redundant in-card chart toggle must be absent');
+assert(!source.includes('const chartToggle='), 'Obsolete chart toggle event handler must be absent');
+assert(source.includes('["show_print_charts","Mostrar gráficos de impresión"]'), 'Chart editor checkbox must remain present');
+console.log('Editor-only chart visibility regression checks passed.');
+
+// Lightbox regression: the live camera is a native HA component, not img.camera-image.
+assert(source.includes('dialog class="u1-media-dialog"'), 'Native modal lightbox missing');
+assert(source.includes('mediaDialog.showModal()'), 'Media lightbox must use native modal top layer');
+assert(source.includes('const live=document.createElement("hui-picture-entity-card")'), 'Zoomed camera must preserve native HA live streaming');
+assert(source.includes('cameraHost.appendChild(trigger)'), 'Live camera must have a clickable zoom target');
+assert(source.includes('class="job-thumbnail-zoom"'), 'Current-job thumbnail must have zoom affordance');
+assert(source.includes('openMedia("thumbnail")'), 'Current-job thumbnail must open lightbox');
+assert(source.includes('mediaDialog.addEventListener("close"'), 'Closing the modal must restore normal card updates');
+assert(source.includes('if(activeMediaDialog?.open)'), 'Active modal must survive routine Home Assistant card updates');
+assert(source.includes('u1-thumbnail-dialog'), 'Thumbnail viewer must have a compact layout');
+assert(source.includes('ctx.getImageData(0,0,width,height).data'), 'Thumbnail viewer should inspect image pixels for cropping');
+assert(source.includes('dialog.u1-media-dialog.u1-camera-dialog'), 'Camera dialog must be responsive and separately sized');
+assert(source.includes('width:fit-content'), 'Image dialog must size to its content');
+assert(source.includes('const uniform=corners.every'), 'Opaque uniform backgrounds should be identified for cropping');
+assert(source.includes('output.style.width=Math.round(width*scale)'), 'The enlarged thumbnail must scale proportionally');
+assert(source.includes('"/api/camera_proxy_stream/"+c.live_camera'), 'MJPEG camera must use Home Assistant MJPEG proxy endpoint');
+assert(source.includes('const isMjpegCamera='), 'MJPEG camera fallback detection missing');
+assert(source.includes('stream.src=mjpegUrl'), 'MJPEG stream must be used by live camera and zoom');
+assert(source.includes('stream.addEventListener("error"'), 'MJPEG stream must gracefully fall back to native camera');
+console.log('Live camera and current-job thumbnail lightbox regression checks passed.');
+
 // Prevent obsolete preview settings and missing job-label translations from returning.
 assert(!source.includes('["preview_open_default","Miniatura abierta por defecto"]'), 'Removed preview toggle must not reappear in the editor');
 for (const locale of ['en', 'fr', 'de', 'it', 'pt', 'nl']) {

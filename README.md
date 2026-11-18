@@ -12,9 +12,9 @@ A Home Assistant dashboard card for the Snapmaker U1: monitor printing, four too
 
 [![Open in Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Latest release: v0.1.17
+## Latest release: v0.1.18
 
-This release fixes the live camera using Home Assistant's native camera display, hides per-tool filament weight comparisons when Spoolman is not configured, respects disabled print charts, and adds an editor-only option to show or hide power, energy and cost information. See [v0.1.17 release notes](docs/releases/v0.1.17.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+The camera now opens in a responsive enlarged viewer and plays a continuous MJPEG stream through Home Assistant's authenticated camera proxy when required. The current-job thumbnail enlarges in a window that fits the image and, when possible, trims transparent or uniform background margins. Print charts are shown or hidden only via configuration, with no redundant button on the card. See [v0.1.18 release notes](docs/releases/v0.1.18.md) and [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Card languages
 
@@ -25,8 +25,8 @@ The card supports **English (`en`), Español (`es`), Français (`fr`), Deutsch (
 - Four toolheads (T0–T3), temperatures, active tool and filament information.
 - Print status, progress, layers, estimated time and current-job thumbnail.
 - Optional camera, Spoolman inventory and filament colours and weights.
-- Show or hide the print-charts section directly on the card when print charts are enabled. If charts are disabled in the editor (`show_print_charts: false`), both the charts and the toggle button remain hidden. Power, print energy and costs are shown or hidden only through the **Show power, energy and costs** checkbox in the visual editor (under Display and electricity), or `show_energy: true/false` in YAML; no extra button is rendered on the card. The per-tool required/remaining gram comparison is hidden when no Spoolman spool is mapped.
-- Live printer camera uses Home Assistant's native camera display, without requiring a smart-plug power entity.
+- Print charts visibility is controlled exclusively by the **Show print charts** checkbox in the visual editor (`show_print_charts: true/false`). There is no extra Show/Hide charts button on the card; when enabled, the charts have their standard expandable section header. Power, print energy and costs are shown or hidden only through the **Show power, energy and costs** checkbox in the visual editor (under Display and electricity), or `show_energy: true/false` in YAML; no extra button is rendered on the card. The per-tool required/remaining gram comparison is hidden when no Spoolman spool is mapped.
+- Live printer camera uses Home Assistant's native camera display, without requiring a smart-plug power entity. **Click or tap the camera to enlarge it** in a modal live viewer, or press Enter on the camera. The image in **Current job** also opens in a viewer sized to the image when clicked or tapped, automatically trimming transparent or uniform opaque thumbnail backgrounds where possible. Both viewers close with the ✕ button or Escape. MJPEG IP Camera entities use Home Assistant's authenticated MJPEG stream proxy rather than a static picture; other camera types retain the native live-view component.
 - Optional power, energy and estimated electricity cost.
 - Compatible print controls, with confirmation for destructive actions.
 - Optional printer light control with a bulb button and 0–100% brightness slider.
@@ -124,9 +124,9 @@ Tarjeta de Home Assistant para la Snapmaker U1: consulta la impresión, los cuat
 
 [![Abrir en Marketplace](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=sergey08&repository=snapmaker-u1-card&category=plugin)
 
-## Última versión: v0.1.17
+## Última versión: v0.1.18
 
-Esta versión corrige la cámara en directo usando el visor nativo de Home Assistant, oculta los pesos por cabezal cuando no hay Spoolman configurado, respeta la desactivación de gráficos y añade la opción de mostrar u ocultar potencia, energía y costes únicamente en el editor visual. Consulta las [notas de v0.1.17](docs/releases/v0.1.17.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
+La cámara se amplía en un visor adaptable y, cuando es necesario, reproduce vídeo MJPEG continuo mediante el proxy autenticado de Home Assistant. La miniatura del trabajo actual se amplía en una ventana ajustada a la imagen, recortando cuando es posible márgenes transparentes o fondos uniformes. Los gráficos se muestran u ocultan solo desde configuración, sin botón adicional en la tarjeta. Consulta las [notas de v0.1.18](docs/releases/v0.1.18.md) y [GitHub Releases](https://github.com/sergey08/snapmaker-u1-card/releases).
 
 ## Idiomas de la tarjeta
 
@@ -137,8 +137,8 @@ La tarjeta admite **inglés (`en`), español (`es`), francés (`fr`), alemán (`
 - Cuatro cabezales (T0–T3), temperaturas, herramienta activa y filamento.
 - Estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
 - Cámara, inventario Spoolman, colores y pesos de filamento opcionales.
-- Botón para mostrar u ocultar los gráficos de impresión cuando estén habilitados. Si los gráficos se desactivan en el editor (`show_print_charts: false`), no se muestra ni el apartado ni el botón. La visualización de potencia, energía y costes se controla exclusivamente mediante la casilla **Mostrar potencia, energía y costes** del editor visual (en Visualización y electricidad), o `show_energy: true/false` en YAML; la tarjeta no muestra ningún botón adicional. La comparación de gramos necesarios/restantes T0–T3 se oculta cuando no hay ninguna bobina de Spoolman asociada.
-- La cámara utiliza la visualización nativa de Home Assistant, sin depender de una entidad de enchufe inteligente.
+- La visibilidad de los gráficos se controla exclusivamente con la casilla **Mostrar gráficos de impresión** del editor visual (`show_print_charts: true/false`). La tarjeta no muestra un botón adicional para ocultarlos; si están habilitados, conservan la cabecera desplegable del apartado. La visualización de potencia, energía y costes se controla exclusivamente mediante la casilla **Mostrar potencia, energía y costes** del editor visual (en Visualización y electricidad), o `show_energy: true/false` en YAML; la tarjeta no muestra ningún botón adicional. La comparación de gramos necesarios/restantes T0–T3 se oculta cuando no hay ninguna bobina de Spoolman asociada.
+- La cámara utiliza la visualización nativa de Home Assistant, sin depender de una entidad de enchufe inteligente. **Pulsa sobre la cámara para ampliarla** en un visor modal en directo o utiliza Intro con el foco en la cámara. La imagen de **Trabajo actual** también se amplía al pulsarla, con un visor que se ajusta a las proporciones de la imagen, recortando cuando es posible los márgenes transparentes o fondos opacos uniformes de la miniatura. Ambos visores se cierran con ✕ o Escape. Las entidades MJPEG IP Camera utilizan el proxy de vídeo MJPEG autenticado de Home Assistant para evitar mostrar solamente una imagen fija; las demás cámaras conservan el visor nativo.
 - Potencia, energía y coste eléctrico estimado opcionales.
 - Controles de impresión compatibles, con confirmación para acciones destructivas.
 - Control opcional de luz mediante bombilla y barra de brillo de 0 a 100 %.

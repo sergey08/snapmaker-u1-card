@@ -60,6 +60,11 @@ class SnapmakerU1Card extends HTMLElement {
   esc(value) { return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
   render() {
     if (!this.shadowRoot || !this.config) return;
+    const activeMediaDialog=this.shadowRoot.querySelector("dialog.u1-media-dialog");
+    if(activeMediaDialog?.open){
+      if(this._zoomCameraCard)this._zoomCameraCard.hass=this._hass;
+      return;
+    }
     // Replacing the fullscreen element via innerHTML exits fullscreen in browsers.
     // Defer DOM reconstruction until the camera leaves fullscreen; image refresh
     // remains active independently and the latest HA state is retained in _hass.
@@ -369,10 +374,9 @@ class SnapmakerU1Card extends HTMLElement {
       const unit=entity?.attributes?.unit_of_measurement||"";
       return `<div><small>${this.esc(label)}${unit?" ("+this.esc(unit)+")":""}</small>${spark("value",color,history)}</div>`;
     }).join("");
-    // The print-chart panel may be shown/hidden without editing YAML.
-    // If the charts are disabled in the editor, show neither charts nor toggle.
-    if(this._chartsVisible===undefined)this._chartsVisible=c.show_print_charts!==false;
-    const chartsHtml=c.show_print_charts===false?"":`<div class="chart-toggle-row"><button type="button" class="chart-visibility-toggle" aria-expanded="${this._chartsVisible?"true":"false"}">${this._chartsVisible?(lang==="es"?"Ocultar gráficos de impresión":"Hide print charts"):(lang==="es"?"Mostrar gráficos de impresión":"Show print charts")}</button></div>${this._chartsVisible?`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`:""}`;
+    // Print charts visibility is controlled exclusively by the visual editor.
+    // The standard details header still allows expanding/collapsing the panel.
+    const chartsHtml=c.show_print_charts===false?"":`<details class="energy-charts" ${this._chartsOpen?"open":""}><summary>${lang==="es"?"📈 Gráficos de impresión":"📈 Print charts"}</summary><div class="chart-grid">${chartItems}</div><small class="chart-note">${lang==="es"?"Muestras tomadas mientras la tarjeta está abierta":"Samples collected while the card is open"}</small></details>`;
     const energyLabel=lang==="es"?"Energía impresión":"Print energy";
     const energyText=energyUsed===null?"—":energyUsed.toLocaleString(lang==="es"?"es-ES":"en-US",{minimumFractionDigits:3,maximumFractionDigits:3})+" kWh";
     // Electricity visibility is configured in the visual editor (show_energy).
@@ -390,7 +394,7 @@ class SnapmakerU1Card extends HTMLElement {
     });
     const filamentHtml=hasSpoolmanMapping&&filamentCheck.length?`<div class="filament-check">${filamentCheck.map(f=>`<span class="${f.unused?"unknown":f.unknown?"unknown":f.low?"low":"ok"}">T${f.i}: ${f.unused?"-- / --":(f.available===null?"sin lectura":Math.round(f.available)+" g")+" / "+Math.round(f.needed)+" g "+(f.unknown?"?":f.low?"⚠":"✓")}</span>`).join("")}</div>`:"";
     const warningsHtml=warnings.length?`<div class="printer-warnings" role="alert">⚠ ${warnings.map(w=>this.esc(w)).join(" · ")}</div>`:"";
-    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img src="${this.esc(thumbUrl)}" alt="Vista previa de la pieza" loading="lazy">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}${etaConfidence}</span></div></div>`:"";
+    const jobHtml=(printing||paused)&&jobName?`<div class="job-summary">${thumbUrl?`<img class="job-thumbnail-zoom" src="${this.esc(thumbUrl)}" alt="${lang==="es"?"Ampliar imagen del trabajo actual":"Enlarge current job image"}" title="${lang==="es"?"Ampliar imagen":"Enlarge image"}" loading="lazy" tabindex="0" role="button">`:""}<div><small>Trabajo actual</small><strong title="${this.esc(jobName)}">${this.esc(jobName)}</strong><span>Finalización estimada: ${eta}${etaConfidence}</span></div></div>`:"";
     // The current print thumbnail is already shown in the job summary.
     // Do not render a duplicate preview panel, including when idle.
     const previewHtml="";
@@ -398,6 +402,14 @@ class SnapmakerU1Card extends HTMLElement {
     // Home Assistant's native picture-entity card supports streaming cameras whose
     // picture URL is absent, non-proxy, or not suitable for a plain <img> tag.
     const cameraState=c.live_camera?this._hass?.states?.[c.live_camera]:null;
+    // Cameras without the HA STREAM feature (notably MJPEG IP Camera)
+    // need the MJPEG proxy, not the picture-entity snapshot fallback.
+    const cameraPlatform=this._hass?.entities?.[c.live_camera]?.platform;
+    const isMjpegCamera=c.live_camera&&cameraPlatform==="mjpeg"||
+      (c.live_camera&&!cameraPlatform&&Number(cameraState?.attributes?.supported_features)===0);
+    const accessToken=cameraState?.attributes?.access_token;
+    const mjpegUrl=isMjpegCamera&&accessToken&&/^camera\.[a-z0-9_]+$/.test(c.live_camera)?
+      "/api/camera_proxy_stream/"+c.live_camera+"?token="+encodeURIComponent(accessToken):"";
     const cameraAvailable=cameraState&&!["unknown","unavailable"].includes(cameraState.state);
     const cameraHtml=c.show_camera!==false&&cameraAvailable?`<details class="camera-panel" ${this._cameraOpen?"open":""}><summary>📷 ${lang==="es"?"Cámara de la impresora":"Printer camera"}</summary><div class="native-camera-host"></div></details>`:"";
     const guiHtml=c.gui_camera&&powerState==="on"&&guiCameraUrl?`<details class="gui-screen" ${this._guiOpen?"open":""}><summary>🖥️ ${lang==="es"?"Pantalla de la impresora":"Printer screen"}</summary><img src="${this.esc(guiCameraUrl)}" alt="Snapmaker U1 GUI" loading="lazy" style="display:block;width:100%;height:auto;max-height:400px;object-fit:contain;margin-top:10px;border-radius:8px"></details>`:"";
@@ -414,7 +426,23 @@ class SnapmakerU1Card extends HTMLElement {
       .preview-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.preview-panel summary{cursor:pointer;font-size:12px;font-weight:650}.preview-body{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 4px;color:#b5c7d8;font-size:12px}.preview-body img{width:100%;max-height:260px;object-fit:contain;border-radius:8px;background:#06121b}.preview-body strong{max-width:100%;overflow-wrap:anywhere}.preview-body small{color:#a7bece}
       .empty-slot{width:43px;height:78px;border:1px dashed #516778;border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#8ba3b6;font-size:13px}.empty-slot small{font-size:10px}.printer-warnings{margin-top:10px;padding:10px;border:1px solid #d48b50;border-radius:10px;background:#4b2b20;color:#ffe1c1;font-size:12px}.job-summary{display:flex;align-items:center;gap:10px;margin-top:10px;padding:9px;border:1px solid #304658;border-radius:10px;background:#132536;min-width:0}.job-summary img{width:70px;height:70px;object-fit:contain;border-radius:7px;background:#081522}.job-summary>div{display:flex;flex-direction:column;gap:4px;min-width:0}.job-summary small,.job-summary span{font-size:11px;color:#a7bece}.job-summary strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}.camera-panel{margin-top:10px;border:1px solid #344b5e;border-radius:10px;padding:10px;background:#102131}.camera-panel summary{cursor:pointer;font-size:12px;font-weight:650}.energy-charts{margin:10px 0;padding:12px;border:1px solid var(--divider-color,#344b5e);border-radius:12px;background:var(--secondary-background-color,#1d2935);color:var(--primary-text-color,#edf5ff)}.energy-charts summary{cursor:pointer;font-weight:650;color:var(--primary-text-color,#edf5ff)}.chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-top:12px}.chart-grid>div{min-width:0}.chart-grid small{display:block;color:var(--primary-text-color,#b5cbd9)}.chart-with-axis{display:flex;align-items:stretch;gap:4px;margin-top:4px}.chart-y-axis{display:flex;flex-direction:column;justify-content:space-between;flex:0 0 auto;font-size:9px;line-height:1.1;color:var(--secondary-text-color,#93a8b8);text-align:right;min-width:24px}.chart-grid svg{width:100%;min-width:0;flex:1;height:75px;display:block;background:var(--card-background-color,#071723);border-radius:6px}.chart-note{color:var(--secondary-text-color,#93a8b8);display:block;margin-top:8px}
       .camera-image{width:100%;height:auto;max-height:300px;object-fit:contain;margin-top:10px;border-radius:8px;background:#06121b;cursor:zoom-in}
-      .camera-zoom[hidden]{display:none!important}.camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
+      .camera-zoom[hidden]{display:none!important}.job-thumbnail-zoom{cursor:zoom-in}.job-thumbnail-zoom:focus-visible,.camera-enlarge-trigger:focus-visible{outline:3px solid var(--u1-accent,#65c9ff);outline-offset:2px}
+      .native-camera-host{position:relative;min-height:70px}
+      .native-camera-host .camera-enlarge-trigger{position:absolute;inset:0;width:100%;height:100%;z-index:3;border:0;background:transparent;cursor:zoom-in}
+      dialog.u1-media-dialog{position:fixed;inset:0;box-sizing:border-box;width:fit-content;max-width:94vw;height:fit-content;max-height:92vh;padding:12px;border-radius:14px;border:1px solid #526b82;background:#0b1621;color:#f2f6fb;box-shadow:0 14px 60px #000a;overflow:auto}
+      dialog.u1-media-dialog::backdrop{background:rgba(0,0,0,.88)}
+      dialog.u1-media-dialog.u1-camera-dialog{width:min(92vw,940px);max-height:92vh}
+      .u1-camera-dialog .u1-media-content{width:100%;min-height:0;max-height:calc(92vh - 74px)}
+      .u1-camera-dialog .u1-media-content hui-picture-entity-card{display:block;width:100%;max-width:100%}
+      dialog.u1-media-dialog.u1-thumbnail-dialog{width:fit-content;max-width:92vw;max-height:86vh;padding:12px}
+      .u1-thumbnail-dialog .u1-media-content{width:fit-content;max-width:100%;min-height:0;max-height:calc(86vh - 75px);overflow:hidden;border-radius:9px}
+      .u1-thumbnail-dialog .u1-media-content img,.u1-thumbnail-dialog .u1-media-content canvas{display:block;width:auto;height:auto;max-width:calc(92vw - 26px);max-height:calc(86vh - 75px);object-fit:contain}
+      .u1-media-header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;font-size:15px;font-weight:700}
+      .u1-media-close{border:1px solid #64809a;border-radius:8px;background:#203c53;color:#fff;padding:7px 13px;cursor:pointer;font-size:20px}
+      .u1-media-content{width:100%;display:flex;justify-content:center;align-items:center;min-height:100px}
+      .u1-media-content hui-picture-entity-card{display:block;width:100%;max-width:1100px}
+      .u1-media-content img{display:block;max-width:100%;max-height:calc(94vh - 95px);object-fit:contain}
+      .camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
       .camera-zoom-image{max-width:100%;max-height:100%;object-fit:contain}.camera-zoom-toolbar{position:absolute;top:10px;right:14px;display:flex;gap:8px}
       .camera-zoom-toolbar button{background:#203c53;color:#fff;border:1px solid #64809a;border-radius:8px;padding:8px 12px;cursor:pointer}
       .top{display:flex;align-items:center;justify-content:space-between;gap:12px}.title{font-size:18px;font-weight:750;letter-spacing:.08em}.status{font-size:12px;color:#a5b9c8}
@@ -507,7 +535,7 @@ class SnapmakerU1Card extends HTMLElement {
 <g opacity=".8"><rect x="72" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="121" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="171" y="17" width="40" height="7" rx="2" fill="#283c49"/><rect x="221" y="17" width="40" height="7" rx="2" fill="#283c49"/></g>
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
-</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":statusMissing(state)?({es:"Conectando…",en:"Connecting…",fr:"Connexion…",de:"Verbindung wird hergestellt…",it:"Connessione in corso…",pt:"A ligar…",nl:"Verbinden…"}[lang]||"Connecting…"):this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card>`;
+</svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":statusMissing(state)?({es:"Conectando…",en:"Connecting…",fr:"Connexion…",de:"Verbindung wird hergestellt…",it:"Connessione in corso…",pt:"A ligar…",nl:"Verbinden…"}[lang]||"Connecting…"):this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card><dialog class="u1-media-dialog" aria-label="${lang==="es"?"Ampliación de imagen":"Image enlargement"}"><div class="u1-media-header"><strong class="u1-media-title"></strong><button class="u1-media-close" type="button" aria-label="${lang==="es"?"Cerrar":"Close"}">✕</button></div><div class="u1-media-content"></div></dialog>`;
     const chartsPanel=this.shadowRoot.querySelector(".energy-charts");
     if(chartsPanel){chartsPanel.addEventListener("toggle",()=>{this._chartsOpen=chartsPanel.open;});}
     if(lang!=="es"){
@@ -609,8 +637,6 @@ ${heads}
     }
     const previewDetails=this.shadowRoot.querySelector("details.preview-panel");
     if(previewDetails)previewDetails.addEventListener("toggle",()=>{this._previewOpen=previewDetails.open;});
-    const chartToggle=this.shadowRoot.querySelector("button.chart-visibility-toggle");
-    chartToggle?.addEventListener("click",()=>{this._chartsVisible=!this._chartsVisible;this.render();});
     const chartDetails=this.shadowRoot.querySelector("details.energy-charts");
     chartDetails?.addEventListener("toggle",()=>{this._chartsOpen=chartDetails.open;});
     const cameraDetails=this.shadowRoot.querySelector("details.camera-panel");
@@ -618,45 +644,181 @@ ${heads}
       cameraDetails.addEventListener("toggle",()=>{this._cameraOpen=cameraDetails.open;});
       const host=cameraDetails.querySelector(".native-camera-host");
       if(host&&c.live_camera){
-        // Render through Home Assistant itself, as a normal picture-entity camera.
-        // No direct camera URL, power switch, or proxy format is required.
-        try{
-          let nativeCamera=this._nativeCameraCard;
-          if(!nativeCamera||this._nativeCameraEntity!==c.live_camera){
-            nativeCamera=document.createElement("hui-picture-entity-card");
-            nativeCamera.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
-            this._nativeCameraCard=nativeCamera;
-            this._nativeCameraEntity=c.live_camera;
+        const mountNative=()=>{
+          try{
+            let nativeCamera=this._nativeCameraCard;
+            if(!nativeCamera||this._nativeCameraEntity!==c.live_camera){
+              nativeCamera=document.createElement("hui-picture-entity-card");
+              nativeCamera.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+              this._nativeCameraCard=nativeCamera;
+              this._nativeCameraEntity=c.live_camera;
+            }
+            nativeCamera.hass=this._hass;
+            host.appendChild(nativeCamera);
+          }catch(error){
+            if(cameraUrl){
+              const fallback=document.createElement("img");
+              fallback.className="camera-image";
+              fallback.src=cameraUrl;fallback.alt="Snapmaker U1";
+              fallback.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
+              host.appendChild(fallback);
+            }
           }
-          nativeCamera.hass=this._hass;
-          host.appendChild(nativeCamera);
-        }catch(error){
-          // Keep an ordinary camera image as a fallback on older HA frontends.
-          if(cameraUrl){
-            const img=document.createElement("img");
-            img.className="camera-image";
-            img.src=cameraUrl;
-            img.alt="Snapmaker U1";
-            img.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
-            host.appendChild(img);
-          }else{
-            host.textContent=lang==="es"?"No se pudo iniciar la cámara. Revisa la entidad en Home Assistant.":"Could not initialize camera. Check the entity in Home Assistant.";
+        };
+        if(mjpegUrl){
+          // Render the authenticated multipart MJPEG stream. Unlike the
+          // generic picture-entity component, this does not freeze on a still.
+          // Reuse the same image node between card renders: replacing it would
+          // repeatedly disconnect the multipart stream while the printer updates.
+          let stream=this._nativeMjpegImage;
+          if(!stream||this._nativeMjpegEntity!==c.live_camera){
+            stream=document.createElement("img");
+            this._nativeMjpegImage=stream;
+            this._nativeMjpegEntity=c.live_camera;
           }
-        }
+          stream.className="u1-mjpeg-stream";
+          stream.alt=lang==="es"?"Cámara en directo":"Live camera";
+          stream.style.cssText="display:block;width:100%;height:auto;border-radius:8px";
+          stream.onerror=()=>{if(stream.isConnected){stream.remove();mountNative();}};
+          if(stream.src!==new URL(mjpegUrl,document.baseURI).href)stream.src=mjpegUrl;
+          host.appendChild(stream);
+        }else mountNative();
       }
     }
-    const zoom=this.shadowRoot.querySelector(".camera-zoom");
-    if(zoom){
-      const closeZoom=()=>{this._cameraZoomOpen=false;if(document.fullscreenElement===zoom&&document.exitFullscreen){document.exitFullscreen().catch(()=>{}).finally(()=>{zoom.hidden=true;});}else{zoom.hidden=true;}};
-      const openZoom=()=>{this._cameraZoomOpen=true;zoom.hidden=false;zoom.querySelector(".camera-zoom-close")?.focus();};
-      const cameraImage=this.shadowRoot.querySelector("img.camera-image");
-      cameraImage?.addEventListener("click",openZoom);
-      cameraImage?.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openZoom();}});
-      zoom.querySelector(".camera-zoom-close")?.addEventListener("click",closeZoom);
-      zoom.addEventListener("click",e=>{if(e.target===zoom)closeZoom();});
-      zoom.querySelector(".camera-fullscreen")?.addEventListener("click",()=>{if(document.fullscreenElement===zoom){document.exitFullscreen?.().catch(()=>{});}else if(!document.fullscreenElement){zoom.requestFullscreen?.().catch(()=>{});}});
-      zoom.addEventListener("keydown",e=>{if(e.key==="Escape"){e.stopPropagation();closeZoom();}});
+    // Native Home Assistant camera renders inside a custom element, not img.camera-image.
+    // Use an accessible top-layer <dialog> for both live camera and job thumbnail.
+    const mediaDialog=this.shadowRoot.querySelector("dialog.u1-media-dialog");
+    const mediaContent=mediaDialog?.querySelector(".u1-media-content");
+    const mediaTitle=mediaDialog?.querySelector(".u1-media-title");
+    const closeMedia=()=>{if(mediaDialog?.open)mediaDialog.close();};
+    if(mediaDialog){
+      mediaDialog.querySelector(".u1-media-close")?.addEventListener("click",closeMedia);
+      mediaDialog.addEventListener("click",e=>{if(e.target===mediaDialog)closeMedia();});
+      mediaDialog.addEventListener("close",()=>{
+        this._zoomCameraCard=null;
+        if(this.isConnected)this.render();
+      });
     }
+    const openMedia=kind=>{
+      if(!mediaDialog||!mediaContent||mediaDialog.open)return;
+      mediaContent.replaceChildren();
+      mediaDialog.classList.toggle("u1-thumbnail-dialog",kind==="thumbnail");
+      mediaDialog.classList.toggle("u1-camera-dialog",kind==="camera");
+      this._zoomCameraCard=null;
+      if(kind==="camera"){
+        if(!c.live_camera||!this._hass?.states?.[c.live_camera])return;
+        mediaTitle.textContent=lang==="es"?"Cámara de la impresora":"Printer camera";
+        const mountNative=()=>{
+          try{
+            const live=document.createElement("hui-picture-entity-card");
+            live.setConfig({type:"picture-entity",entity:c.live_camera,camera_view:"live",show_name:false,show_state:false});
+            live.hass=this._hass;
+            mediaContent.appendChild(live);
+            this._zoomCameraCard=live;
+          }catch(error){
+            if(cameraUrl){
+              const img=document.createElement("img");
+              img.src=cameraUrl;img.alt=mediaTitle.textContent;
+              mediaContent.appendChild(img);
+            }
+          }
+        };
+        if(mjpegUrl){
+          const stream=document.createElement("img");
+          stream.className="u1-mjpeg-stream";
+          stream.alt=mediaTitle.textContent;
+          stream.addEventListener("error",()=>{stream.remove();mountNative();},{once:true});
+          stream.src=mjpegUrl;
+          mediaContent.appendChild(stream);
+        }else mountNative();
+      }else{
+        const pictureState=this._hass?.states?.[c.thumbnail_camera];
+        const url=pictureState?.attributes?.entity_picture||thumbUrl;
+        if(!url)return;
+        mediaTitle.textContent=lang==="es"?"Imagen del trabajo actual":"Current job image";
+        const image=document.createElement("img");
+        image.alt=mediaTitle.textContent;
+        image.src=url;
+        mediaContent.appendChild(image);
+        // Crop transparent or near-uniform opaque backgrounds in slicer renders,
+        // then size the dialog according to the actual image, not its source canvas.
+        image.addEventListener("load",()=>{
+          if(!image.naturalWidth||!image.naturalHeight||!mediaDialog.open)return;
+          let output=image;
+          let width=image.naturalWidth,height=image.naturalHeight;
+          try{
+            const canvas=document.createElement("canvas");
+            canvas.width=width;canvas.height=height;
+            const ctx=canvas.getContext("2d",{willReadFrequently:true});
+            if(ctx){
+              ctx.drawImage(image,0,0);
+              const pixels=ctx.getImageData(0,0,width,height).data;
+              const at=(x,y)=>{const i=(y*width+x)*4;return [pixels[i],pixels[i+1],pixels[i+2],pixels[i+3]];};
+              const corners=[at(0,0),at(width-1,0),at(0,height-1),at(width-1,height-1)];
+              const bg=corners[0];
+              const delta=(a,b)=>Math.max(Math.abs(a[0]-b[0]),Math.abs(a[1]-b[1]),Math.abs(a[2]-b[2]));
+              // Only segment opaque backgrounds when the four corners agree.
+              const uniform=corners.every(c=>c[3]>245&&delta(c,bg)<28);
+              const step=Math.max(1,Math.floor(Math.max(width,height)/1600));
+              let minX=width,minY=height,maxX=-1,maxY=-1;
+              for(let y=0;y<height;y+=step)for(let x=0;x<width;x+=step){
+                const i=(y*width+x)*4;
+                const alpha=pixels[i+3];
+                const foreground=alpha>20&&(!uniform||alpha<245||
+                  Math.max(Math.abs(pixels[i]-bg[0]),Math.abs(pixels[i+1]-bg[1]),Math.abs(pixels[i+2]-bg[2]))>36);
+                if(foreground){minX=Math.min(minX,x);minY=Math.min(minY,y);maxX=Math.max(maxX,x);maxY=Math.max(maxY,y);}
+              }
+              if(maxX>=minX&&maxY>=minY){
+                const bw=maxX-minX+step,bh=maxY-minY+step;
+                // Never crop a full-background image or a tiny noisy fragment.
+                const ratio=(bw*bh)/(width*height);
+                if(ratio>.003&&ratio<.8){
+                  const pad=Math.ceil(Math.max(bw,bh)*.09);
+                  const left=Math.max(0,minX-pad),top=Math.max(0,minY-pad);
+                  const right=Math.min(width,maxX+step+pad),bottom=Math.min(height,maxY+step+pad);
+                  const crop=document.createElement("canvas");
+                  crop.width=right-left;crop.height=bottom-top;
+                  crop.getContext("2d")?.drawImage(canvas,left,top,crop.width,crop.height,0,0,crop.width,crop.height);
+                  if(crop.width&&crop.height){
+                    image.replaceWith(crop);output=crop;
+                    width=crop.width;height=crop.height;
+                  }
+                }
+              }
+            }
+          }catch(error){
+            // Unreadable cross-origin images keep their original dimensions.
+          }
+          // Preserve the picture's proportions; enlarge small model renders up
+          // to a practical reading size, while limiting the viewport height.
+          const maxWidth=Math.min(window.innerWidth*.9-28,760);
+          const maxHeight=window.innerHeight*.84-80;
+          const preferred=Math.max(1,Math.min(3,500/Math.max(width,1)));
+          const scale=Math.min(preferred,maxWidth/width,maxHeight/height);
+          output.style.width=Math.round(width*scale)+"px";
+          output.style.height="auto";
+        },{once:true});
+      }
+      if(typeof mediaDialog.showModal==="function"){
+        mediaDialog.showModal();
+        mediaDialog.querySelector(".u1-media-close")?.focus();
+      }
+    };
+    const cameraHost=cameraDetails?.querySelector(".native-camera-host");
+    if(cameraHost){
+      const trigger=document.createElement("button");
+      trigger.type="button";
+      trigger.className="camera-enlarge-trigger";
+      trigger.setAttribute("aria-label",lang==="es"?"Ampliar cámara":"Enlarge camera");
+      trigger.title=lang==="es"?"Ampliar cámara":"Enlarge camera";
+      cameraHost.appendChild(trigger);
+      trigger.addEventListener("click",e=>{e.stopPropagation();openMedia("camera");});
+    }
+    const thumbnail=this.shadowRoot.querySelector(".job-thumbnail-zoom");
+    thumbnail?.addEventListener("click",()=>openMedia("thumbnail"));
+    thumbnail?.addEventListener("keydown",e=>{
+      if(e.key==="Enter"||e.key===" "){e.preventDefault();openMedia("thumbnail");}
+    });
     const inventoryDetails=this.shadowRoot.querySelector("details.inventory");
     if(inventoryDetails) inventoryDetails.addEventListener("toggle",()=>{this._inventoryOpen=inventoryDetails.open;});
   }
