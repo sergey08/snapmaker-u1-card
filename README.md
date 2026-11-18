@@ -22,6 +22,7 @@ The card supports **English (`en`), Español (`es`), Français (`fr`), Deutsch (
 
 ## Features
 
+- **Reorderable card blocks:** twelve individually framed sections (status/power, printer/spools, progress/temperatures, current job/alerts, filament, energy/costs, charts, print controls, live camera, printer GUI, lighting and Spoolman inventory). In the visual card editor, open **Block order** and drag each section by the six-dot `⠿` handle; use Alt + Up/Down or the arrow buttons for keyboard/touch navigation. Order is saved per card in `block_order`, and older cards retain the original order until changed. Missing/optional sections stay hidden without losing their saved position.
 - Four toolheads (T0–T3), temperatures, active tool and filament information.
 - Print status, progress, layers, estimated time and current-job thumbnail.
 - Optional camera, Spoolman inventory and filament colours and weights.
@@ -92,6 +93,8 @@ All entities below are optional; replace them with your own. An empty title hide
 
 ```yaml
 type: custom:snapmaker-u1-card
+# Optional: visual editor saves all 12 block IDs in your preferred order.
+# block_order: [header, printer, progress, job, filament, energy, charts, controls, camera, gui, led, inventory]
 gui_camera: camera.gui_snapmaker_u1_despacho_2
 gui_open_default: false
 daily_energy_sensor: sensor.impresora3d_energy_today
@@ -134,6 +137,7 @@ La tarjeta admite **inglés (`en`), español (`es`), francés (`fr`), alemán (`
 
 ## Funcionalidades
 
+- **Bloques reordenables:** doce apartados claramente delimitados (estado/encendido, impresora/bobinas, progreso/temperaturas, trabajo actual/avisos, filamento, energía/costes, gráficos, controles, cámara, pantalla GUI, iluminación e inventario Spoolman). En el editor visual, abre **Orden de bloques** y arrastra cada apartado usando el tirador de seis puntos `⠿`; también puedes usar Alt + flechas o los botones de subir y bajar. El orden se guarda por tarjeta en `block_order` y las tarjetas anteriores mantienen su orden original hasta que lo modifiques. Los apartados opcionales siguen ocultándose cuando no están disponibles, sin perder su posición guardada.
 - Cuatro cabezales (T0–T3), temperaturas, herramienta activa y filamento.
 - Estado, progreso, capas, tiempo estimado y miniatura del trabajo actual.
 - Cámara, inventario Spoolman, colores y pesos de filamento opcionales.

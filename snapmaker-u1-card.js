@@ -442,6 +442,13 @@ class SnapmakerU1Card extends HTMLElement {
       .u1-media-content{width:100%;display:flex;justify-content:center;align-items:center;min-height:100px}
       .u1-media-content hui-picture-entity-card{display:block;width:100%;max-width:1100px}
       .u1-media-content img{display:block;max-width:100%;max-height:calc(94vh - 95px);object-fit:contain}
+      /* Individually framed blocks; their order is stored in block_order. */
+      ha-card .u1-block{position:relative;min-width:0;margin-top:12px;padding:10px;border:1px solid #31485c;border-radius:13px;background:color-mix(in srgb,var(--u1-surface,#142536) 48%,transparent)}
+      ha-card .u1-block:first-child{margin-top:0}
+      ha-card .u1-block-title{margin:0 0 9px;font-size:12px;font-weight:750;letter-spacing:.025em;color:var(--u1-accent-strong,#58c7f4)}
+      ha-card .u1-block .scene-layout{margin-top:0}
+      ha-card .u1-block .job-summary,ha-card .u1-block .inventory,ha-card .u1-block .energy-charts,ha-card .u1-block .camera-panel{margin-top:0}
+      ha-card.power-off .u1-block:not([data-block="header"]):not([data-block="printer"]):not([data-block="inventory"]){display:none!important}
       .camera-zoom{position:fixed;inset:0;z-index:9999;background:rgba(2,8,15,.96);display:flex;align-items:center;justify-content:center;padding:54px 12px 12px;box-sizing:border-box}
       .camera-zoom-image{max-width:100%;max-height:100%;object-fit:contain}.camera-zoom-toolbar{position:absolute;top:10px;right:14px;display:flex;gap:8px}
       .camera-zoom-toolbar button{background:#203c53;color:#fff;border:1px solid #64809a;border-radius:8px;padding:8px 12px;cursor:pointer}
@@ -536,6 +543,37 @@ class SnapmakerU1Card extends HTMLElement {
 <path d="M102 47 C107 62 105 70 112 78 M154 47 C158 58 157 64 162 72 M206 47 C211 59 211 65 216 72 M258 47 C265 61 268 66 270 78" fill="none" stroke="#647d8e" stroke-width="2" stroke-dasharray="3 4" opacity=".5"/><path d="M99 52 L130 52 M245 52 L275 52" stroke="#b3d6ec" opacity=".3" stroke-width="2"/>
 ${heads}
 </svg></div><div class="tools-side">${rightTools}</div></div><div class="progress-top" style="${powerState==="off"?"display:none":""}"><div class="bar"><div style="width:${progress}%"></div></div><div class="foot"><span>${(normalizedState==="standby"?"En espera":normalizedState==="ready"?"Disponible":statusMissing(state)?({es:"Conectando…",en:"Connecting…",fr:"Connexion…",de:"Verbindung wird hergestellt…",it:"Connessione in corso…",pt:"A ligar…",nl:"Verbinden…"}[lang]||"Connecting…"):this.esc(state))}</span><span>${progressValid?progress.toFixed(0)+"%":"—"}</span></div></div><div class="metrics" style="${powerState==="off"?"display:none":""}"><div class="metric"><label>Capa</label><b>${layer} / ${total}</b></div><div class="metric"><label>Tiempo restante</label><b>${remaining}</b></div><div class="metric"><label>Cama</label><b>${bed}</b></div><div class="metric"><label>Interior</label><b>${chamber}</b></div></div>${powerState==="off"?"":jobHtml+filamentHtml+warningsHtml+electricityHtml+chartsHtml+controlsHtml+previewHtml+cameraHtml+guiHtml}${powerState!=="off"&&ledEntity?`<div class="led-control ${ledOn?"on":""}"><div class="led-header"><button class="led-toggle" ${ledUnavailable?"disabled":""} aria-label="${ledOn?"Apagar luz LED":"Encender luz LED"}" title="${ledOn?"Apagar":"Encender"}">💡</button></div><input class="led-brightness" type="range" min="0" max="100" value="${ledBrightness}" ${ledUnavailable?"disabled":""} aria-label="${lang==="es"?"Brillo LED":"LED brightness"}"></div>`:""}${inventoryHtml}</ha-card><dialog class="u1-media-dialog" aria-label="${lang==="es"?"Ampliación de imagen":"Image enlargement"}"><div class="u1-media-header"><strong class="u1-media-title"></strong><button class="u1-media-close" type="button" aria-label="${lang==="es"?"Cerrar":"Close"}">✕</button></div><div class="u1-media-content"></div></dialog>`;
+    // Move existing card nodes (never clone them) into clearly identified,
+    // individually reorderable visual blocks before attaching their listeners.
+    const cardSurface=this.shadowRoot.querySelector("ha-card");
+    if(cardSurface){
+      const initialChildren=[...cardSurface.children];
+      const nodes=new Map();
+      for(const definition of SNAPMAKER_BLOCK_DEFINITIONS){
+        const group=[];
+        for(const selector of definition.selectors){
+          const child=initialChildren.find(node=>node.matches(selector));
+          if(child)group.push(child);
+        }
+        if(group.length)nodes.set(definition.id,group);
+      }
+      const blockElements=[];
+      for(const id of snapmakerBlockOrder(c.block_order)){
+        const children=nodes.get(id);
+        if(!children?.length)continue;
+        const definition=SNAPMAKER_BLOCK_DEFINITIONS.find(item=>item.id===id);
+        const section=document.createElement("section");
+        section.className="u1-block";
+        section.dataset.block=id;
+        const heading=document.createElement("h3");
+        heading.className="u1-block-title";
+        heading.textContent=lang==="es"?definition.es:definition.en;
+        section.appendChild(heading);
+        section.append(...children);
+        blockElements.push(section);
+      }
+      cardSurface.replaceChildren(...blockElements);
+    }
     const chartsPanel=this.shadowRoot.querySelector(".energy-charts");
     if(chartsPanel){chartsPanel.addEventListener("toggle",()=>{this._chartsOpen=chartsPanel.open;});}
     if(lang!=="es"){
@@ -824,6 +862,28 @@ ${heads}
   }
 }
 
+// Stable block IDs persist independently in each Lovelace card configuration.
+const SNAPMAKER_BLOCK_DEFINITIONS=[
+  {id:"header",es:"Estado y encendido",en:"Status and power",selectors:[".top"]},
+  {id:"printer",es:"Impresora y bobinas",en:"Printer and spools",selectors:[".scene-layout"]},
+  {id:"progress",es:"Progreso y temperaturas",en:"Progress and temperatures",selectors:[".progress-top",".metrics"]},
+  {id:"job",es:"Trabajo actual y avisos",en:"Current job and alerts",selectors:[".job-summary",".printer-warnings"]},
+  {id:"filament",es:"Filamento del trabajo",en:"Job filament",selectors:[".filament-check"]},
+  {id:"energy",es:"Potencia, energía y costes",en:"Power, energy and costs",selectors:[".electricity"]},
+  {id:"charts",es:"Gráficos de impresión",en:"Print charts",selectors:[".energy-charts"]},
+  {id:"controls",es:"Controles de impresión",en:"Print controls",selectors:[".printer-controls"]},
+  {id:"camera",es:"Cámara en directo",en:"Live camera",selectors:[".camera-panel"]},
+  {id:"gui",es:"Pantalla de la impresora",en:"Printer screen",selectors:[".gui-screen"]},
+  {id:"led",es:"Iluminación",en:"Lighting",selectors:[".led-control"]},
+  {id:"inventory",es:"Inventario Spoolman",en:"Spoolman inventory",selectors:[".inventory"]}
+];
+function snapmakerBlockOrder(order){
+  const ids=SNAPMAKER_BLOCK_DEFINITIONS.map(block=>block.id);
+  if(!Array.isArray(order))return ids;
+  // Ignore unknown or repeated IDs, and append newly introduced blocks.
+  return [...new Set(order.filter(id=>ids.includes(id))),...ids.filter(id=>!order.includes(id))];
+}
+
 class SnapmakerU1CardEditor extends HTMLElement {
   constructor(){super();this.attachShadow({mode:"open"});}
   setConfig(config){this._config={...config};this.render();}
@@ -840,6 +900,75 @@ class SnapmakerU1CardEditor extends HTMLElement {
     this._config=config;
     if(key==="language"){this._editorInitialized=true;this.render();}
     this.dispatchEvent(new CustomEvent("config-changed",{detail:{config},bubbles:true,composed:true}));
+  }
+  moveBlock(id,targetIndex){
+    const current=snapmakerBlockOrder(this._config?.block_order);
+    const from=current.indexOf(id);
+    if(from<0||targetIndex<0||targetIndex>=current.length||from===targetIndex)return;
+    current.splice(targetIndex,0,current.splice(from,1)[0]);
+    this.change("block_order",current);
+    this.render();
+  }
+  buildBlockOrderEditor(){
+    const lang=cardLanguage(this._config,this._hass);
+    const es=lang==="es";
+    const details=document.createElement("details");
+    details.className="group u1-block-editor";
+    details.open=this._blockOrderOpen!==false;
+    details.innerHTML='<summary></summary>';
+    details.querySelector("summary").textContent=es?"Orden de bloques":"Block order";
+    details.addEventListener("toggle",()=>{this._blockOrderOpen=details.open;});
+    const help=document.createElement("p");
+    help.textContent=es?
+      "Arrastra los seis puntos para cambiar el orden de los bloques completos. También puedes usar Alt + ↑/↓ o los botones de flecha. El orden se guarda en esta tarjeta.":
+      "Drag the six-dot handle to reorder complete blocks. Alt + ↑/↓ and arrow buttons also work. Order is saved in this card.";
+    details.appendChild(help);
+    const order=snapmakerBlockOrder(this._config.block_order);
+    order.forEach((id,index)=>{
+      const definition=SNAPMAKER_BLOCK_DEFINITIONS.find(block=>block.id===id);
+      const row=document.createElement("div");
+      row.className="u1-order-row";
+      row.dataset.blockId=id;
+      const handle=document.createElement("button");
+      handle.type="button";handle.draggable=true;
+      handle.className="u1-order-handle";handle.textContent="⠿";
+      handle.title=es?"Arrastra para ordenar · Alt + flechas":"Drag to reorder · Alt + arrows";
+      handle.setAttribute("aria-label",(es?"Mover ":"Move ")+(es?definition.es:definition.en));
+      handle.addEventListener("dragstart",e=>{
+        this._dragBlock=id;
+        e.dataTransfer?.setData("text/plain",id);
+        if(e.dataTransfer)e.dataTransfer.effectAllowed="move";
+        row.classList.add("dragging");
+      });
+      const finishDrag=()=>{this._dragBlock=null;this.shadowRoot.querySelectorAll(".u1-order-row").forEach(el=>el.classList.remove("dragging","drop-target"));};
+      handle.addEventListener("dragend",finishDrag);
+      handle.addEventListener("keydown",e=>{
+        if(e.altKey&&(e.key==="ArrowUp"||e.key==="ArrowDown")){
+          e.preventDefault();
+          this.moveBlock(id,index+(e.key==="ArrowUp"?-1:1));
+        }
+      });
+      row.addEventListener("dragover",e=>{
+        if(this._dragBlock&&this._dragBlock!==id){e.preventDefault();row.classList.add("drop-target");if(e.dataTransfer)e.dataTransfer.dropEffect="move";}
+      });
+      row.addEventListener("dragleave",()=>row.classList.remove("drop-target"));
+      row.addEventListener("drop",e=>{
+        if(!this._dragBlock)return;
+        e.preventDefault();const moved=this._dragBlock;finishDrag();this.moveBlock(moved,index);
+      });
+      const label=document.createElement("span");
+      label.textContent=es?definition.es:definition.en;
+      const up=document.createElement("button"),down=document.createElement("button");
+      up.type=down.type="button";
+      up.textContent="↑";down.textContent="↓";
+      up.title=es?"Subir bloque":"Move up";down.title=es?"Bajar bloque":"Move down";
+      up.disabled=index===0;down.disabled=index===order.length-1;
+      up.addEventListener("click",()=>this.moveBlock(id,index-1));
+      down.addEventListener("click",()=>this.moveBlock(id,index+1));
+      row.append(handle,label,up,down);
+      details.appendChild(row);
+    });
+    return details;
   }
   detectEntities(){
     const states=this._hass?.states||{};
@@ -935,6 +1064,17 @@ class SnapmakerU1CardEditor extends HTMLElement {
     const style=`<style>:host{display:block;color:var(--primary-text-color)}.group{border:1px solid var(--divider-color);border-radius:12px;padding:12px;margin:12px 0}.group summary{cursor:pointer;font-size:15px;font-weight:650;padding:4px 0;list-style-position:inside}.group[open] summary{margin-bottom:12px}h3{font-size:15px;margin:0 0 12px}label{display:block;font-size:13px;margin:10px 0 5px}ha-entity-picker{display:block;width:100%}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}p{font-size:12px;color:var(--secondary-text-color)}</style>`;
     this.shadowRoot.innerHTML=style+`<label for="snapmaker-card-title">${es?"Nombre de la tarjeta":"Card name"}</label><input id="snapmaker-card-title" type="text" placeholder="" value="${String(this._config.title||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;")}">`+sections.map(([title,fields],index)=>`<details class="group" data-editor-group="${index}" ${this._openGroups?.has(String(index))?"open":""}><summary>${title}</summary>${fields.map(([key,label])=>`<label>${label}</label><ha-entity-picker data-key="${key}" allow-custom-entity></ha-entity-picker>`).join("")}</details>`).join("")+`<details class="group" data-editor-group="spoolman" ${this._openGroups?.has("spoolman")?"open":""}><summary>Spoolman (opcional)</summary><p>Introduce el ID de cada bobina de Spoolman. Si no utilizas Spoolman, deja estos campos vacíos.</p>${[0,1,2,3].map(i=>`<label>Bobina T${i} · ID de Spoolman</label><input data-spool="${i}" type="number" min="1" step="1" placeholder="Sin Spoolman"></input>`).join("")}</details>`;
     this.shadowRoot.prepend(languageRow);
+    const blockOrderEditor=this.buildBlockOrderEditor();
+    blockOrderEditor.insertAdjacentHTML("afterbegin",`<style>
+      .u1-order-row{display:flex;align-items:center;gap:8px;padding:7px 5px;margin:5px 0;border:1px solid var(--divider-color);border-radius:9px;min-width:0}
+      .u1-order-row>span{flex:1;font-size:13px;min-width:0}
+      .u1-order-row button{width:36px;height:36px;cursor:pointer;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);color:var(--primary-text-color)}
+      .u1-order-row button:disabled{opacity:.3;cursor:default}
+      .u1-order-row .u1-order-handle{font-size:23px;cursor:grab;touch-action:none}
+      .u1-order-row.dragging{opacity:.45}
+      .u1-order-row.drop-target{outline:2px solid var(--primary-color)}
+    </style>`);
+    languageRow.after(blockOrderEditor);
     const inventoryToggle=document.createElement("label");
     inventoryToggle.style.cssText="display:flex;align-items:center;gap:10px;margin:14px 0;padding:12px;border:1px solid var(--divider-color);border-radius:10px";
     inventoryToggle.innerHTML='<input type="checkbox" style="width:auto"> Mostrar inventario completo de Spoolman (opcional)';
