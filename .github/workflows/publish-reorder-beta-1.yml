@@ -1,0 +1,53 @@
+name: Publish Snapmaker U1 Card v0.1.19-beta.1
+
+on:
+  push:
+    branches:
+      - beta/reorder-blocks-v0.1.19-beta.1
+    paths:
+      - .github/workflows/publish-reorder-beta-1.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: snapmaker-u1-v0.1.19-beta.1
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.repository == 'sergey08/snapmaker-u1-card'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate card and release notes
+        run: |
+          set -euo pipefail
+          node --check snapmaker-u1-card.js
+          node tests/validate-card.cjs
+          test -s docs/releases/v0.1.19-beta.1.md
+          grep -q '^## English' docs/releases/v0.1.19-beta.1.md
+          grep -q '^## Español' docs/releases/v0.1.19-beta.1.md
+          grep -q '"filename": "snapmaker-u1-card.js"' hacs.json
+      - name: Publish tagged prerelease for HACS
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: v0.1.19-beta.1
+        run: |
+          set -euo pipefail
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "::error::Release already exists."
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
+            echo "::error::Tag already exists."
+            exit 1
+          fi
+          gh release create "$TAG" snapmaker-u1-card.js \
+            --target "$GITHUB_SHA" \
+            --title "Snapmaker U1 Card $TAG" \
+            --prerelease \
+            --notes-file docs/releases/v0.1.19-beta.1.md
